@@ -3,8 +3,18 @@
     "maze_type": "irregular",
     "maze_index": "0000",
     "prompt": "Show the solution path through this maze from start to finish.",
-    "error": "Generation failed: 400: failed to moderate image",
-    "success": false,
-    "timestamp": "2025-10-09T00:42:14.205095"
+    "output_path": "outputs/luma_c4d629bf-94bf-4c4e-955f-eba2de8e526c.mp4",
+    "generation_time": 61.28193688392639,
+    "success": true,
+    "timestamp": "2025-10-09T00:53:51.712948"
+  },
+  {
+    "maze_type": "knowwhat",
+    "maze_index": "0001",
+    "prompt": "Show how to solve this maze by finding the path from start to goal.",
+    "output_path": "outputs/luma_d4dbe354-907e-4e5f-869f-d376ed6e41fd.mp4",
+    "generation_time": 65.13326501846313,
+    "success": true,
+    "timestamp": "2025-10-09T00:55:22.160588"
   }
 ]

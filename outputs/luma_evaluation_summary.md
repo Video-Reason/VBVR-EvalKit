@@ -1,7 +1,35 @@
 # Luma Dream Machine Evaluation Summary
 
+## S3 Access Issue Resolution
+
+**Problem**: Initial tests failed with "400: failed to moderate image" error.
+
+**Root Cause**: S3 presigned URL authentication mismatch:
+- S3 bucket `vmevalkit` is located in `us-east-2`
+- AWS_REGION environment variable was set to `us-east-1`
+- S3 was rejecting the authentication due to region mismatch
+
+**Solution**: Fixed in `vmevalkit/utils/s3_uploader.py`:
+1. Added AWS Signature Version 4 support (required by S3)
+2. Forced region to `us-east-2` to match bucket location
+
+**Result**: All maze reasoning tests now work successfully!
+
+## Successful Test Results
+
 **Date**: October 9, 2025  
 **Model**: Luma Dream Machine (ray-2)
+
+### Test Cases Completed:
+1. **Irregular Maze #0000**
+   - Prompt: "Show the solution path through this maze from start to finish."
+   - Generation Time: 61.3 seconds
+   - Output: `outputs/luma_c4d629bf-94bf-4c4e-955f-eba2de8e526c.mp4`
+
+2. **KnowWhat Maze #0001**
+   - Prompt: "Show how to solve this maze by finding the path from start to goal."
+   - Generation Time: 65.1 seconds
+   - Output: `outputs/luma_d4dbe354-907e-4e5f-869f-d376ed6e41fd.mp4`
 
 ## Key Findings
 

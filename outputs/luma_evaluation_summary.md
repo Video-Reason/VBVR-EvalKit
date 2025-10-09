@@ -60,7 +60,7 @@ Luma's content moderation system **rejects our maze reasoning images**, even tho
 
 ## Code Assets Created
 1. `vmevalkit/api_clients/luma_client.py` - Full Luma API integration with progress tracking
-2. `test_luma_maze.py` - Test script for maze reasoning evaluation
+2. `examples/test_luma_maze_reasoning.py` - Test script for maze reasoning evaluation
 3. `vmevalkit/utils/s3_uploader.py` - S3 uploader with presigned URLs
 
 ## Recommendation

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
 Test Luma API with maze reasoning tasks.
+
+This script demonstrates how to use the Luma Dream Machine API with VMEvalKit
+to evaluate video reasoning capabilities on maze-solving tasks.
+
+Note: Requires proper S3 configuration for image hosting. The default bucket
+'vmevalkit' is in us-east-2. Ensure AWS_DEFAULT_REGION matches or update
+the S3_BUCKET in your .env file.
 """
 
 import os
@@ -10,7 +17,7 @@ import time
 import json
 from datetime import datetime
 
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 load_dotenv()

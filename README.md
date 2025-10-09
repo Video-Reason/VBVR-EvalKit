@@ -144,35 +144,66 @@ pip install -e .
 pip install vmevalkit
 ```
 
+### 🔧 Configuration
+
+#### S3 Configuration (for image hosting)
+VMEvalKit uses S3 for temporary image hosting when working with cloud-based video generation APIs. The default S3 bucket `vmevalkit` is located in `us-east-2`.
+
+**Important**: If you encounter S3 authentication errors, ensure your AWS configuration matches the bucket region:
+```bash
+# The S3 bucket is in us-east-2
+export AWS_DEFAULT_REGION=us-east-2  # or configure in ~/.aws/config
+```
+
+If you use a different S3 bucket, update the configuration in your `.env` file:
+```bash
+S3_BUCKET=your-bucket-name
+AWS_DEFAULT_REGION=your-bucket-region
+```
+
 ## 📖 Quick Start
 
 ### Basic Usage
 
 ```python
-from vmevalkit.core import Evaluator, TaskLoader, ModelRegistry
+from vmevalkit import InferenceRunner
 
-# Load a reasoning task (e.g., maze with image + text prompt)
-task = TaskLoader.load_task("maze_solving")
+# Initialize inference runner
+runner = InferenceRunner(output_dir="./outputs")
 
-# Load one of the 4 implemented models
-model = ModelRegistry.load_model("luma-dream-machine", api_key="your-api-key")
-# Or: "google-veo-001", "google-veo-002", "runway-gen4-aleph"
-
-# Run evaluation with both image and text inputs
-results = evaluator.evaluate(
-    model=model,
-    task=task,
-    input_image=task.problem_image,  # The maze image
+# Run video generation with image + text
+result = runner.run(
+    model_name="luma-dream-machine",
+    image_path="data/maze.png",
     text_prompt="Navigate through the maze from the green start to the red end point",
-    num_samples=5,
-    verify_text_image_support=True  # Ensures model accepts both inputs
+    duration=5.0,
+    resolution=(512, 512)
 )
 
-# Print results
-print(f"Reasoning Score: {results.reasoning_score:.2f}")
-print(f"Video Quality: {results.video_quality:.2f}")
-print(f"Solution Correctness: {results.solution_accuracy:.2f}")
+print(f"Generated video: {result['video_path']}")
+print(f"Generation time: {result['duration']:.1f}s")
 ```
+
+### Command Line Interface
+
+```bash
+# Single inference
+vmevalkit inference luma-dream-machine \
+    --image data/maze.png \
+    --prompt "Solve this maze step by step"
+
+# Batch processing on dataset
+vmevalkit batch luma-dream-machine \
+    --dataset data/maze_tasks.json \
+    --workers 4
+
+# Compare multiple models
+vmevalkit batch luma-dream-machine google-veo-001 \
+    --dataset data/tasks.json \
+    --max-tasks 10
+```
+
+See [USAGE.md](USAGE.md) for comprehensive documentation.
 
 ### Batch Evaluation
 
@@ -234,18 +265,20 @@ benchmark_results = evaluator.run_benchmark(
 ```
 VMEvalKit/
 ├── vmevalkit/
+│   ├── api_clients/    # API client implementations
 │   ├── core/           # Core evaluation framework
+│   ├── inference/      # Inference module (no evaluation)
 │   ├── models/         # Model interfaces and wrappers
 │   ├── tasks/          # Task definitions and datasets
 │   ├── metrics/        # Evaluation metrics
 │   ├── prompts/        # Prompt templates
-│   └── utils/          # Utility functions
-├── datasets/           # Task datasets and examples
-├── configs/            # Configuration files
-├── scripts/            # Utility scripts
+│   ├── utils/          # Utility functions
+│   └── cli.py          # Command-line interface
+├── data/               # Generated datasets and tasks
+├── examples/           # Example scripts and notebooks
 ├── tests/              # Unit tests
 ├── docs/               # Documentation
-└── examples/           # Example notebooks and scripts
+└── USAGE.md            # Comprehensive usage guide
 ```
 
 ## 🔧 Configuration
@@ -302,17 +335,21 @@ tasks:
 
 ## 📈 Benchmarking
 
-Run comprehensive benchmarks:
+Run comprehensive benchmarks using the inference module:
 
 ```bash
-# Run full benchmark suite
-python scripts/run_benchmark.py --config configs/full_benchmark.yaml
+# Process entire dataset with single model
+vmevalkit batch luma-dream-machine --dataset data/maze_tasks.json
 
-# Run specific task benchmark
-python scripts/run_benchmark.py --task maze_solving --models all
+# Compare multiple models on same dataset
+vmevalkit batch luma-dream-machine google-veo-001 runway-gen3 \
+    --dataset data/benchmark_tasks.json \
+    --workers 4
 
-# Generate comparison report
-python scripts/generate_report.py --results_dir ./results --output report.html
+# Process specific tasks only
+vmevalkit batch luma-dream-machine \
+    --dataset data/tasks.json \
+    --task-ids task_001 task_002 task_003
 ```
 
 ## 🧪 Adding Custom Models

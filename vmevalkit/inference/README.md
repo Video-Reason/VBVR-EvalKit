@@ -57,12 +57,12 @@ comparison = batch_runner.run_models_comparison(
 ### Single inference
 ```bash
 # From dataset task
-python scripts/run_inference.py luma-dream-machine \
+vmevalkit inference luma-dream-machine \
     --task-file data/maze_tasks/irregular_tasks.json \
     --task-id irregular_0000
 
 # Direct image + prompt
-python scripts/run_inference.py luma-dream-machine \
+vmevalkit inference luma-dream-machine \
     --image path/to/image.png \
     --prompt "Move the green dot to the red flag"
 ```
@@ -70,11 +70,11 @@ python scripts/run_inference.py luma-dream-machine \
 ### Batch inference
 ```bash
 # Single model on dataset
-python scripts/run_batch_inference.py luma-dream-machine \
+vmevalkit batch luma-dream-machine \
     --dataset data/maze_tasks/irregular_tasks.json
 
 # Multiple models comparison
-python scripts/run_batch_inference.py luma-dream-machine google-veo-001 \
+vmevalkit batch luma-dream-machine google-veo-001 \
     --dataset data/maze_tasks/irregular_tasks.json \
     --max-tasks 5
 ```

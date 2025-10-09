@@ -1,0 +1,8 @@
+{
+  "working_models": [],
+  "tested_models": [
+    "ray-flash-2",
+    "ray-2",
+    "ray-1-6"
+  ]
+}

@@ -1,10 +1,10 @@
 {
   "name": "knowwhat_tasks",
-  "description": "KnowWhat algorithmic maze tasks with star/circle markers (4 pairs)",
+  "description": "KnowWhat algorithmic maze tasks with star/circle markers (8 pairs)",
   "pairs": [
     {
       "id": "knowwhat_0000",
-      "prompt": "Move the blue star from start to the circle target.",
+      "prompt": "Solve this square maze by reaching the circle target (no path drawing).",
       "first_image_path": "data/generated_mazes/knowwhat_0000_first.png",
       "final_image_path": "data/generated_mazes/knowwhat_0000_final.png",
       "task_category": "KnowWhat",
@@ -15,27 +15,147 @@
             0,
             0,
             0,
+            0,
+            0,
+            0,
+            0,
             0
           ],
           [
+            0,
             1,
             1,
             2,
             1,
-            0
+            1,
+            1,
+            1,
+            1
           ],
           [
+            0,
             1,
             0,
             0,
-            1,
-            0
+            0,
+            0,
+            0,
+            0,
+            1
           ],
           [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
             3,
             0,
             0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
             1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        ],
+        "generation_method": "knowwhat_algorithmic"
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        9,
+        9
+      ],
+      "start_pos": [
+        1,
+        3
+      ],
+      "end_pos": [
+        6,
+        1
+      ],
+      "solution_length": null,
+      "shape_type": "square",
+      "created_at": "2025-10-10T03:12:25.436283"
+    },
+    {
+      "id": "knowwhat_0001",
+      "prompt": "In this square-pattern maze, move the star to the circle.",
+      "first_image_path": "data/generated_mazes/knowwhat_0001_first.png",
+      "final_image_path": "data/generated_mazes/knowwhat_0001_final.png",
+      "task_category": "KnowWhat",
+      "maze_data": {
+        "maze_array": [
+          [
+            1,
+            1,
+            1,
+            3,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            2,
             0
           ],
           [
@@ -43,6 +163,13 @@
             1,
             1,
             1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
             0
           ]
         ],
@@ -54,67 +181,34 @@
         5
       ],
       "start_pos": [
-        1,
-        2
+        2,
+        3
       ],
       "end_pos": [
-        3,
-        0
+        0,
+        3
       ],
       "solution_length": null,
       "shape_type": "square",
-      "created_at": "2025-10-08T18:24:56.711523"
+      "created_at": "2025-10-10T03:12:25.593252"
     },
     {
-      "id": "knowwhat_0001",
-      "prompt": "Start at the blue star and finish at the circle marker.",
-      "first_image_path": "data/generated_mazes/knowwhat_0001_first.png",
-      "final_image_path": "data/generated_mazes/knowwhat_0001_final.png",
+      "id": "knowwhat_0002",
+      "prompt": "Move the blue star from start to the circle target.",
+      "first_image_path": "data/generated_mazes/knowwhat_0002_first.png",
+      "final_image_path": "data/generated_mazes/knowwhat_0002_final.png",
       "task_category": "KnowWhat",
       "maze_data": {
         "maze_array": [
           [
             0,
             0,
-            1,
-            1,
-            1,
-            2,
-            1,
-            1,
-            0
-          ],
-          [
-            0,
-            0,
-            1,
             0,
             0,
             0,
             0,
-            1,
-            0
-          ],
-          [
             0,
             0,
-            1,
-            0,
-            0,
-            1,
-            0,
-            1,
-            0
-          ],
-          [
-            0,
-            0,
-            1,
-            1,
-            1,
-            1,
-            0,
-            1,
             0
           ],
           [
@@ -125,18 +219,51 @@
             0,
             0,
             0,
-            1,
+            0,
             0
           ],
           [
             0,
             0,
+            0,
+            0,
+            0,
+            0,
             1,
+            1,
+            2
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             1,
             3,
-            1,
-            1,
-            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0
           ],
           [
@@ -181,20 +308,20 @@
         9
       ],
       "start_pos": [
-        0,
-        5
+        2,
+        8
       ],
       "end_pos": [
-        5,
-        4
+        4,
+        7
       ],
       "solution_length": null,
-      "shape_type": "spiral",
-      "created_at": "2025-10-08T18:24:56.859385"
+      "shape_type": "square",
+      "created_at": "2025-10-10T03:12:25.814008"
     },
     {
       "id": "knowwhat_0003",
-      "prompt": "Move the blue star from start to the circle target.",
+      "prompt": "Start at the blue star and finish at the circle marker.",
       "first_image_path": "data/generated_mazes/knowwhat_0003_first.png",
       "final_image_path": "data/generated_mazes/knowwhat_0003_final.png",
       "task_category": "KnowWhat",
@@ -202,90 +329,62 @@
         "maze_array": [
           [
             0,
+            1,
+            1,
+            1,
+            2
+          ],
+          [
             0,
-            0,
-            0,
+            1,
             0,
             0,
             0
           ],
           [
             0,
-            0,
-            0,
-            0,
+            1,
             0,
             0,
             0
           ],
           [
             0,
+            1,
             0,
             0,
-            1,
-            1,
-            1,
             0
           ],
           [
-            0,
-            0,
-            0,
-            2,
-            0,
-            1,
-            0
-          ],
-          [
-            0,
-            0,
             0,
             1,
             1,
             3,
-            0
-          ],
-          [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
-          ],
-          [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
+            1
           ]
         ],
         "generation_method": "knowwhat_algorithmic"
       },
       "difficulty": "medium",
       "maze_size": [
-        7,
-        7
+        5,
+        5
       ],
       "start_pos": [
-        3,
-        3
+        0,
+        4
       ],
       "end_pos": [
         4,
-        5
+        3
       ],
       "solution_length": null,
-      "shape_type": "square",
-      "created_at": "2025-10-08T18:24:56.997626"
+      "shape_type": "C",
+      "created_at": "2025-10-10T03:12:25.959750"
     },
     {
       "id": "knowwhat_0004",
-      "prompt": "In this spiral-pattern maze, move the star to the circle.",
+      "prompt": "Move the blue star from start to the circle target.",
       "first_image_path": "data/generated_mazes/knowwhat_0004_first.png",
       "final_image_path": "data/generated_mazes/knowwhat_0004_final.png",
       "task_category": "KnowWhat",
@@ -314,9 +413,9 @@
             0
           ],
           [
+            0,
+            0,
             1,
-            1,
-            3,
             1,
             1,
             1,
@@ -327,7 +426,7 @@
           [
             0,
             0,
-            0,
+            1,
             0,
             0,
             1,
@@ -336,21 +435,10 @@
             0
           ],
           [
-            1,
-            1,
-            1,
-            1,
-            0,
-            1,
-            0,
-            0,
-            0
-          ],
-          [
-            1,
             0,
             0,
             1,
+            0,
             0,
             1,
             0,
@@ -358,23 +446,34 @@
             0
           ],
           [
-            1,
-            0,
-            0,
             0,
             0,
             2,
+            1,
+            1,
+            3,
             0,
             0,
             0
           ],
           [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0,
             0,
             0
@@ -399,21 +498,302 @@
         9
       ],
       "start_pos": [
-        6,
-        5
+        5,
+        2
       ],
       "end_pos": [
-        2,
+        5,
+        5
+      ],
+      "solution_length": null,
+      "shape_type": "square",
+      "created_at": "2025-10-10T03:12:26.104209"
+    },
+    {
+      "id": "knowwhat_0005",
+      "prompt": "Solve this C maze by reaching the circle target (no path drawing).",
+      "first_image_path": "data/generated_mazes/knowwhat_0005_first.png",
+      "final_image_path": "data/generated_mazes/knowwhat_0005_final.png",
+      "task_category": "KnowWhat",
+      "maze_data": {
+        "maze_array": [
+          [
+            1,
+            1,
+            3,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            2,
+            1,
+            1,
+            1,
+            1
+          ]
+        ],
+        "generation_method": "knowwhat_algorithmic"
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        4,
+        0
+      ],
+      "end_pos": [
+        0,
         2
       ],
       "solution_length": null,
+      "shape_type": "C",
+      "created_at": "2025-10-10T03:12:26.248739"
+    },
+    {
+      "id": "knowwhat_0007",
+      "prompt": "Solve this spiral maze by reaching the circle target (no path drawing).",
+      "first_image_path": "data/generated_mazes/knowwhat_0007_first.png",
+      "final_image_path": "data/generated_mazes/knowwhat_0007_final.png",
+      "task_category": "KnowWhat",
+      "maze_data": {
+        "maze_array": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            3,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            2,
+            1,
+            1,
+            1,
+            1,
+            0
+          ]
+        ],
+        "generation_method": "knowwhat_algorithmic"
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        6,
+        1
+      ],
+      "end_pos": [
+        4,
+        3
+      ],
+      "solution_length": null,
       "shape_type": "spiral",
-      "created_at": "2025-10-08T18:24:57.139283"
+      "created_at": "2025-10-10T03:12:26.399830"
+    },
+    {
+      "id": "knowwhat_0009",
+      "prompt": "Move the blue star from start to the circle target.",
+      "first_image_path": "data/generated_mazes/knowwhat_0009_first.png",
+      "final_image_path": "data/generated_mazes/knowwhat_0009_final.png",
+      "task_category": "KnowWhat",
+      "maze_data": {
+        "maze_array": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            3,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "generation_method": "knowwhat_algorithmic"
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        9,
+        9
+      ],
+      "start_pos": [
+        2,
+        2
+      ],
+      "end_pos": [
+        4,
+        1
+      ],
+      "solution_length": null,
+      "shape_type": "triangle",
+      "created_at": "2025-10-10T03:12:26.548991"
     }
   ],
   "metadata": {
     "task_category": "KnowWhat",
     "marker_style": "star_circle"
   },
-  "created_at": "2025-10-08T18:24:57.139300"
+  "created_at": "2025-10-10T03:12:26.549006"
 }

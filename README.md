@@ -55,6 +55,18 @@ VMEvalKit supports **36+ models** across **9 providers**:
 
 All models support **image + text → video** for reasoning evaluation.
 
+## Core Concepts
+
+### Task Pair: The Fundamental Unit
+Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning evaluation:
+
+- 📸 **Initial state image** (the reasoning problem)
+- 🎯 **Final state image** (the solution/goal state)  
+- 📝 **Text prompt** (instructions for video model)
+- 📊 **Rich metadata** (difficulty, task-specific parameters, etc.)
+
+Models must generate videos showing the reasoning process from initial → final state.
+
 ## Tasks
 
 - **Maze Solving**: Navigate from start to finish

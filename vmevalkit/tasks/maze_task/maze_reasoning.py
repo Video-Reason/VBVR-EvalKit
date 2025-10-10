@@ -124,9 +124,8 @@ class KnowWhatTaskGenerator:
         self.data_root = Path(data_root)
         self.maze_tasks_dir = self.data_root / "maze_tasks"
         self.generated_mazes_dir = self.data_root / "generated_mazes" 
-        self.evaluation_results_dir = self.data_root / "evaluation_results"
         
-        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir, self.evaluation_results_dir]:
+        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
         
         self.prompts = [
@@ -254,9 +253,8 @@ class IrregularTaskGenerator:
         self.data_root = Path(data_root)
         self.maze_tasks_dir = self.data_root / "maze_tasks"
         self.generated_mazes_dir = self.data_root / "generated_mazes"
-        self.evaluation_results_dir = self.data_root / "evaluation_results"
         
-        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir, self.evaluation_results_dir]:
+        for dir_path in [self.maze_tasks_dir, self.generated_mazes_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
         
         self._create_icons()
@@ -423,6 +421,13 @@ class IrregularTaskGenerator:
 
 def create_knowwhat_dataset(num_samples: int = 20) -> MazeDataset:
     """Create KnowWhat dataset with simple star/circle markers."""
+    # Apply robustness patch for KnowWhat generation
+    try:
+        from .maze_patch import patch_knowwhat_generation
+        patch_knowwhat_generation()
+    except ImportError:
+        print("⚠️  Maze patch not available, using original generation")
+    
     generator = KnowWhatTaskGenerator()
     pairs = []
     

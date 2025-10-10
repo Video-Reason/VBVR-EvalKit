@@ -22,6 +22,19 @@ All datasets follow the **First Frame → Final Frame** pattern:
 
 ---
 
+## Fundamental Data Unit: Task Pair
+
+**The basic unit of all VMEvalKit datasets is a "Task Pair"**, consisting of:
+
+- **Initial state image**: Visual representation of the problem to solve
+- **Final state image**: Visual representation of the solved/target state
+- **Text prompt**: Natural language instructions for the video model
+- **Metadata**: Task-specific information (difficulty, generation method, etc.)
+
+This consistent structure enables unified evaluation across all reasoning domains.
+
+---
+
 ## Dataset Framework Structure
 
 ### 1. Directory Organization

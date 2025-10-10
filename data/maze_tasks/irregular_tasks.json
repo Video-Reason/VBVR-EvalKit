@@ -1,33 +1,33 @@
 {
   "name": "irregular_tasks",
-  "description": "Irregular maze tasks with professional green dot/flag rendering (5 pairs)",
+  "description": "Irregular maze tasks with professional green dot/flag rendering (40 pairs)",
   "pairs": [
     {
       "id": "irregular_0000",
-      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "prompt": "Move the green dot from start to the red flag destination.",
       "first_image_path": "data/generated_mazes/irregular_0000_first.png",
       "final_image_path": "data/generated_mazes/irregular_0000_final.png",
       "task_category": "Irregular",
       "maze_data": {
         "generation_method": "kruskal_algorithm",
-        "solution_length": 5
+        "solution_length": 16
       },
       "difficulty": "hard",
       "maze_size": [
-        8,
-        8
+        7,
+        7
       ],
       "start_pos": [
-        6,
-        2
+        3,
+        5
       ],
       "end_pos": [
-        7,
+        0,
         1
       ],
-      "solution_length": 5,
+      "solution_length": 16,
       "shape_type": "",
-      "created_at": "2025-10-08T18:24:56.373857"
+      "created_at": "2025-10-10T03:12:26.598616"
     },
     {
       "id": "irregular_0001",
@@ -37,24 +37,24 @@
       "task_category": "Irregular",
       "maze_data": {
         "generation_method": "kruskal_algorithm",
-        "solution_length": 4
+        "solution_length": 3
       },
-      "difficulty": "easy",
+      "difficulty": "hard",
       "maze_size": [
-        4,
-        4
+        8,
+        8
       ],
       "start_pos": [
-        3,
+        1,
         2
       ],
       "end_pos": [
         2,
-        0
+        3
       ],
-      "solution_length": 4,
+      "solution_length": 3,
       "shape_type": "",
-      "created_at": "2025-10-08T18:24:56.439226"
+      "created_at": "2025-10-10T03:12:26.647507"
     },
     {
       "id": "irregular_0002",
@@ -64,34 +64,34 @@
       "task_category": "Irregular",
       "maze_data": {
         "generation_method": "kruskal_algorithm",
-        "solution_length": 13
+        "solution_length": 8
       },
-      "difficulty": "hard",
+      "difficulty": "easy",
       "maze_size": [
-        7,
-        7
+        3,
+        3
       ],
       "start_pos": [
-        1,
-        6
+        2,
+        1
       ],
       "end_pos": [
-        5,
+        2,
         0
       ],
-      "solution_length": 13,
+      "solution_length": 8,
       "shape_type": "",
-      "created_at": "2025-10-08T18:24:56.480173"
+      "created_at": "2025-10-10T03:12:26.695076"
     },
     {
       "id": "irregular_0003",
-      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
       "first_image_path": "data/generated_mazes/irregular_0003_first.png",
       "final_image_path": "data/generated_mazes/irregular_0003_final.png",
       "task_category": "Irregular",
       "maze_data": {
         "generation_method": "kruskal_algorithm",
-        "solution_length": 9
+        "solution_length": 13
       },
       "difficulty": "hard",
       "maze_size": [
@@ -99,22 +99,400 @@
         8
       ],
       "start_pos": [
-        2,
-        0
+        1,
+        2
       ],
       "end_pos": [
         5,
-        3
+        2
       ],
-      "solution_length": 9,
+      "solution_length": 13,
       "shape_type": "",
-      "created_at": "2025-10-08T18:24:56.523769"
+      "created_at": "2025-10-10T03:12:26.738898"
     },
     {
       "id": "irregular_0004",
       "prompt": "Start at the green dot and end at the red flag (no path drawing).",
       "first_image_path": "data/generated_mazes/irregular_0004_first.png",
       "final_image_path": "data/generated_mazes/irregular_0004_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 9
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        4,
+        4
+      ],
+      "start_pos": [
+        0,
+        2
+      ],
+      "end_pos": [
+        3,
+        1
+      ],
+      "solution_length": 9,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:26.800161"
+    },
+    {
+      "id": "irregular_0005",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0005_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0005_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 2
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        3,
+        3
+      ],
+      "start_pos": [
+        1,
+        2
+      ],
+      "end_pos": [
+        0,
+        2
+      ],
+      "solution_length": 2,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:26.852071"
+    },
+    {
+      "id": "irregular_0006",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0006_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0006_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 5
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        4,
+        4
+      ],
+      "start_pos": [
+        2,
+        3
+      ],
+      "end_pos": [
+        0,
+        1
+      ],
+      "solution_length": 5,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:26.902200"
+    },
+    {
+      "id": "irregular_0007",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0007_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0007_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 2
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        3,
+        3
+      ],
+      "start_pos": [
+        2,
+        2
+      ],
+      "end_pos": [
+        2,
+        1
+      ],
+      "solution_length": 2,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:26.947298"
+    },
+    {
+      "id": "irregular_0008",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0008_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0008_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 7
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        6,
+        6
+      ],
+      "start_pos": [
+        3,
+        4
+      ],
+      "end_pos": [
+        5,
+        0
+      ],
+      "solution_length": 7,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:26.997853"
+    },
+    {
+      "id": "irregular_0009",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0009_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0009_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        3,
+        0
+      ],
+      "end_pos": [
+        3,
+        1
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.048820"
+    },
+    {
+      "id": "irregular_0010",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0010_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0010_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        1,
+        0
+      ],
+      "end_pos": [
+        1,
+        3
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.093790"
+    },
+    {
+      "id": "irregular_0011",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0011_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0011_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 8
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        3,
+        5
+      ],
+      "end_pos": [
+        6,
+        3
+      ],
+      "solution_length": 8,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.137692"
+    },
+    {
+      "id": "irregular_0012",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0012_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0012_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 10
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        4,
+        2
+      ],
+      "end_pos": [
+        1,
+        0
+      ],
+      "solution_length": 10,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.180692"
+    },
+    {
+      "id": "irregular_0013",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0013_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0013_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 10
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        0,
+        4
+      ],
+      "end_pos": [
+        4,
+        3
+      ],
+      "solution_length": 10,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.227443"
+    },
+    {
+      "id": "irregular_0014",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0014_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0014_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 2
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        1,
+        0
+      ],
+      "end_pos": [
+        1,
+        1
+      ],
+      "solution_length": 2,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.269025"
+    },
+    {
+      "id": "irregular_0015",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0015_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0015_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 5
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        4,
+        2
+      ],
+      "end_pos": [
+        2,
+        4
+      ],
+      "solution_length": 5,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.314857"
+    },
+    {
+      "id": "irregular_0016",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0016_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0016_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        3,
+        3
+      ],
+      "start_pos": [
+        1,
+        1
+      ],
+      "end_pos": [
+        0,
+        1
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.358890"
+    },
+    {
+      "id": "irregular_0017",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0017_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0017_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 5
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        2,
+        3
+      ],
+      "end_pos": [
+        4,
+        1
+      ],
+      "solution_length": 5,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.403452"
+    },
+    {
+      "id": "irregular_0018",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0018_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0018_final.png",
       "task_category": "Irregular",
       "maze_data": {
         "generation_method": "kruskal_algorithm",
@@ -126,16 +504,583 @@
         6
       ],
       "start_pos": [
-        5,
-        5
+        2,
+        4
       ],
       "end_pos": [
-        4,
+        0,
         3
       ],
       "solution_length": 4,
       "shape_type": "",
-      "created_at": "2025-10-08T18:24:56.562801"
+      "created_at": "2025-10-10T03:12:27.448077"
+    },
+    {
+      "id": "irregular_0019",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0019_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0019_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 20
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        8,
+        8
+      ],
+      "start_pos": [
+        3,
+        4
+      ],
+      "end_pos": [
+        6,
+        4
+      ],
+      "solution_length": 20,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.492302"
+    },
+    {
+      "id": "irregular_0020",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0020_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0020_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 15
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        4,
+        6
+      ],
+      "end_pos": [
+        6,
+        4
+      ],
+      "solution_length": 15,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.537165"
+    },
+    {
+      "id": "irregular_0021",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0021_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0021_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 11
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        0,
+        2
+      ],
+      "end_pos": [
+        0,
+        4
+      ],
+      "solution_length": 11,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.581798"
+    },
+    {
+      "id": "irregular_0022",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0022_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0022_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 4
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        0,
+        2
+      ],
+      "end_pos": [
+        2,
+        1
+      ],
+      "solution_length": 4,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.661248"
+    },
+    {
+      "id": "irregular_0023",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0023_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0023_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        5,
+        6
+      ],
+      "end_pos": [
+        4,
+        2
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.705502"
+    },
+    {
+      "id": "irregular_0024",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0024_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0024_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 9
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        0,
+        4
+      ],
+      "end_pos": [
+        4,
+        6
+      ],
+      "solution_length": 9,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.759458"
+    },
+    {
+      "id": "irregular_0025",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0025_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0025_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 9
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        6,
+        6
+      ],
+      "start_pos": [
+        4,
+        0
+      ],
+      "end_pos": [
+        3,
+        3
+      ],
+      "solution_length": 9,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.803127"
+    },
+    {
+      "id": "irregular_0026",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0026_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0026_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        6,
+        6
+      ],
+      "start_pos": [
+        1,
+        3
+      ],
+      "end_pos": [
+        4,
+        5
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.849222"
+    },
+    {
+      "id": "irregular_0027",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0027_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0027_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 2
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        3,
+        2
+      ],
+      "end_pos": [
+        3,
+        3
+      ],
+      "solution_length": 2,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.894712"
+    },
+    {
+      "id": "irregular_0028",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0028_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0028_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 9
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        0,
+        4
+      ],
+      "end_pos": [
+        3,
+        3
+      ],
+      "solution_length": 9,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.941292"
+    },
+    {
+      "id": "irregular_0029",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0029_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0029_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 4
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        4,
+        4
+      ],
+      "start_pos": [
+        0,
+        2
+      ],
+      "end_pos": [
+        2,
+        1
+      ],
+      "solution_length": 4,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:27.988440"
+    },
+    {
+      "id": "irregular_0030",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0030_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0030_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 3
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        2,
+        4
+      ],
+      "end_pos": [
+        4,
+        4
+      ],
+      "solution_length": 3,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.036141"
+    },
+    {
+      "id": "irregular_0031",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0031_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0031_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 4
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        0,
+        1
+      ],
+      "end_pos": [
+        0,
+        2
+      ],
+      "solution_length": 4,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.081359"
+    },
+    {
+      "id": "irregular_0032",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0032_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0032_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 3
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        8,
+        8
+      ],
+      "start_pos": [
+        5,
+        4
+      ],
+      "end_pos": [
+        7,
+        4
+      ],
+      "solution_length": 3,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.127378"
+    },
+    {
+      "id": "irregular_0033",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0033_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0033_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 5
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        8,
+        8
+      ],
+      "start_pos": [
+        5,
+        2
+      ],
+      "end_pos": [
+        2,
+        3
+      ],
+      "solution_length": 5,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.173070"
+    },
+    {
+      "id": "irregular_0034",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0034_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0034_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        3,
+        3
+      ],
+      "end_pos": [
+        3,
+        2
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.222035"
+    },
+    {
+      "id": "irregular_0035",
+      "prompt": "Move the green dot from start to the red flag destination.",
+      "first_image_path": "data/generated_mazes/irregular_0035_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0035_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 6
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        4,
+        4
+      ],
+      "start_pos": [
+        0,
+        0
+      ],
+      "end_pos": [
+        3,
+        0
+      ],
+      "solution_length": 6,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.267616"
+    },
+    {
+      "id": "irregular_0036",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0036_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0036_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 10
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        2,
+        0
+      ],
+      "end_pos": [
+        6,
+        5
+      ],
+      "solution_length": 10,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.315092"
+    },
+    {
+      "id": "irregular_0037",
+      "prompt": "Show the green start marker at begin, then at the red flag in the final frame.",
+      "first_image_path": "data/generated_mazes/irregular_0037_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0037_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 7
+      },
+      "difficulty": "hard",
+      "maze_size": [
+        7,
+        7
+      ],
+      "start_pos": [
+        4,
+        1
+      ],
+      "end_pos": [
+        5,
+        0
+      ],
+      "solution_length": 7,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.361125"
+    },
+    {
+      "id": "irregular_0038",
+      "prompt": "Reach the red flag with the green dot; keep markers visible in both frames.",
+      "first_image_path": "data/generated_mazes/irregular_0038_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0038_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 8
+      },
+      "difficulty": "medium",
+      "maze_size": [
+        5,
+        5
+      ],
+      "start_pos": [
+        1,
+        0
+      ],
+      "end_pos": [
+        0,
+        4
+      ],
+      "solution_length": 8,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.402822"
+    },
+    {
+      "id": "irregular_0039",
+      "prompt": "Start at the green dot and end at the red flag (no path drawing).",
+      "first_image_path": "data/generated_mazes/irregular_0039_first.png",
+      "final_image_path": "data/generated_mazes/irregular_0039_final.png",
+      "task_category": "Irregular",
+      "maze_data": {
+        "generation_method": "kruskal_algorithm",
+        "solution_length": 7
+      },
+      "difficulty": "easy",
+      "maze_size": [
+        4,
+        4
+      ],
+      "start_pos": [
+        3,
+        3
+      ],
+      "end_pos": [
+        0,
+        0
+      ],
+      "solution_length": 7,
+      "shape_type": "",
+      "created_at": "2025-10-10T03:12:28.449373"
     }
   ],
   "metadata": {
@@ -144,5 +1089,5 @@
     "marker_style": "green_dot_flag",
     "generation_method": "kruskal_algorithm"
   },
-  "created_at": "2025-10-08T18:24:56.562814"
+  "created_at": "2025-10-10T03:12:28.449387"
 }

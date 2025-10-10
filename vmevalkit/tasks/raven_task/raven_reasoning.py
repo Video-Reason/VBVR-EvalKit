@@ -378,7 +378,7 @@ def generate_task_images(task_data: Dict[str, Any], output_dir: str, task_id: st
     config_name = task_data["config_name"]
     
     # Create output directory
-    image_dir = os.path.join(output_dir, "data", "generated_raven")
+    image_dir = os.path.join(output_dir, "data", "questions", "generated_raven")
     os.makedirs(image_dir, exist_ok=True)
     
     # Image paths
@@ -391,7 +391,7 @@ def generate_task_images(task_data: Dict[str, Any], output_dir: str, task_id: st
     # Generate complete matrix (all 9 panels)
     generate_rpm_image(matrix, final_image_path, incomplete=False)
     
-    return f"data/generated_raven/{task_id}_first.png", f"data/generated_raven/{task_id}_final.png"
+    return f"data/questions/generated_raven/{task_id}_first.png", f"data/questions/generated_raven/{task_id}_final.png"
 
 
 def generate_rpm_image(matrix_panels: List[np.ndarray], output_path: str, incomplete: bool = False):
@@ -552,7 +552,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     
     # Save dataset
     base_dir = Path(__file__).parent.parent.parent.parent
-    dataset_dir = base_dir / "data" / "raven_tasks"
+    dataset_dir = base_dir / "data" / "questions" / "raven_tasks"
     dataset_dir.mkdir(parents=True, exist_ok=True)
     output_path = dataset_dir / "raven_tasks.json"
     

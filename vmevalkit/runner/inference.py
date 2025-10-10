@@ -36,7 +36,7 @@ class VeoWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used for Veo (uses GCP auth)
         **kwargs
     ):
@@ -123,7 +123,7 @@ class WaveSpeedWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used - WaveSpeed uses WAVESPEED_API_KEY env var
         **kwargs
     ):
@@ -205,7 +205,7 @@ class RunwayWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used - Runway uses RUNWAYML_API_SECRET env var
         **kwargs
     ):
@@ -292,7 +292,7 @@ class OpenAIWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used - Sora uses OPENAI_API_KEY env var
         **kwargs
     ):
@@ -714,7 +714,7 @@ def run_inference(
     model_name: str,
     image_path: Union[str, Path],
     text_prompt: str,
-    output_dir: str = "./outputs",
+    output_dir: str = "./data/outputs",
     api_key: Optional[str] = None,
     **kwargs
 ) -> Dict[str, Any]:
@@ -760,7 +760,7 @@ class InferenceRunner:
     Simple inference runner for managing video generation.
     """
     
-    def __init__(self, output_dir: str = "./outputs"):
+    def __init__(self, output_dir: str = "./data/outputs"):
         """
         Initialize runner.
         

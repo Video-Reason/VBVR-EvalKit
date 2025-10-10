@@ -390,11 +390,11 @@ def generate_task_images(task_data: Dict[str, Any], task_id: str, base_dir: str)
     final_view = task_data["final_view"]
     
     # Generate output paths
-    first_image_path = f"data/generated_rotation/{task_id}_first.png"
-    final_image_path = f"data/generated_rotation/{task_id}_final.png"
+    first_image_path = f"data/questions/generated_rotation/{task_id}_first.png"
+    final_image_path = f"data/questions/generated_rotation/{task_id}_final.png"
     
     # Create output directory
-    output_dir = os.path.join(base_dir, "data/generated_rotation")
+    output_dir = os.path.join(base_dir, "data/questions/generated_rotation")
     os.makedirs(output_dir, exist_ok=True)
     
     # Generate first view image
@@ -591,7 +591,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     
     # Save dataset
     base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    dataset_dir = os.path.join(base_dir, "data/rotation_tasks")
+    dataset_dir = os.path.join(base_dir, "data/questions/rotation_tasks")
     os.makedirs(dataset_dir, exist_ok=True)
     output_path = os.path.join(dataset_dir, "rotation_tasks.json")
     

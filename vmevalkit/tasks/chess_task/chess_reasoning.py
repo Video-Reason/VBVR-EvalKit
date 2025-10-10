@@ -425,11 +425,11 @@ def create_chess_task_pair(puzzle_data: Dict[str, Any], task_id: str) -> Dict[st
     
     # Set up file paths (matching maze format - PNG files)
     base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    first_image_path = f"data/generated_chess/{task_id}_first.png"
-    final_image_path = f"data/generated_chess/{task_id}_final.png"
+    first_image_path = f"data/questions/generated_chess/{task_id}_first.png"
+    final_image_path = f"data/questions/generated_chess/{task_id}_final.png"
     
     # Generate first frame (initial position)
-    chess_dir = os.path.join(base_dir, "data", "generated_chess")
+    chess_dir = os.path.join(base_dir, "data", "questions", "generated_chess")
     os.makedirs(chess_dir, exist_ok=True)
     
     first_full_path = os.path.join(base_dir, first_image_path)
@@ -508,11 +508,11 @@ def create_chess_dataset(num_samples: int = 100) -> Dict[str, Any]:
         "pairs": pairs
     }
     
-    # Save to data/chess_tasks/ (matching maze location)
+    # Save to data/questions/chess_tasks/ (matching maze location)
     base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    chess_tasks_dir = os.path.join(base_dir, "data", "chess_tasks")
+    chess_tasks_dir = os.path.join(base_dir, "data", "questions", "chess_tasks")
     os.makedirs(chess_tasks_dir, exist_ok=True)
-    output_path = os.path.join(base_dir, "data", "chess_tasks", "chess_tasks.json")
+    output_path = os.path.join(base_dir, "data", "questions", "chess_tasks", "chess_tasks.json")
     
     with open(output_path, 'w') as f:
         json.dump(dataset, f, indent=2)

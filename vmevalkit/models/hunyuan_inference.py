@@ -27,7 +27,7 @@ class HunyuanVideoService:
     def __init__(
         self,
         model_id: str = "hunyuan-video-i2v",
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         **kwargs
     ):
         """
@@ -226,7 +226,7 @@ class HunyuanVideoWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used for local inference
         **kwargs
     ):

@@ -73,7 +73,7 @@ class {Provider}Service:
         return video_bytes, metadata
 
 class {Provider}Wrapper:
-    def __init__(self, model: str, output_dir: str = "./outputs", api_key: Optional[str] = None, **kwargs):
+    def __init__(self, model: str, output_dir: str = "./data/outputs", api_key: Optional[str] = None, **kwargs):
         self.model = model
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
@@ -130,7 +130,7 @@ import time
 sys.path.insert(0, str({MODEL}_PATH))
 
 class {Model}Service:
-    def __init__(self, model_id: str = "default", output_dir: str = "./outputs", **kwargs):
+    def __init__(self, model_id: str = "default", output_dir: str = "./data/outputs", **kwargs):
         self.model_id = model_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
@@ -185,7 +185,7 @@ class {Model}Service:
         # OR: return self._run_direct_inference(str(image_path), text_prompt, output_filename=output_filename, **kwargs)
 
 class {Model}Wrapper:
-    def __init__(self, model: str, output_dir: str = "./outputs", **kwargs):
+    def __init__(self, model: str, output_dir: str = "./data/outputs", **kwargs):
         self.model = model
         self.service = {Model}Service(model_id=model, output_dir=output_dir, **kwargs)
     
@@ -251,7 +251,7 @@ result = run_inference(
     model_name="your-model-name",
     image_path="test.png",
     text_prompt="test prompt",
-    output_dir="./test_outputs",
+    output_dir="./data/outputs/test",
     # Per-run options go here:
     output_filename="example.mp4",
     duration=8

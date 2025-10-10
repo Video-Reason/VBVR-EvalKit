@@ -27,7 +27,7 @@ class DynamiCrafterService:
     def __init__(
         self,
         model_id: str = "dynamicrafter-512",
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         **kwargs
     ):
         """
@@ -408,7 +408,7 @@ class DynamiCrafterWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         api_key: Optional[str] = None,  # Not used for local inference
         **kwargs
     ):

@@ -171,9 +171,9 @@ def save_master_dataset(dataset: Dict[str, Any], output_path: str = None) -> str
     """Save the master dataset to JSON file."""
     
     if output_path is None:
-        data_dir = Path(__file__).parent.parent.parent / "data"
-        data_dir.mkdir(exist_ok=True)
-        output_path = data_dir / "vmeval_dataset_v1.json"
+        questions_dir = Path(__file__).parent.parent.parent / "data" / "questions"
+        questions_dir.mkdir(parents=True, exist_ok=True)
+        output_path = questions_dir / "vmeval_dataset_v1.json"
     
     with open(output_path, 'w') as f:
         json.dump(dataset, f, indent=2, default=str)
@@ -236,7 +236,7 @@ def main():
     print_dataset_summary(dataset)
     
     print(f"💾 Dataset saved: {output_path}")
-    print(f"🔗 Images location: data/generated_*/")
+    print(f"🔗 Images location: data/questions/generated_*/")
     print()
     print("🎉 VMEvalKit Dataset v1.0 ready for video reasoning evaluation!")
     print("🚀 Use `vmevalkit/runner/inference.py` to evaluate models on this dataset")

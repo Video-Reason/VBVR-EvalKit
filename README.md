@@ -29,7 +29,7 @@ from vmevalkit import run_inference
 # Generate video solution
 result = run_inference(
     model_name="luma-ray-2",
-    image_path="data/maze.png",
+    image_path="data/questions/maze.png",
     text_prompt="Solve this maze from start to finish"
 )
 
@@ -95,7 +95,9 @@ VMEvalKit/
 │   ├── core/           # Evaluation framework
 │   ├── tasks/          # Task definitions
 │   └── utils/          # Utilities
-├── data/               # Datasets
+├── data/
+│   ├── questions/      # Dataset questions & images
+│   └── outputs/        # Model-generated videos
 ├── examples/           # Example scripts
 └── tests/              # Unit tests
 ```

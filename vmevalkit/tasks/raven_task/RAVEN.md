@@ -221,7 +221,7 @@ from vmevalkit.runner.inference import run_inference
 # Run evaluation on RAVEN tasks
 results = run_inference(
     model_name="your_model",
-    dataset_path="data/raven_tasks/raven_tasks.json",
+    dataset_path="data/questions/raven_tasks/raven_tasks.json",
     task_type="raven_reasoning"
 )
 ```

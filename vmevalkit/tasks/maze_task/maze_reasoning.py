@@ -120,7 +120,7 @@ class KnowWhatTaskGenerator:
     Uses simple star/circle markers, focuses on geometric patterns.
     """
     
-    def __init__(self, data_root: str = "data"):
+    def __init__(self, data_root: str = "data/questions"):
         self.data_root = Path(data_root)
         self.maze_tasks_dir = self.data_root / "maze_tasks"
         self.generated_mazes_dir = self.data_root / "generated_mazes" 
@@ -236,7 +236,7 @@ class IrregularTaskGenerator:
     a professional rendering approach (no external dependencies).
     """
     
-    def __init__(self, data_root: str = "data"):
+    def __init__(self, data_root: str = "data/questions"):
         self.data_root = Path(data_root)
         self.maze_tasks_dir = self.data_root / "maze_tasks"
         self.generated_mazes_dir = self.data_root / "generated_mazes"

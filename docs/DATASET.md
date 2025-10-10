@@ -49,12 +49,14 @@ vmevalkit/tasks/{task_name}_task/
 └── [additional_modules.py]        # Optional helper modules
 
 data/
-├── {task_name}_tasks/
-│   └── {task_name}_tasks.json     # Dataset file
-└── generated_{task_name}/
-    ├── {task_name}_0000_first.png # First frame images
-    ├── {task_name}_0000_final.png # Final frame images
-    └── ...                        # Additional image pairs
+├── questions/
+│   ├── {task_name}_tasks/
+│   │   └── {task_name}_tasks.json     # Dataset file
+│   └── generated_{task_name}/
+│       ├── {task_name}_0000_first.png # First frame images
+│       ├── {task_name}_0000_final.png # Final frame images
+│       └── ...                        # Additional image pairs
+└── outputs/                           # Model-generated videos
 ```
 
 ### 2. Naming Conventions
@@ -81,8 +83,8 @@ Every dataset must follow this exact JSON structure:
     {
       "id": "{task_name}_0000",
       "prompt": "Task instruction for the video model",
-      "first_image_path": "data/generated_{task_name}/{task_name}_0000_first.png",
-      "final_image_path": "data/generated_{task_name}/{task_name}_0000_final.png", 
+      "first_image_path": "data/questions/generated_{task_name}/{task_name}_0000_first.png",
+      "final_image_path": "data/questions/generated_{task_name}/{task_name}_0000_final.png", 
       "task_category": "TaskType",
       "domain": "{task_name}",
       "{task_name}_data": {
@@ -177,11 +179,11 @@ def create_task_pair(task_data: Dict[str, Any], task_id: str) -> Dict[str, Any]:
     
     # Generate images
     base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    first_image_path = f"data/generated_{task_name}/{task_id}_first.png"
-    final_image_path = f"data/generated_{task_name}/{task_id}_final.png"
+    first_image_path = f"data/questions/generated_{task_name}/{task_id}_first.png"
+    final_image_path = f"data/questions/generated_{task_name}/{task_id}_final.png"
     
     # Create images
-    os.makedirs(os.path.join(base_dir, f"data/generated_{task_name}"), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, f"data/questions/generated_{task_name}"), exist_ok=True)
     generate_task_images(task_data, base_dir)
     
     # Generate prompt
@@ -228,7 +230,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     
     # Save dataset
     base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
-    dataset_dir = os.path.join(base_dir, f"data/{task_name}_tasks")
+    dataset_dir = os.path.join(base_dir, f"data/questions/{task_name}_tasks")
     os.makedirs(dataset_dir, exist_ok=True)
     output_path = os.path.join(dataset_dir, f"{task_name}_tasks.json")
     

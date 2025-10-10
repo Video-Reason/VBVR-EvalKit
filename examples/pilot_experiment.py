@@ -15,7 +15,7 @@ Total: 40 tasks × 5 models = 200 video generations
 Requirements:
 - All necessary API keys configured in environment
 - venv activated
-- Output directory: ./outputs/pilot_experiment/
+- Output directory: ./data/outputs/pilot_experiment/
 """
 
 import os
@@ -43,12 +43,8 @@ from vmevalkit.runner.inference import (
 # PILOT EXPERIMENT CONFIGURATION
 # ========================================
 
-# Select one representative model from each commercial API family
+# Limit pilot run to only the OpenAI Sora model
 PILOT_MODELS = {
-    "luma-ray-2": "Luma Dream Machine",
-    "veo-3.0-generate": "Google Veo",
-    "wavespeed-wan-2.2-i2v-720p": "WaveSpeed WAN 2.2",
-    "runway-gen4-turbo": "Runway ML",
     "openai-sora-2": "OpenAI Sora",
 }
 
@@ -59,13 +55,13 @@ TASKS_PER_CATEGORY = 10
 TASK_CATEGORIES = ["chess", "maze", "raven", "rotation"]
 
 # Dataset path
-DATASET_PATH = Path("data/vmeval_dataset_v1.json")
+DATASET_PATH = Path("data/questions/vmeval_dataset_v1.json")
 
 # Output directory
-OUTPUT_DIR = Path("outputs/pilot_experiment")
+OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
 # Fallback dataset for maze tasks (since v1 main dataset may not include maze pairs)
-MAZE_FALLBACK_PATH = Path("data/maze_tasks/combined_maze_tasks.json")
+MAZE_FALLBACK_PATH = Path("data/questions/maze_tasks/combined_maze_tasks.json")
 
 
 # ========================================
@@ -175,8 +171,8 @@ def create_output_structure(base_dir: Path) -> None:
         for category in TASK_CATEGORIES:
             (model_dir / category).mkdir(exist_ok=True, parents=True)
     
-    # Create results directory
-    (base_dir / "results").mkdir(exist_ok=True, parents=True)
+    # Create logs directory (renamed from results)
+    (base_dir / "logs").mkdir(exist_ok=True, parents=True)
 
 
 def _ensure_real_png(image_path: str) -> bool:
@@ -421,13 +417,13 @@ def save_results(
     intermediate: bool = False
 ) -> None:
     """Save results and statistics to JSON files."""
-    results_dir = output_dir / "results"
+    results_dir = output_dir / "logs"
     
     # Save detailed results
     if intermediate:
-        results_file = results_dir / "results_intermediate.json"
+        results_file = results_dir / "logs_intermediate.json"
     else:
-        results_file = results_dir / "results_final.json"
+        results_file = results_dir / "logs_final.json"
     
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
@@ -438,7 +434,7 @@ def save_results(
         json.dump(statistics, f, indent=2)
     
     if not intermediate:
-        print(f"\n✅ Results saved to: {results_file}")
+        print(f"\n✅ Logs saved to: {results_file}")
         print(f"✅ Statistics saved to: {stats_file}")
 
 
@@ -447,7 +443,7 @@ def generate_summary_report(
     output_dir: Path
 ) -> None:
     """Generate human-readable summary report."""
-    report_file = output_dir / "results" / "SUMMARY.txt"
+    report_file = output_dir / "logs" / "SUMMARY.txt"
     
     with open(report_file, 'w') as f:
         f.write("=" * 80 + "\n")

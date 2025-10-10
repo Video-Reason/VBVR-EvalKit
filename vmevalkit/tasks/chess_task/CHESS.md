@@ -153,7 +153,7 @@ generate_chess_board_image(
 from vmevalkit.tasks.chess_task import ChessDataset
 
 # Load from JSON file
-dataset = ChessDataset.load("data/chess_tasks/chess_mate_in_1_tasks.json")
+dataset = ChessDataset.load("data/questions/chess_tasks/chess_mate_in_1_tasks.json")
 
 # Filter by difficulty
 easy_tasks = dataset.filter_by_difficulty("easy")

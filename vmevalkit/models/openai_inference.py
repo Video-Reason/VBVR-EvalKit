@@ -252,28 +252,29 @@ class SoraService:
     ) -> str:
         """Create a video generation job using OpenAI Videos API."""
         import httpx
+        import mimetypes
         
         headers = {"Authorization": f"Bearer {self.api_key}"}
         
-        # Prepare multipart form data
-        with open(image_path, "rb") as f:
-            image_data = f.read()
-        
-        files = {"input_reference": image_data}
+        # Prepare multipart form data with filename and MIME type
+        path = Path(image_path)
+        mime = mimetypes.guess_type(str(path))[0] or "image/png"
         data = {
             "model": self.model,
             "prompt": prompt,
             "size": size,
-            "seconds": str(duration)
+            "seconds": str(duration),
         }
         
         async with httpx.AsyncClient(timeout=300.0) as client:
-            response = await client.post(
-                f"{self.base_url}/videos",
-                headers=headers,
-                files=files,
-                data=data
-            )
+            with open(path, "rb") as f:
+                files = {"input_reference": (path.name, f, mime)}
+                response = await client.post(
+                    f"{self.base_url}/videos",
+                    headers=headers,
+                    files=files,
+                    data=data,
+                )
             
             if response.status_code != 200:
                 error_msg = f"Failed to create video job: {response.status_code} {response.text}"

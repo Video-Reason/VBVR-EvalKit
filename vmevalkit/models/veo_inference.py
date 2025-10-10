@@ -506,7 +506,7 @@ class VeoService:
 #   export GOOGLE_PROJECT_ID=your-project
 #   export GOOGLE_LOCATION=us-central1
 #   python -m vmevalkit.models.veo_inference --prompt "A gray mouse finds yellow cheese..." \
-#       --image_path starter.png --out ./outputs/veo_output.mp4 --duration 8 --ratio 16:9 --res 1080p
+#       --image_path starter.png --out ./data/outputs/veo_output.mp4 --duration 8 --ratio 16:9 --res 1080p
 #
 # Or write to GCS (no inline bytes):
 #   python -m vmevalkit.models.veo_inference --prompt "..." --image_path starter.png \
@@ -540,7 +540,7 @@ if __name__ == "__main__":
                         choices=["veo-2.0-generate-001", "veo-3.0-generate-preview", "veo-3.0-fast-generate-preview"],
                         help="Veo model variant.")
 
-    parser.add_argument("--out", default="./outputs/veo_output.mp4", help="Where to save video bytes if available.")
+    parser.add_argument("--out", default="./data/outputs/veo_output.mp4", help="Where to save video bytes if available.")
     args = parser.parse_args()
 
     async def _main():

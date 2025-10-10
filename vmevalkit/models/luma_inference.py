@@ -41,7 +41,7 @@ class LumaInference:
         aspect_ratio: str = "16:9",
         model: str = "ray-2",
         verbose: bool = True,
-        output_dir: str = "./outputs"
+        output_dir: str = "./data/outputs"
     ):
         """
         Initialize Luma inference client.
@@ -246,7 +246,7 @@ def generate_video(
     image_path: str,
     text_prompt: str,
     api_key: Optional[str] = None,
-    output_dir: str = "./outputs",
+    output_dir: str = "./data/outputs",
     **kwargs
 ) -> Dict[str, Any]:
     """

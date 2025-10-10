@@ -33,7 +33,7 @@ class LTXVideoService:
     def __init__(
         self,
         model_id: str = "ltxv-13b-0.9.8-distilled",
-        output_dir: str = "./outputs",
+        output_dir: str = "./data/outputs",
         **kwargs
     ):
         """
@@ -227,7 +227,7 @@ class LTXVideoWrapper:
     def __init__(
         self,
         model: str,
-        output_dir: str = "./outputs", 
+        output_dir: str = "./data/outputs", 
         api_key: Optional[str] = None,  # Not used for local inference
         **kwargs
     ):

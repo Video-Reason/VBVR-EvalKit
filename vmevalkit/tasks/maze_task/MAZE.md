@@ -115,7 +115,7 @@ combined_dataset = create_combined_dataset(
 from vmevalkit.tasks.maze_task import MazeDataset
 
 # Load from JSON files
-dataset = MazeDataset.load("data/maze_tasks/combined_maze_tasks.json")
+dataset = MazeDataset.load("data/questions/maze_tasks/combined_maze_tasks.json")
 
 # Filter by category
 knowwhat_only = dataset.filter_by_category("KnowWhat")

@@ -61,6 +61,17 @@ def sync_data_folder(
     bucket: str = os.getenv("S3_BUCKET", "vmevalkit"),
     date_prefix: Optional[str] = None,
 ) -> str:
+    """
+    Sync complete VMEvalKit data folder to S3 with date-based versioning.
+    
+    Syncs the entire data/ directory which includes:
+    - questions/ - Dataset files, images, and task definitions
+    - outputs/ - Model-generated videos and inference results
+    - VERSION.md - Dataset version tracking
+    - s3_sync.py - This sync script
+    
+    Creates: s3://<bucket>/<YYYYMMDD>/data/
+    """
     # s3://<bucket>/<YYYYMMDD>/data
     date_folder = get_date_prefix(date_prefix)
     s3_prefix = f"{date_folder}/data"
@@ -74,7 +85,7 @@ def sync_data_folder(
 def main(argv: list[str]) -> int:
     import argparse
 
-    parser = argparse.ArgumentParser(description="Sync local data/ to S3 with date-versioned prefix.")
+    parser = argparse.ArgumentParser(description="Sync complete VMEvalKit data package (questions + outputs) to S3 with date-versioned prefix.")
     parser.add_argument("--data-dir", type=str, default=str(Path(__file__).resolve().parent), help="Path to local data directory")
     parser.add_argument("--bucket", type=str, default=os.getenv("S3_BUCKET", "vmevalkit"), help="S3 bucket name")
     parser.add_argument("--date", type=str, default=None, help="Override date folder (YYYYMMDD)")

@@ -67,7 +67,7 @@ def sync_data_folder(
     Syncs the entire data/ directory which includes:
     - questions/ - Dataset files, images, and task definitions
     - outputs/ - Model-generated videos and inference results
-    - VERSION.md - Dataset version tracking
+    - data_logging/ - Version tracking and metadata
     - s3_sync.py - This sync script
     
     Creates: s3://<bucket>/<YYYYMMDD>/data/

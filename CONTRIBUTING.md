@@ -1,3 +1,3 @@
 # 🙌 Contributors
 
-Hokin Deng, …
+Hokin Deng, Ran Ji, Maijunxian Wang, …

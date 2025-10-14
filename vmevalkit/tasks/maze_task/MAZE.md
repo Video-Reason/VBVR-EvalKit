@@ -90,7 +90,7 @@ data/questions/
 Mazes use the Kruskal algorithm for generation:
 
 - **Algorithm**: Kruskal's minimum spanning tree
-- **Grid sizes**: 3x3 to 10x10 (configurable)
+- **Grid sizes**: 3x3 (simplified for easier evaluation)
 - **Rendering**: Professional maze visualization with matplotlib
 - **Markers**: 
   - Green circle for current position
@@ -100,9 +100,9 @@ Mazes use the Kruskal algorithm for generation:
 ### Difficulty Levels
 
 Based on maze grid size:
-- **Easy**: 3x3 to 4x4 grids
-- **Medium**: 5x5 to 6x6 grids  
-- **Hard**: 7x7+ grids
+- **Easy**: 3x3 grids (current simplified implementation)
+- **Medium**: Reserved for future expansion
+- **Hard**: Reserved for future expansion
 
 ## Best Practices
 

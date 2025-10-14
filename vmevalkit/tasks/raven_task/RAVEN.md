@@ -55,6 +55,8 @@ The task supports **7 different figural configurations** from the original RAVEN
 
 ## Rule Types
 
+**Note: Current implementation focuses on simplified rules (Constant and Progression) for reliable generation. More complex rules (Arithmetic, Distribute_Three) are documented below but not actively used in the current simplified version.**
+
 ### Abstract Reasoning Rules
 
 #### 1. Constant Rules (Easy)

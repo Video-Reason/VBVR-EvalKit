@@ -56,8 +56,8 @@ class RotationGenerator:
         self.generated_positions = []
         
     def generate_tasks(self, num_tasks: int = 50) -> List[Dict[str, Any]]:
-        """Generate simplified 3D mental rotation tasks (3-6 voxels, 30-90° or 90° rotations)."""
-        print(f"🎯 Generating {num_tasks} Simplified 3D mental rotation tasks (3-6 voxels, limited angles)...")
+        """Generate 3D mental rotation tasks (8-15 voxels, 30-90° or 90° rotations)."""
+        print(f"🎯 Generating {num_tasks} 3D mental rotation tasks (8-15 voxels, limited angles)...")
         
         if not HAS_DEPENDENCIES:
             raise ImportError("NumPy, matplotlib, and PIL are required for rotation tasks")
@@ -72,9 +72,9 @@ class RotationGenerator:
         while len(voxel_list) < num_tasks and attempts < max_attempts:
             attempts += 1
             try:
-                # SIMPLIFIED: Use 3-6 voxels for simple but viable shapes
+                # Use 8-15 voxels for challenging but viable shapes
                 voxels = self._generate_snake(
-                    N=np.random.randint(3, 7), 
+                    N=np.random.randint(8, 16), 
                     Lmin=1, 
                     Lmax=3,
                     p_branch=0.2,  # Some branching for variety
@@ -82,12 +82,12 @@ class RotationGenerator:
                     tries=1000
                 )
 
-                # SIMPLIFIED: Allow more structures by relaxing equivalence check
-                # Only skip very trivial single-axis structures
-                if len(voxels) < 3:
+                # Skip structures that are too simple
+                # With more voxels, we want meaningful 3D structures
+                if len(voxels) < 8:
                     continue
 
-                # SIMPLIFIED: Mix of regular rotations and axis-aligned 90° rotations
+                # Mix of regular rotations and axis-aligned 90° rotations
                 use_axis_aligned = random.choice([True, False])  # 50% chance of axis-aligned
                 
                 if use_axis_aligned:
@@ -99,7 +99,7 @@ class RotationGenerator:
                     elev1, azim1 = self._sample_view()
                     elev2, azim2 = self._sample_view()
                     
-                    # SIMPLIFIED: Ensure angle difference is between 30-90° for easier visualization
+                    # Ensure angle difference is between 30-90° for clear visualization
                     angle_diff = self._angle_between(elev1, azim1, elev2, azim2)
                     if angle_diff < 30 or angle_diff > 90:  # Accept 30-90 degree rotations
                         continue
@@ -338,7 +338,7 @@ class RotationGenerator:
         return int(elev), int(azim)
     
     def _sample_axis_aligned_views(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        """Return two viewing angles that differ by exactly 90° around a clear axis (SIMPLIFIED)."""
+        """Return two viewing angles that differ by exactly 90° around a clear axis."""
         # Predefined axis-aligned view pairs for easy visualization
         axis_aligned_pairs = [
             # 90° rotations around Z-axis (top view rotations)
@@ -372,27 +372,37 @@ class RotationGenerator:
         return math.degrees(math.acos(dot))
 
     def _assess_difficulty(self, voxels: List[Voxel], angle_diff: float) -> str:
-        """Assess task difficulty based on structure complexity and rotation angle (SIMPLIFIED)."""
+        """Assess task difficulty based on structure complexity and rotation angle."""
         num_voxels = len(voxels)
         
-        # SIMPLIFIED: With 2-3 voxels and limited angles, most tasks are easy
-        complexity_score = num_voxels
+        # Base complexity from number of voxels (8-15 range)
+        # Scale: 8-9 voxels = 2 points, 10-12 = 4 points, 13-15 = 6 points
+        if num_voxels <= 9:
+            complexity_score = 2
+        elif num_voxels <= 12:
+            complexity_score = 4
+        else:
+            complexity_score = 6
         
-        # Minimal complexity additions for very simple structures
+        # Add complexity for structures spanning multiple axes
         axes_used = len(set(v[0] for v in voxels)) + len(set(v[1] for v in voxels)) + len(set(v[2] for v in voxels))
-        if axes_used > 4:  # Only add complexity for structures spanning many coordinates
+        if axes_used > 6:  # Structures spanning many coordinates
+            complexity_score += 2
+        elif axes_used > 4:
             complexity_score += 1
         
-        # SIMPLIFIED: Factor in rotation angle (now limited to 30-45° or 90°)
+        # Factor in rotation angle
         if angle_diff == 90:  # Axis-aligned rotations are easier to visualize
             pass  # No complexity increase
+        elif angle_diff > 60:
+            complexity_score += 2
         elif angle_diff > 40:
             complexity_score += 1
         
-        # SIMPLIFIED: With new constraints, most tasks should be easy or medium
-        if complexity_score <= 3:
+        # Adjusted thresholds for 8-15 voxel range
+        if complexity_score <= 4:
             return "easy"
-        elif complexity_score <= 5:
+        elif complexity_score <= 7:
             return "medium"  
         else:
             return "hard"
@@ -548,7 +558,7 @@ def generate_prompt(task_data: Dict[str, Any]) -> str:
     elev1, azim1 = task_data["first_view"]
     elev2, azim2 = task_data["final_view"]
     
-    # SIMPLE AND CLEAR: Specify exact camera/viewing angles
+    # Specify exact camera/viewing angles
     prompt = (f"A {num_voxels}-block sculpture sits fixed on a table. "
               f"First frame: Your camera is at viewing angle (elevation: {elev1}°, azimuth: {azim1}°). "
               f"Final frame: Your camera is at viewing angle (elevation: {elev2}°, azimuth: {azim2}°). "
@@ -592,9 +602,9 @@ def create_task_pair(task_data: Dict[str, Any], task_id: str) -> Dict[str, Any]:
 
 
 def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
-    """Create simplified mental rotation dataset (3-6 voxels, 30-90° or 90° rotations)."""
+    """Create mental rotation dataset (8-15 voxels, 30-90° or 90° rotations)."""
     
-    print(f"🎯 Creating Simplified 3D mental rotation dataset with {num_samples} samples...")
+    print(f"🎯 Creating 3D mental rotation dataset with {num_samples} samples...")
     
     # Generate tasks
     generator = RotationGenerator()
@@ -611,7 +621,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     # Create dataset
     dataset = {
         "name": "rotation_tasks",
-        "description": f"Simplified 3D mental rotation tasks (3-6 voxels, 30-90° or 90° rotations) for video model evaluation ({len(pairs)} pairs)",
+        "description": f"3D mental rotation tasks (8-15 voxels, 30-90° or 90° rotations) for video model evaluation ({len(pairs)} pairs)",
         "pairs": pairs
     }
     

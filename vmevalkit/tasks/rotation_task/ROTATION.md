@@ -2,7 +2,7 @@
 
 ## Overview
 
-The 3D Mental Rotation Task evaluates video generation models' ability to demonstrate spatial reasoning and 3D visualization by generating videos that show how 3D voxel structures appear when rotated from one viewpoint to another. This task is part of VMEvalKit's reasoning evaluation suite and tests fundamental spatial cognition capabilities.
+The 3D Mental Rotation Task evaluates video generation models' ability to demonstrate spatial reasoning and 3D visualization by generating videos that show how 3D voxel structures appear when rotated from one viewpoint to another. **Current implementation uses 8-15 voxel structures with 30-90° or axis-aligned 90° rotations for challenging spatial reasoning tasks.** This task is part of VMEvalKit's reasoning evaluation suite and tests fundamental spatial cognition capabilities.
 
 ## Task Description
 
@@ -92,7 +92,7 @@ The system generates snake-like 3D structures using a sophisticated algorithm:
 def generate_snake(N, Lmin, Lmax, p_branch, max_deg, tries):
     """
     Create a 3D voxel snake with:
-    - N: Number of voxels (6-12 typical range)
+    - N: Number of voxels (8-15 range for challenging spatial reasoning)
     - Lmin, Lmax: Segment length bounds (2-4)
     - p_branch: Branching probability (0.35)
     - max_deg: Maximum neighbors per voxel (4)
@@ -137,9 +137,9 @@ def assess_difficulty(voxels, angle_diff):
 ```
 
 **Difficulty Levels**:
-- **Easy**: Simple structures, moderate rotations (≤8 complexity score)
-- **Medium**: Complex structures or large rotations (9-12 complexity score)  
-- **Hard**: High complexity with challenging rotations (≥13 complexity score)
+- **Easy**: Smaller structures (8-9 voxels), moderate rotations (≤4 complexity score)
+- **Medium**: Medium structures (10-12 voxels) or large rotations (5-7 complexity score)  
+- **Hard**: Large structures (13-15 voxels) with challenging rotations (≥8 complexity score)
 
 ## Implementation Details
 
@@ -180,7 +180,7 @@ Multiple validation steps ensure task quality:
 ```python
 from vmevalkit.tasks.rotation_task import create_dataset
 
-# Generate 50 mental rotation tasks
+# Generate 50 mental rotation tasks (8-15 voxels, 30-90° or 90° rotations)
 dataset = create_dataset(num_samples=50)
 print(f"Created {len(dataset['pairs'])} rotation tasks")
 ```
@@ -202,12 +202,12 @@ print(f"Distribution: {Counter(difficulties)}")
 from vmevalkit.tasks.rotation_task import create_task_pair
 
 task_data = {
-    "voxels": [(0,0,0), (1,0,0), (1,1,0), (1,1,1)],
+    "voxels": [(0,0,0), (1,0,0), (1,1,0), (1,1,1), (2,1,0), (2,1,1), (2,2,1), (3,2,1), (3,2,2), (3,3,2)],
     "first_view": (30, 45),
     "final_view": (60, 135),
     "angle_difference": 75.5,
     "difficulty": "medium",
-    "num_voxels": 4
+    "num_voxels": 10
 }
 
 pair = create_task_pair(task_data, "rotation_test")

@@ -22,6 +22,7 @@ import random
 import argparse
 import shutil
 from pathlib import Path
+from datetime import datetime
 from typing import Dict, List, Any, Tuple
 
 # Add the project root to Python path
@@ -123,8 +124,9 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
             prompt_text = pair.get("prompt", "")
             (q_dir / "prompt.txt").write_text(prompt_text)
             
-            # Write metadata
+            # Write metadata with creation timestamp
             metadata_path = q_dir / "question_metadata.json"
+            pair['created_at'] = datetime.now().isoformat() + 'Z'
             with open(metadata_path, 'w') as f:
                 json.dump(pair, f, indent=2, default=str)
             
@@ -154,7 +156,7 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 
     total_pairs = pairs_per_domain * 4
     
     print("=" * 70)
-    print("🚀 VMEvalKit Dataset Creation v2.0 - Direct Folder Generation")
+    print("🚀 VMEvalKit Dataset Creation - Direct Folder Generation")
     print(f"🎯 Total target: {total_pairs} task pairs across 4 domains")
     print("=" * 70)
     
@@ -189,12 +191,14 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 
     random.shuffle(all_pairs)
     
     # Create master dataset from the generated folders
+    creation_timestamp = datetime.now().isoformat() + 'Z'
     dataset = {
-        "name": "vmeval_dataset_v2",
-        "description": f"VMEvalKit video reasoning evaluation dataset v2.0 ({len(all_pairs)} task pairs)",
-        "version": "2.0.0",
+        "name": "vmeval_dataset",
+        "description": f"VMEvalKit video reasoning evaluation dataset ({len(all_pairs)} task pairs)",
+        "created_at": creation_timestamp,
         "total_pairs": len(all_pairs),
         "generation_info": {
+            "timestamp": creation_timestamp,
             "random_seed": random_seed,
             "pairs_per_domain": pairs_per_domain,
             "target_pairs": total_pairs,
@@ -223,7 +227,7 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 
     }
     
     # Save master JSON
-    json_path = output_base / "vmeval_dataset_v2.json"
+    json_path = output_base / "vmeval_dataset.json"
     with open(json_path, 'w') as f:
         json.dump(dataset, f, indent=2, default=str)
     
@@ -267,10 +271,34 @@ def read_dataset_from_folders(base_dir: Path = None) -> Dict[str, Any]:
                     all_pairs.append(pair)
     
     # Create dataset structure
+    # For reading existing datasets, try to preserve the creation time if metadata exists
+    creation_timestamp = None
+    for domain in domains:
+        if creation_timestamp:
+            break
+        domain_dir = base_dir / f"{domain}_task"
+        if domain_dir.exists():
+            # Try to read creation time from first metadata file
+            for q_dir in domain_dir.iterdir():
+                metadata_path = q_dir / "question_metadata.json"
+                if metadata_path.exists():
+                    try:
+                        with open(metadata_path, 'r') as f:
+                            meta = json.load(f)
+                            if 'created_at' in meta:
+                                creation_timestamp = meta['created_at']
+                                break
+                    except:
+                        pass
+    
+    # If no timestamp found, use file modification time or current time
+    if not creation_timestamp:
+        creation_timestamp = datetime.now().isoformat() + 'Z'
+    
     dataset = {
-        "name": "vmeval_dataset_v2",
-        "description": f"VMEvalKit video reasoning evaluation dataset v2.0 ({len(all_pairs)} task pairs)",
-        "version": "2.0.0",
+        "name": "vmeval_dataset",
+        "description": f"VMEvalKit video reasoning evaluation dataset ({len(all_pairs)} task pairs)",
+        "created_at": creation_timestamp,
         "total_pairs": len(all_pairs),
         "generation_info": {
             "domains": {
@@ -297,60 +325,11 @@ def read_dataset_from_folders(base_dir: Path = None) -> Dict[str, Any]:
     
     return dataset
 
-def clean_artifacts() -> None:
-    """Remove previously generated artifacts to ensure a clean regeneration.
-
-    Deletes:
-    - data/questions/<domain>_task per-question folders
-    - data/questions/vmeval_dataset_v2.json (master JSON)
-    - Any legacy folders from previous versions
-    """
-    import shutil
-
-    base_dir = Path(__file__).parent.parent.parent
-    q_dir = base_dir / "data" / "questions"
-
-    # Folders to remove (if present)
-    dirs_to_remove = [
-        # Per-question folders
-        q_dir / "chess_task",
-        q_dir / "raven_task",
-        q_dir / "rotation_task",
-        q_dir / "maze_task",
-        # Legacy folders (for backward compatibility)
-        q_dir / "generated_chess",
-        q_dir / "generated_raven",
-        q_dir / "generated_rotation",
-        q_dir / "generated_mazes",
-        q_dir / "chess_tasks",
-        q_dir / "raven_tasks",
-        q_dir / "rotation_tasks",
-        q_dir / "maze_tasks",
-        q_dir / "per_question",
-    ]
-
-    for d in dirs_to_remove:
-        if d.exists():
-            print(f"🧹 Removing directory: {d}")
-            shutil.rmtree(d, ignore_errors=True)
-
-    # Files to remove
-    files_to_remove = [
-        q_dir / "vmeval_dataset_v2.json",
-    ]
-    for f in files_to_remove:
-        if f.exists():
-            print(f"🧹 Removing file: {f}")
-            try:
-                f.unlink()
-            except OSError:
-                pass
-
 def print_dataset_summary(dataset: Dict[str, Any]):
     """Print comprehensive dataset summary."""
     
     print("=" * 70)
-    print("📊 VMEVAL DATASET V2.0 - SUMMARY")
+    print("📊 VMEVAL DATASET - SUMMARY")
     print("=" * 70)
     
     gen_info = dataset.get('generation_info', {})
@@ -358,6 +337,10 @@ def print_dataset_summary(dataset: Dict[str, Any]):
     
     print(f"🎯 Dataset Statistics:")
     print(f"   Total Task Pairs: {dataset['total_pairs']}")
+    if 'created_at' in dataset:
+        print(f"   Created: {dataset['created_at']}")
+    elif 'timestamp' in gen_info:
+        print(f"   Created: {gen_info['timestamp']}")
     
     # Only show target/success rate if available (from generation)
     if 'target_pairs' in gen_info:
@@ -399,10 +382,9 @@ def print_dataset_summary(dataset: Dict[str, Any]):
 def main():
     """Generate VMEvalKit Dataset directly into per-question folder structure."""
 
-    parser = argparse.ArgumentParser(description="Create VMEvalKit v2 dataset directly in per-question folders")
+    parser = argparse.ArgumentParser(description="Create VMEvalKit dataset directly in per-question folders")
     parser.add_argument("--pairs-per-domain", type=int, default=50, help="Number of task pairs to generate per domain")
     parser.add_argument("--random-seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--clean", action="store_true", help="Remove previously generated outputs before regenerating")
     parser.add_argument("--read-only", action="store_true", help="Only read existing dataset from folders, don't generate")
     args = parser.parse_args()
 
@@ -415,12 +397,7 @@ def main():
         print("=" * 70)
         return
 
-    if args.clean:
-        print("=" * 70)
-        print("🧹 Cleaning previously generated artifacts...")
-        clean_artifacts()
-        print("✅ Clean complete")
-        print("=" * 70)
+    # Clean option removed: artifacts are preserved between runs
     
     # Generate dataset directly to folders
     dataset, questions_dir = create_vmeval_dataset_direct(
@@ -431,11 +408,11 @@ def main():
     # Print comprehensive summary
     print_dataset_summary(dataset)
     
-    print(f"💾 Master dataset JSON saved: {questions_dir}/vmeval_dataset_v2.json")
+    print(f"💾 Master dataset JSON saved: {questions_dir}/vmeval_dataset.json")
     print(f"📁 Questions generated in: {questions_dir}")
     print(f"🔗 Per-question folders: {questions_dir}/<domain>_task/<question_id>/")
     print()
-    print("🎉 VMEvalKit Dataset v2.0 ready for video reasoning evaluation!")
+    print("🎉 VMEvalKit Dataset ready for video reasoning evaluation!")
     print("🚀 Use `vmevalkit/runner/inference.py` to evaluate models on this dataset")
     print("=" * 70)
 

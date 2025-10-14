@@ -63,14 +63,14 @@ TASKS_PER_CATEGORY = 1
 # Task categories to test
 TASK_CATEGORIES = ["chess", "maze", "raven", "rotation"]
 
-# Dataset path (using v2 with improved prompts)
-DATASET_PATH = Path("data/questions/vmeval_dataset_v2.json")
+# Dataset path
+DATASET_PATH = Path("data/questions/vmeval_dataset.json")
 
 # Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
-# Fallback dataset for maze tasks (since v1 main dataset may not include maze pairs)
-MAZE_FALLBACK_PATH = Path("data/questions/maze_tasks/combined_maze_tasks.json")
+# Fallback dataset for maze tasks (no longer needed - main dataset includes maze pairs)
+# MAZE_FALLBACK_PATH = Path("data/questions/maze_task/")  # Deprecated
 
 
 # ========================================
@@ -113,25 +113,8 @@ def select_tasks_by_category(
         if pair["id"].startswith(category)
     ]
 
-    # Special-case fallback for maze: use combined maze tasks file if none in main dataset
-    if category == "maze" and len(category_pairs) == 0:
-        try:
-            if MAZE_FALLBACK_PATH.exists():
-                with open(MAZE_FALLBACK_PATH, 'r') as f:
-                    maze_data = json.load(f)
-                    # Expect same schema: id, prompt, first_image_path, final_image_path
-                    fallback_pairs = maze_data.get("pairs", [])
-                    # Filter pairs whose input image exists to avoid run-time errors
-                    category_pairs = [
-                        p for p in fallback_pairs
-                        if p.get("first_image_path") and Path(p["first_image_path"]).exists()
-                    ]
-                    print(f"Using fallback maze dataset: found {len(category_pairs)} candidates")
-            else:
-                print(f"Maze fallback dataset not found at {MAZE_FALLBACK_PATH}")
-        except Exception as e:
-            print(f"Failed to load maze fallback dataset: {e}")
-            category_pairs = []
+    # No fallback needed - main dataset includes all task categories
+    # The dataset structure has been updated to include maze tasks in the main vmeval_dataset.json
 
     print(f"Found {len(category_pairs)} tasks in category '{category}'")
     

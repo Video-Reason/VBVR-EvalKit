@@ -32,8 +32,8 @@ runner = InferenceRunner(output_dir="output")
 # Generate video solution
 result = runner.run(
     model_name="luma-ray-2",
-    image_path="data/questions/maze.png",
-    text_prompt="Solve this maze from start to finish"
+    image_path="data/questions/maze_task/knowwhat_0000/first_frame.png",
+    text_prompt="Move the blue star through white corridors to the red circle"
 )
 
 print(f"Video saved to: {result['inference_dir']}")
@@ -67,12 +67,12 @@ All models support **image + text → video** for reasoning evaluation.
 ### Task Pair: The Fundamental Unit
 Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning evaluation:
 
-- 📸 **Initial state image** (the reasoning problem)
-- 🎯 **Final state image** (the solution/goal state)  
-- 📝 **Text prompt** (instructions for video model)
-- 📊 **Rich metadata** (difficulty, task-specific parameters, etc.)
+- 📸 **Initial state image** (`first_frame.png` - the reasoning problem)
+- 🎯 **Final state image** (`final_frame.png` - the solution/goal state)  
+- 📝 **Text prompt** (`prompt.txt` - instructions for video model)
+- 📊 **Rich metadata** (`question_metadata.json` - difficulty, task-specific parameters, etc.)
 
-Models must generate videos showing the reasoning process from initial → final state.
+Each task pair is organized in its own folder (`data/questions/{domain}_task/{question_id}/`) containing all four files. Models must generate videos showing the reasoning process from initial → final state.
 
 ## Tasks
 
@@ -103,7 +103,17 @@ VMEvalKit/
 │   ├── tasks/          # Task definitions
 │   └── utils/          # Utilities
 ├── data/
-│   └── questions/      # Dataset questions & images
+│   └── questions/      # Dataset with per-question folders
+│       ├── vmeval_dataset.json  # Master dataset manifest
+│       ├── chess_task/          # Chess reasoning questions
+│       │   └── chess_0000/      # Individual question folder
+│       │       ├── first_frame.png
+│       │       ├── final_frame.png
+│       │       ├── prompt.txt
+│       │       └── question_metadata.json
+│       ├── maze_task/           # Maze navigation questions
+│       ├── raven_task/          # Pattern completion questions
+│       └── rotation_task/       # 3D rotation questions
 ├── output/             # Structured inference outputs
 │   └── <inference_id>/ # Self-contained folders per inference
 │       ├── video/      # Generated video file
@@ -125,7 +135,7 @@ output/<model>_<question_id>_<timestamp>/
 │   ├── first_frame.png        # Input image (sent to model)
 │   ├── final_frame.png        # Reference image (not sent)
 │   ├── prompt.txt             # Text prompt used
-│   └── question_metadata.json # Full question data
+│   └── question_metadata.json # Full question data from dataset
 └── metadata.json              # Complete inference metadata
 ```
 

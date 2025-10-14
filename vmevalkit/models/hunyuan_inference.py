@@ -129,9 +129,11 @@ class HunyuanVideoService:
             "success": success,
             "video_path": str(output_path) if success and output_path.exists() else None,
             "error": error_msg,
-            "duration": duration,
-            "model_id": self.model_id,
-            "parameters": {
+            "duration_seconds": duration,
+            "generation_id": f"hunyuan_{int(time.time())}",
+            "model": self.model_id,
+            "status": "success" if success else "failed",
+            "metadata": {
                 "text_prompt": text_prompt,
                 "image_path": str(image_path),
                 "height": height,
@@ -140,9 +142,9 @@ class HunyuanVideoService:
                 "seed": seed,
                 "use_i2v_stability": use_i2v_stability,
                 "flow_shift": flow_shift,
-            },
-            "stdout": result.stdout if 'result' in locals() else None,
-            "stderr": result.stderr if 'result' in locals() else None,
+                "stdout": result.stdout if 'result' in locals() else None,
+                "stderr": result.stderr if 'result' in locals() else None,
+            }
         }
 
     def generate(
@@ -186,9 +188,11 @@ class HunyuanVideoService:
                 "success": False,
                 "video_path": None,
                 "error": f"Input image not found: {image_path}",
-                "duration": 0,
-                "model_id": self.model_id,
-                "parameters": {"text_prompt": text_prompt, "image_path": str(image_path)},
+                "duration_seconds": 0,
+                "generation_id": f"hunyuan_error_{int(time.time())}",
+                "model": self.model_id,
+                "status": "failed",
+                "metadata": {"text_prompt": text_prompt, "image_path": str(image_path)},
             }
         
         # Check GPU memory requirements

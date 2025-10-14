@@ -120,14 +120,18 @@ class VeoWrapper:
         duration_taken = time.time() - start_time
         
         return {
+            "success": video_bytes is not None,
             "video_path": str(video_path) if video_path else None,
-            "generation_id": metadata.get('operation_name', 'unknown'),
-            "status": "success" if video_bytes else "completed_no_download",
+            "error": None,
             "duration_seconds": duration_taken,
+            "generation_id": metadata.get('operation_name', 'unknown'),
             "model": self.model,
-            "prompt": text_prompt,
-            "image_path": str(image_path),
-            "metadata": metadata
+            "status": "success" if video_bytes else "completed_no_download",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "veo_metadata": metadata
+            }
         }
 
 
@@ -155,10 +159,10 @@ class Veo31FastWrapper:
         self,
         image_path: Union[str, Path],
         text_prompt: str,
-        duration: float = 5.0,
+        duration: float = 8.0,
         output_filename: Optional[str] = None,
         **kwargs
-    ):
+    ) -> Dict[str, Any]:
         """
         Generate video using Veo 3.1 Fast (synchronous wrapper).
         
@@ -201,12 +205,21 @@ class Veo31FastWrapper:
             )
         )
         
-        # Return path-like result for compatibility
+        # Return standardized format
         return {
+            "success": bool(result.get("video_path")),
             "video_path": result.get("video_path", str(output_path)),
-            "video_url": result.get("video_url"),
+            "error": None,
+            "duration_seconds": result.get("duration_seconds", 0),
+            "generation_id": result.get("request_id", 'unknown'),
             "model": "google/veo3.1-fast/image-to-video",
-            **result
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "video_url": result.get("video_url"),
+                "wavespeed_result": result
+            }
         }
 
 
@@ -234,10 +247,10 @@ class Veo31Wrapper:
         self,
         image_path: Union[str, Path],
         text_prompt: str,
-        duration: float = 5.0,
+        duration: float = 8.0,
         output_filename: Optional[str] = None,
         **kwargs
-    ):
+    ) -> Dict[str, Any]:
         """
         Generate video using Veo 3.1 (synchronous wrapper).
         
@@ -280,12 +293,21 @@ class Veo31Wrapper:
             )
         )
         
-        # Return path-like result for compatibility
+        # Return standardized format
         return {
+            "success": bool(result.get("video_path")),
             "video_path": result.get("video_path", str(output_path)),
-            "video_url": result.get("video_url"),
+            "error": None,
+            "duration_seconds": result.get("duration_seconds", 0),
+            "generation_id": result.get("request_id", 'unknown'),
             "model": "google/veo3.1/image-to-video",
-            **result
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "video_url": result.get("video_url"),
+                "wavespeed_result": result
+            }
         }
 
 
@@ -371,15 +393,20 @@ class WaveSpeedWrapper:
         duration_taken = time.time() - start_time
         
         return {
+            "success": bool(result.get("video_path")),
             "video_path": result.get("video_path"),
-            "generation_id": result.get("request_id", 'unknown'),
-            "status": "success" if result.get("video_path") else "completed_no_download",
+            "error": None,
             "duration_seconds": duration_taken,
+            "generation_id": result.get("request_id", 'unknown'),
             "model": self.model,
-            "prompt": text_prompt,
-            "image_path": str(image_path),
-            "video_url": result.get("video_url"),
-            "seed": seed
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "video_url": result.get("video_url"),
+                "seed": seed,
+                "wavespeed_result": result
+            }
         }
 
 
@@ -459,16 +486,21 @@ class RunwayWrapper:
         duration_taken = time.time() - start_time
         
         return {
+            "success": bool(result.get("video_path")),
             "video_path": result.get("video_path"),
-            "generation_id": result.get("task_id", 'unknown'),
-            "status": "success" if result.get("video_path") else "completed_no_download",
+            "error": None,
             "duration_seconds": duration_taken,
+            "generation_id": result.get("task_id", 'unknown'),
             "model": self.model,
-            "prompt": text_prompt,
-            "image_path": str(image_path),
-            "video_url": result.get("video_url"),
-            "duration": duration_int,
-            "ratio": result.get("ratio")
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "video_url": result.get("video_url"),
+                "duration": duration_int,
+                "ratio": result.get("ratio"),
+                "runway_result": result
+            }
         }
 
 
@@ -549,15 +581,20 @@ class OpenAIWrapper:
         duration_taken = time.time() - start_time
         
         return {
+            "success": bool(result.get("video_path")),
             "video_path": result.get("video_path"),
-            "generation_id": result.get("video_id", 'unknown'),
-            "status": "success" if result.get("video_path") else "completed_no_download",
+            "error": None,
             "duration_seconds": duration_taken,
+            "generation_id": result.get("video_id", 'unknown'),
             "model": self.model,
-            "prompt": text_prompt,
-            "image_path": str(image_path),
-            "duration": duration_int,
-            "size": result.get("size")
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "duration": duration_int,
+                "size": result.get("size"),
+                "sora_result": result
+            }
         }
 
 

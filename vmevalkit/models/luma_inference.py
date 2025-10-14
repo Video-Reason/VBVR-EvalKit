@@ -97,55 +97,85 @@ class LumaInference:
             
         Returns:
             Dictionary with:
+            - success: Whether generation succeeded
             - video_path: Path to generated video
-            - generation_id: Luma generation ID
-            - status: Generation status
+            - error: Error message if failed
             - duration_seconds: Time taken to generate
+            - generation_id: Luma generation ID
+            - model: Model name
+            - status: Generation status
+            - metadata: Additional metadata
         """
         start_time = time.time()
         
-        # Convert image to URL (Luma requires image URLs)
-        image_url = self._get_image_url(image_path)
-        
-        # Create generation
-        generation_id = self._create_generation(image_url, text_prompt)
-        
-        if self.verbose:
-            print(f"Started generation: {generation_id}")
-        
-        # Poll for completion
-        video_url = self._poll_generation(generation_id)
-        
-        # Download video
-        if not output_filename:
-            output_filename = f"luma_{generation_id}.mp4"
-        
-        video_path = self.output_dir / output_filename
-        self._download_video(video_url, video_path)
-        
-        duration_seconds = time.time() - start_time
-        
-        result = {
-            "video_path": str(video_path),
-            "generation_id": generation_id,
-            "status": "success",
-            "duration_seconds": duration_seconds,
-            "model": self.model,
-            "prompt": text_prompt,
-            "image_path": str(image_path)
-        }
-        
-        if self.verbose:
-            print(f"✅ Generated video: {video_path}")
-            print(f"   Time taken: {duration_seconds:.1f}s")
-        
-        # Clean up S3 resources
-        if self._s3_uploader:
-            self._s3_uploader.cleanup()
+        try:
+            # Convert image to URL (Luma requires image URLs)
+            image_url = self._get_image_url(image_path)
+            
+            # Create generation
+            generation_id = self._create_generation(image_url, text_prompt)
+            
             if self.verbose:
-                print("   Cleaned up temporary S3 resources")
-        
-        return result
+                print(f"Started generation: {generation_id}")
+            
+            # Poll for completion
+            video_url = self._poll_generation(generation_id)
+            
+            # Download video
+            if not output_filename:
+                output_filename = f"luma_{generation_id}.mp4"
+            
+            video_path = self.output_dir / output_filename
+            self._download_video(video_url, video_path)
+            
+            duration_seconds = time.time() - start_time
+            
+            result = {
+                "success": True,
+                "video_path": str(video_path),
+                "error": None,
+                "duration_seconds": duration_seconds,
+                "generation_id": generation_id,
+                "model": self.model,
+                "status": "success",
+                "metadata": {
+                    "prompt": text_prompt,
+                    "image_path": str(image_path)
+                }
+            }
+            
+            if self.verbose:
+                print(f"✅ Generated video: {video_path}")
+                print(f"   Time taken: {duration_seconds:.1f}s")
+            
+            # Clean up S3 resources
+            if self._s3_uploader:
+                self._s3_uploader.cleanup()
+                if self.verbose:
+                    print("   Cleaned up temporary S3 resources")
+            
+            return result
+            
+        except (LumaAPIError, Exception) as e:
+            duration_seconds = time.time() - start_time
+            
+            # Clean up S3 resources on error
+            if self._s3_uploader:
+                self._s3_uploader.cleanup()
+            
+            return {
+                "success": False,
+                "video_path": None,
+                "error": str(e),
+                "duration_seconds": duration_seconds,
+                "generation_id": "unknown",
+                "model": self.model,
+                "status": "failed",
+                "metadata": {
+                    "prompt": text_prompt,
+                    "image_path": str(image_path)
+                }
+            }
     
     def _get_image_url(self, image_path: Union[str, Path]) -> str:
         """Convert local image to URL using S3."""

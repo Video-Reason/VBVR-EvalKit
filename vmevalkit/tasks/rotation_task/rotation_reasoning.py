@@ -4,13 +4,18 @@
 
 This module generates 3D voxel structures (snake-like configurations) and creates
 mental rotation tasks where models must demonstrate spatial reasoning by showing
-how these structures appear when rotated to different viewpoints.
+how these structures appear when the camera rotates horizontally around them.
+
+The task uses:
+- Tilted camera views (20-40° elevation) for clear 3D perspective
+- Horizontal-only rotations with exactly 90° azimuth change for smooth transitions
+- 8-15 voxel structures for challenging but manageable complexity
 
 The task evaluates a model's ability to:
-1. Understand 3D spatial relationships from 2D projections
-2. Mentally rotate objects in 3D space
-3. Generate videos showing smooth rotation transitions
-4. Accurately predict the final appearance after rotation
+1. Understand 3D spatial relationships from tilted 2D projections
+2. Generate smooth horizontal camera rotations around fixed objects
+3. Maintain consistent 3D perspective throughout the rotation
+4. Accurately predict object appearance from different horizontal viewpoints
 
 Author: VMEvalKit Team
 """
@@ -56,8 +61,8 @@ class RotationGenerator:
         self.generated_positions = []
         
     def generate_tasks(self, num_tasks: int = 50) -> List[Dict[str, Any]]:
-        """Generate 3D mental rotation tasks (8-15 voxels, 30-90° or 90° rotations)."""
-        print(f"🎯 Generating {num_tasks} 3D mental rotation tasks (8-15 voxels, limited angles)...")
+        """Generate 3D mental rotation tasks with tilted views and 90° horizontal rotations."""
+        print(f"🎯 Generating {num_tasks} 3D mental rotation tasks (8-15 voxels, 90° horizontal rotations)...")
         
         if not HAS_DEPENDENCIES:
             raise ImportError("NumPy, matplotlib, and PIL are required for rotation tasks")
@@ -87,22 +92,18 @@ class RotationGenerator:
                 if len(voxels) < 8:
                     continue
 
-                # Mix of regular rotations and axis-aligned 90° rotations
-                use_axis_aligned = random.choice([True, False])  # 50% chance of axis-aligned
+                # Always use horizontal rotations with tilted views
+                # This ensures clear 3D perspective with smooth horizontal camera movement
+                tilted_elevation = random.randint(20, 40)  # Consistent tilt for both views
                 
-                if use_axis_aligned:
-                    # Use predefined axis-aligned rotations (90° increments)
-                    (elev1, azim1), (elev2, azim2) = self._sample_axis_aligned_views()
-                    angle_diff = 90.0  # Axis-aligned rotations are always 90°
-                else:
-                    # Generate random viewing angles with controlled separation
-                    elev1, azim1 = self._sample_view()
-                    elev2, azim2 = self._sample_view()
-                    
-                    # Ensure angle difference is between 30-90° for clear visualization
-                    angle_diff = self._angle_between(elev1, azim1, elev2, azim2)
-                    if angle_diff < 30 or angle_diff > 90:  # Accept 30-90 degree rotations
-                        continue
+                # Generate horizontal rotation (same elevation, different azimuth)
+                azim1 = random.randint(0, 359)
+                # Enforce exactly 90 degrees azimuth change
+                rotation_amount = 90
+                azim2 = (azim1 + rotation_amount) % 360
+                
+                elev1, elev2 = tilted_elevation, tilted_elevation  # Same elevation (horizontal rotation)
+                angle_diff = rotation_amount  # The actual horizontal rotation angle
                 
                 # Determine difficulty based on structure complexity and angle difference
                 difficulty = self._assess_difficulty(voxels, angle_diff)
@@ -325,35 +326,6 @@ class RotationGenerator:
                     mats.append(tuple(tuple(r) for r in mat))
         return mats
 
-    def _sample_view(
-        self,
-        elev_range: Tuple[Tuple[int, int], ...] = ((15, 75), (105, 165), (195, 255), (285, 345)),
-        azim_sectors: Tuple[Tuple[int, int], ...] = ((15, 75), (105, 165), (195, 255), (285, 345))
-    ) -> Tuple[int, int]:
-        """Return a random (elev, azim) viewing angle."""
-        elev_sector = random.choice(elev_range)
-        elev = random.uniform(*elev_sector)
-        azim_sector = random.choice(azim_sectors)
-        azim = random.uniform(*azim_sector)
-        return int(elev), int(azim)
-    
-    def _sample_axis_aligned_views(self) -> Tuple[Tuple[int, int], Tuple[int, int]]:
-        """Return two viewing angles that differ by exactly 90° around a clear axis."""
-        # Predefined axis-aligned view pairs for easy visualization
-        axis_aligned_pairs = [
-            # 90° rotations around Z-axis (top view rotations)
-            ((0, 0), (0, 90)),
-            ((0, 45), (0, 135)),
-            ((0, 90), (0, 180)),
-            # 90° rotations around Y-axis (side view rotations)
-            ((30, 0), (30, 90)),
-            ((45, 0), (45, 90)),
-            # Simple elevation changes with fixed azimuth
-            ((30, 45), (60, 45)),
-            ((45, 0), (75, 0)),
-        ]
-        return random.choice(axis_aligned_pairs)
-
     def _angle_between(self, elev1: float, azim1: float, elev2: float, azim2: float) -> float:
         """Calculate angle between two viewing directions in degrees."""
         e1, a1 = math.radians(elev1), math.radians(azim1)
@@ -558,11 +530,16 @@ def generate_prompt(task_data: Dict[str, Any]) -> str:
     elev1, azim1 = task_data["first_view"]
     elev2, azim2 = task_data["final_view"]
     
+    # Since we're now using horizontal rotations with tilted views, we can emphasize this
+    rotation_amount = abs(azim2 - azim1)
+    if rotation_amount > 180:
+        rotation_amount = 360 - rotation_amount
+    
     # Specify exact camera/viewing angles
     prompt = (f"A {num_voxels}-block sculpture sits fixed on a table. "
-              f"First frame: Your camera is at viewing angle (elevation: {elev1}°, azimuth: {azim1}°). "
-              f"Final frame: Your camera is at viewing angle (elevation: {elev2}°, azimuth: {azim2}°). "
-              f"Create a smooth video transition as the camera moves between these viewing angles, showing how the sculpture appears from different perspectives.")
+              f"First frame: Your camera is tilted at {elev1}° elevation, viewing from {azim1}° azimuth. "
+              f"Final frame: Your camera remains at {elev2}° elevation, but rotates horizontally to {azim2}° azimuth. "
+              f"Create a smooth video showing the camera's horizontal rotation around the sculpture, maintaining the tilted viewing angle throughout.")
     
     return prompt
 
@@ -602,9 +579,9 @@ def create_task_pair(task_data: Dict[str, Any], task_id: str) -> Dict[str, Any]:
 
 
 def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
-    """Create mental rotation dataset (8-15 voxels, 30-90° or 90° rotations)."""
+    """Create mental rotation dataset with tilted views and 90° horizontal rotations."""
     
-    print(f"🎯 Creating 3D mental rotation dataset with {num_samples} samples...")
+    print(f"🎯 Creating 3D mental rotation dataset with {num_samples} samples (90° horizontal rotations)...")
     
     # Generate tasks
     generator = RotationGenerator()
@@ -621,7 +598,7 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     # Create dataset
     dataset = {
         "name": "rotation_tasks",
-        "description": f"3D mental rotation tasks (8-15 voxels, 30-90° or 90° rotations) for video model evaluation ({len(pairs)} pairs)",
+        "description": f"3D mental rotation tasks with tilted views (20-40° elevation) and 90° horizontal rotations for video model evaluation ({len(pairs)} pairs)",
         "pairs": pairs
     }
     

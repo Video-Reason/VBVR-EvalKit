@@ -140,7 +140,11 @@ class WaveSpeedService:
         }
         
         # Add Veo 3.1 parameters to result if used
-        if self.model == WaveSpeedModel.VEO_3_1_I2V:
+        # Check both enum and string value forms
+        veo_models = [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]
+        veo_values = [WaveSpeedModel.VEO_3_1_I2V.value, WaveSpeedModel.VEO_3_1_FAST_I2V.value]
+        
+        if self.model in veo_models or self.model in veo_values:
             if aspect_ratio: result["aspect_ratio"] = aspect_ratio
             if duration: result["duration"] = duration
             if resolution: result["resolution"] = resolution
@@ -179,12 +183,19 @@ class WaveSpeedService:
     ) -> str:
         """Submit I2V generation request."""
         # Build endpoint URL based on model type
-        if self.model in [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]:
+        # Handle both enum and string model inputs
+        model_value = self.model.value if hasattr(self.model, 'value') else self.model
+        
+        # Check if this is a Veo 3.1 model (enum or string value)
+        veo_models = [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]
+        veo_values = [WaveSpeedModel.VEO_3_1_I2V.value, WaveSpeedModel.VEO_3_1_FAST_I2V.value]
+        
+        if self.model in veo_models or self.model in veo_values:
             # For Veo 3.1 models, use the Google prefix path
-            submit_url = f"{self.base_url}/api/v3/google/{self.model.value}"
+            submit_url = f"{self.base_url}/api/v3/google/{model_value}"
         else:
             # For WAN models, use wavespeed-ai prefix
-            submit_url = f"{self.base_url}/api/v3/wavespeed-ai/{self.model.value}"
+            submit_url = f"{self.base_url}/api/v3/wavespeed-ai/{model_value}"
         
         payload = {
             "prompt": prompt,
@@ -193,7 +204,11 @@ class WaveSpeedService:
         }
         
         # Add Veo 3.1 specific parameters if using Veo models
-        if self.model in [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]:
+        # Check both enum and string value forms
+        veo_models = [WaveSpeedModel.VEO_3_1_I2V, WaveSpeedModel.VEO_3_1_FAST_I2V]
+        veo_values = [WaveSpeedModel.VEO_3_1_I2V.value, WaveSpeedModel.VEO_3_1_FAST_I2V.value]
+        
+        if self.model in veo_models or self.model in veo_values:
             if aspect_ratio:
                 payload["aspect_ratio"] = aspect_ratio
             if duration:

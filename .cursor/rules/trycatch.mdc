@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Don't write try catch blocks.

@@ -21,37 +21,28 @@ from typing import List, Dict, Any, Tuple
 from datetime import datetime
 from pathlib import Path
 
-# Use local minimal RAVEN core (no external submodule dependency)
-try:
-    from .local_raven import (
-        IMAGE_SIZE,
-        build_center_single,
-        build_distribute_four,
-        build_distribute_nine,
-        generate_matrix,
-        render_panel,
-        sample_rules,
-    )
-    from .local_raven.rules import Rule_Wrapper
-    RAVEN_AVAILABLE = True
-except Exception as e:
-    print(f"Warning: Local RAVEN core not available: {e}")
-    RAVEN_AVAILABLE = False
-    IMAGE_SIZE = 160
+# Import local RAVEN core without try-catch to see actual errors
+from .local_raven import (
+    IMAGE_SIZE,
+    build_center_single,
+    build_distribute_four,
+    build_distribute_nine,
+    generate_matrix,
+    render_panel,
+    sample_rules,
+)
+from .local_raven.rules import Rule_Wrapper
 
 
 class RavenGenerator:
     """Self-contained RAVEN Progressive Matrix task generator."""
     
-    # Configuration mapping - FOCUS on Python 3 compatible configurations
-    # Note: RAVEN was designed for Python 2.7, so some configurations have compatibility issues
+    # Configuration mapping
     CONFIGURATIONS = {
-        "Center": "center_single",          # ✅ Most reliable
-        "2x2Grid": "distribute_four",       # ⚠️ Some success  
-        "3x3Grid": "distribute_nine"        # ⚠️ Some success
+        "Center": "center_single",          # Most reliable
+        "2x2Grid": "distribute_four",       # 2x2 grid
+        "3x3Grid": "distribute_nine"        # 3x3 grid
     }
-    
-    # (No local rule classification; use submodule behavior directly)
     
     def __init__(self):
         """Initialize RAVEN generator with configurations."""
@@ -60,21 +51,15 @@ class RavenGenerator:
         
     def setup_configurations(self):
         """Setup RAVEN configuration trees."""
-        if not RAVEN_AVAILABLE:
-            raise RuntimeError("RAVEN submodule is not available. Please initialize and install the RAVEN submodule to generate tasks.")
-            
-        # FOCUS on Python 3 compatible configurations only
-        # Note: Other RAVEN configurations have Python 2/3 compatibility issues
+        # Build configuration trees
         self.config_trees = {
-            "center_single": build_center_single(),        # Most reliable
-            "distribute_four": build_distribute_four(),    # Some success
-            "distribute_nine": build_distribute_nine()     # Some success
+            "center_single": build_center_single(),
+            "distribute_four": build_distribute_four(),
+            "distribute_nine": build_distribute_nine()
         }
         
     def generate_single_task(self, config_name: str, difficulty: str = None) -> Dict[str, Any]:
         """Generate a single RAVEN task."""
-        if not RAVEN_AVAILABLE:
-            raise RuntimeError("RAVEN submodule is not available. Cannot generate tasks without it.")
         
         # Get configuration tree
         if config_name not in self.config_trees:
@@ -85,74 +70,118 @@ class RavenGenerator:
         # Sample rules for this configuration
         max_attempts = 10
         for attempt in range(max_attempts):
-            try:
-                rule_groups = sample_rules()
-                new_root = root.prune(rule_groups)
-                
-                if new_root is not None:
-                    panels = self.generate_panels(new_root, rule_groups)
-                    return {
-                        "config_name": config_name,
-                        "config_display": [k for k, v in self.CONFIGURATIONS.items() if v == config_name][0],
-                        "matrix": panels,
-                        "attempts": attempt + 1,
-                    }
-                    
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed for {config_name}: {e}")
-                continue
+            # Get rules (no try-catch to see actual errors)
+            rule_groups = sample_rules(configuration=config_name)
+            new_root = root.prune(rule_groups)
+            
+            if new_root is not None:
+                panels = self.generate_panels(new_root, rule_groups)
+                return {
+                    "config_name": config_name,
+                    "config_display": [k for k, v in self.CONFIGURATIONS.items() if v == config_name][0],
+                    "matrix": panels,
+                    "attempts": attempt + 1,
+                }
+            print(f"Attempt {attempt + 1}: Pruning failed for {config_name}, trying again...")
                 
         raise RuntimeError(f"Failed to generate valid task for {config_name} after {max_attempts} attempts")
     
     def generate_panels(self, root, rule_groups) -> List[np.ndarray]:
-        """Generate the 9 panels of a Progressive Matrix following RAVEN logic."""
+        """Generate the 9 panels of a Progressive Matrix following original RAVEN logic."""
         import copy
 
         start_node = root.sample()
 
-        def build_row(base_node):
-            to_merge = None
-            for group_idx, rule_group in enumerate(rule_groups):
-                rule_num_pos = rule_group[0]
-                c2 = rule_num_pos.apply_rule(base_node)
-                c3 = rule_num_pos.apply_rule(c2)
-                for rule in rule_group[1:]:
-                    c2 = rule.apply_rule(base_node, c2)
-                    c3 = rule.apply_rule(c2, c3)
-                if group_idx == 0:
-                    to_merge = [copy.deepcopy(base_node), c2, c3]
-                else:
-                    self.merge_component(to_merge[1], c2, group_idx)
-                    self.merge_component(to_merge[2], c3, group_idx)
-            return to_merge
+        # Row 1: Apply rules to generate row_1_1, row_1_2, row_1_3
+        row_1_1 = copy.deepcopy(start_node)
+        for l in range(len(rule_groups)):
+            rule_group = rule_groups[l]
+            rule_num_pos = rule_group[0]
+            row_1_2 = rule_num_pos.apply_rule(row_1_1)
+            row_1_3 = rule_num_pos.apply_rule(row_1_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_1_2 = rule.apply_rule(row_1_1, row_1_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_1_3 = rule.apply_rule(row_1_2, row_1_3)
+            if l == 0:
+                to_merge = [row_1_1, row_1_2, row_1_3]
+            else:
+                self.merge_component(to_merge[1], row_1_2, l)
+                self.merge_component(to_merge[2], row_1_3, l)
+        row_1_1, row_1_2, row_1_3 = to_merge
 
-        row1 = build_row(copy.deepcopy(start_node))
-        row2_base = copy.deepcopy(start_node)
-        row2_base.resample(True)
-        row2 = build_row(row2_base)
-        row3_base = copy.deepcopy(start_node)
-        row3_base.resample(True)
-        row3 = build_row(row3_base)
+        # Row 2: Create new base and apply same rules
+        row_2_1 = copy.deepcopy(start_node)
+        row_2_1.resample(True)
+        for l in range(len(rule_groups)):
+            rule_group = rule_groups[l]
+            rule_num_pos = rule_group[0]
+            row_2_2 = rule_num_pos.apply_rule(row_2_1)
+            row_2_3 = rule_num_pos.apply_rule(row_2_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_2_2 = rule.apply_rule(row_2_1, row_2_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_2_3 = rule.apply_rule(row_2_2, row_2_3)
+            if l == 0:
+                to_merge = [row_2_1, row_2_2, row_2_3]
+            else:
+                self.merge_component(to_merge[1], row_2_2, l)
+                self.merge_component(to_merge[2], row_2_3, l)
+        row_2_1, row_2_2, row_2_3 = to_merge
 
-        nodes = [row1[0], row1[1], row1[2], row2[0], row2[1], row2[2], row3[0], row3[1], row3[2]]
-        return [render_panel(node) for node in nodes]
+        # Row 3: Create new base and apply same rules
+        row_3_1 = copy.deepcopy(start_node)
+        row_3_1.resample(True)
+        for l in range(len(rule_groups)):
+            rule_group = rule_groups[l]
+            rule_num_pos = rule_group[0]
+            row_3_2 = rule_num_pos.apply_rule(row_3_1)
+            row_3_3 = rule_num_pos.apply_rule(row_3_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_3_2 = rule.apply_rule(row_3_1, row_3_2)
+            for i in range(1, len(rule_group)):
+                rule = rule_group[i]
+                row_3_3 = rule.apply_rule(row_3_2, row_3_3)
+            if l == 0:
+                to_merge = [row_3_1, row_3_2, row_3_3]
+            else:
+                self.merge_component(to_merge[1], row_3_2, l)
+                self.merge_component(to_merge[2], row_3_3, l)
+        row_3_1, row_3_2, row_3_3 = to_merge
+
+        # Return rendered panels following original RAVEN order
+        imgs = [render_panel(row_1_1),
+                render_panel(row_1_2), 
+                render_panel(row_1_3),
+                render_panel(row_2_1),
+                render_panel(row_2_2),
+                render_panel(row_2_3),
+                render_panel(row_3_1),
+                render_panel(row_3_2),
+                render_panel(row_3_3)]  # Include 9th panel for complete matrix
+        
+        return imgs
     
     def merge_component(self, dst_aot, src_aot, component_idx):
         """Merge component from src to dst (from RAVEN main.py)."""
         src_component = src_aot.children[0].children[component_idx]
         dst_aot.children[0].children[component_idx] = src_component
     
-    # No local rule summarization or difficulty heuristics
-    
     def generate_tasks(self, num_tasks: int = 50) -> List[Dict[str, Any]]:
-        """Generate tasks; fallback to alternates and mocks succinctly."""
+        """Generate tasks across different configurations."""
         print(f"🎯 Generating {num_tasks} RAVEN tasks across {len(self.CONFIGURATIONS)} configurations...")
         tasks: List[Dict[str, Any]] = []
         configs = list(self.CONFIGURATIONS.values())
         for i in range(num_tasks):
             cfg = configs[i % len(configs)]
-            tasks.append(self.generate_single_task(cfg))
-            print(f"✅ {i+1}/{num_tasks}: {tasks[-1]['config_display']}")
+            task = self.generate_single_task(cfg)
+            tasks.append(task)
+            print(f"✅ {i+1}/{num_tasks}: {task['config_display']}")
         self.generated_tasks = tasks
         return tasks
 
@@ -208,7 +237,7 @@ def generate_rpm_image(matrix_panels: List[np.ndarray], output_path: str, incomp
 
 
 def generate_prompt(task_data: Dict[str, Any]) -> str:
-    """Generate concise prompt with config-aware base; no rule-specific hints."""
+    """Generate concise prompt with config-aware base."""
     config_display = task_data["config_display"]
     base = {
         "Center": "Complete this center-focused pattern matrix",
@@ -266,13 +295,9 @@ def create_dataset(num_samples: int = 50) -> Dict[str, Any]:
     for i, task_data in enumerate(tasks):
         task_id = f"raven_{i:04d}"
         
-        try:
-            pair = create_task_pair(task_data, task_id)
-            pairs.append(pair)
-            print(f"✅ Created task {task_id}: {pair['task_category']}")
-        except Exception as e:
-            print(f"❌ Failed to create task pair {task_id}: {e}")
-            continue
+        pair = create_task_pair(task_data, task_id)
+        pairs.append(pair)
+        print(f"✅ Created task {task_id}: {pair['task_category']}")
     
     if len(pairs) == 0:
         raise RuntimeError("Failed to create any valid task pairs")

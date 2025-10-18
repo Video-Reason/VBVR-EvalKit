@@ -25,11 +25,8 @@ import chess.svg
 import io
 from PIL import Image, ImageDraw, ImageFont
 
-# Standardized prompts for chess tasks (can add variations for experiments)
-PROMPTS = [
-    "{side} can deliver checkmate in one move. Show the winning move.",  # Standard prompt
-    # Future variations can be added here for prompt experiments
-]
+# Import prompts from centralized location
+from .PROMPTS import PROMPTS
 
 
 class SelfContainedMateGenerator:

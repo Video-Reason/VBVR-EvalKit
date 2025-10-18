@@ -179,7 +179,7 @@ class WaveSpeedService:
         image_path: Union[str, Path],
         seed: int = -1,
         output_path: Optional[Path] = None,
-        poll_timeout_s: float = 300.0,
+        poll_timeout_s: float = 1800.0,  # 30 minute timeout
         poll_interval_s: float = 2.0,
         # Veo 3.1 specific parameters
         aspect_ratio: Optional[str] = None,
@@ -353,7 +353,7 @@ class WaveSpeedService:
             if negative_prompt:
                 payload["negative_prompt"] = negative_prompt
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for download  # 2 minute timeout
             response = await client.post(
                 submit_url,
                 headers=self.headers,
@@ -392,7 +392,7 @@ class WaveSpeedService:
         start_time = asyncio.get_event_loop().time()
         max_attempts = int(timeout_s / interval_s)
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for download  # 2 minute timeout
             for attempt in range(max_attempts):
                 if asyncio.get_event_loop().time() - start_time > timeout_s:
                     raise TimeoutError(f"Generation timed out after {timeout_s}s")
@@ -442,7 +442,7 @@ class WaveSpeedService:
         """Download video from URL to local file."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for download
             response = await client.get(video_url)
             if response.status_code != 200:
                 raise Exception(f"Failed to download video: {response.status_code}")
@@ -466,7 +466,7 @@ class Veo31Service(WaveSpeedService):
         image_path: Union[str, Path],
         seed: int = -1,
         output_path: Optional[Path] = None,
-        poll_timeout_s: float = 300.0,
+        poll_timeout_s: float = 1800.0,  # 30 minute timeout
         poll_interval_s: float = 2.0,
         aspect_ratio: Optional[str] = None,  # Let auto-detection work by default
         duration: Optional[float] = 8.0,

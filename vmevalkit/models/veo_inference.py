@@ -144,7 +144,7 @@ class VeoService:
         project_id: Optional[str] = None,
         location: str = "us-central1",
         model_id: str = "veo-3.0-generate-preview",
-        http_timeout_s: float = 600.0,
+        http_timeout_s: float = 1800.0,  # 30 minute timeout
     ):
         # Accept multiple common env var names for GCP project and location
         self.project_id = (
@@ -200,7 +200,7 @@ class VeoService:
         person_generation: Optional[str] = None,  # "disallow" | "allow_adult"
         storage_uri: Optional[str] = None,  # gs://bucket/prefix to write outputs
         poll_interval_s: float = 8.0,
-        poll_timeout_s: float = 600.0,
+        poll_timeout_s: float = 1800.0,  # 30 minute timeout
         download_from_gcs: bool = False,    # if response points to GCS, try to download bytes
     ) -> Tuple[Optional[bytes], Dict[str, Any]]:
         """

@@ -26,11 +26,8 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import cv2
 
-# Standardized prompts for maze tasks (can add variations for experiments)
-PROMPTS = [
-    "Move the green dot from its starting position through the maze paths to the red flag. Navigate only through open spaces (white).",  # Standard prompt
-    # Future variations can be added here for prompt experiments
-]
+# Import prompts from centralized location
+from .PROMPTS import PROMPTS
 
 
 @dataclass

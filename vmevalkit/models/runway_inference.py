@@ -40,12 +40,14 @@ class RunwayService:
         constraints = {
             "gen4_turbo": {
                 "durations": [5, 10],
-                "ratios": ["16:9", "9:16", "1:1"],  # Standard aspect ratios supported by Gen-4 Turbo
+                # Use actual pixel dimensions required by Runway API
+                "ratios": ["1280:720", "720:1280", "1104:832", "832:1104", "960:960", "1584:672"],
                 "description": "Runway Gen-4 Turbo - Fast high-quality generation"
             },
             "gen4_aleph": {
                 "durations": [5],
-                "ratios": ["16:9", "9:16", "1:1"],  # Standard aspect ratios supported by Gen-4 Aleph
+                # Use actual pixel dimensions required by Runway API
+                "ratios": ["1280:720", "720:1280", "1104:832", "832:1104", "960:960", "1584:672"],
                 "description": "Runway Gen-4 Aleph - Premium quality"
             },
             "gen3a_turbo": {
@@ -69,15 +71,21 @@ class RunwayService:
             image_height: Original image height
             
         Returns:
-            Best matching aspect ratio string (e.g., "16:9", "1:1", or "1280:768")
+            Best matching aspect ratio string (e.g., "960:960", "1280:720")
         """
         input_ratio = image_width / image_height
         supported_ratios = self.model_constraints["ratios"]
         
-        # Check if 1:1 is supported and image is square
-        if "1:1" in supported_ratios and 0.9 <= input_ratio <= 1.1:
-            logger.info(f"Square image detected ({image_width}×{image_height}) -> using 1:1")
-            return "1:1"
+        # Check for square images and use 960:960 if available
+        if 0.9 <= input_ratio <= 1.1:
+            # Look for square format in supported ratios
+            for ratio_str in supported_ratios:
+                if ':' in ratio_str:
+                    parts = ratio_str.split(':')
+                    w, h = map(int, parts)
+                    if w == h:  # Square format found
+                        logger.info(f"Square image detected ({image_width}×{image_height}) -> using {ratio_str}")
+                        return ratio_str
         
         best_ratio = None
         min_diff = float('inf')
@@ -324,7 +332,7 @@ class RunwayService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         import httpx
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=600.0) as client:  # 10 minute timeout for download
             response = await client.get(video_url)
             if response.status_code != 200:
                 raise Exception(f"Failed to download video: {response.status_code}")

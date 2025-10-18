@@ -17,11 +17,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-# Standardized prompts for Sudoku tasks (can add variations for experiments)
-PROMPTS = [
-    "Solve this 3x3 Sudoku puzzle. Fill in all the empty cells following Sudoku rules: each row and column must contain the digits 1, 2, and 3 exactly once. Show the complete solution.",  # Standard prompt
-    # Future variations can be added here for prompt experiments
-]
+# Import prompts from centralized location
+from .PROMPTS import PROMPTS
 
 
 @dataclass

@@ -227,7 +227,7 @@ class LumaInference:
         data = response.json()
         return data["id"]
     
-    def _poll_generation(self, generation_id: str, timeout: int = 300) -> str:
+    def _poll_generation(self, generation_id: str, timeout: int = 1800) -> str:  # 30 minute timeout
         """Poll for generation completion."""
         start_time = time.time()
         

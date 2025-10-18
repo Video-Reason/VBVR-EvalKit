@@ -32,7 +32,8 @@ That's it! The registry automatically handles dataset generation and integration
 ```
 vmevalkit/tasks/{task_name}_task/
 ├── __init__.py                       # Module exports
-├── {task_name}_reasoning.py          # Main generation script  
+├── {task_name}_reasoning.py          # Main generation script
+├── PROMPTS.py                        # Centralized prompts for prompt engineering experiments
 ├── {TASK_NAME}.md                    # Documentation
 └── [helpers.py]                      # Optional modules
 

@@ -13,11 +13,8 @@ from datetime import datetime
 from .rpm_generator import RPMPuzzleGenerator
 from PIL import Image, ImageDraw, ImageFont
 
-# Standardized prompts for Raven tasks (can add variations for experiments)
-PROMPTS = [
-    "This is Raven's Progressive Matrices like task. Complete the missing pattern in this 3x3 matrix.",  # Standard prompt
-    # Future variations can be added here for prompt experiments
-]
+# Import prompts from centralized location
+from .PROMPTS import PROMPTS
 
 
 def create_dataset(num_samples: int = 50) -> Dict[str, Any]:

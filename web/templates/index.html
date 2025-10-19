@@ -6,32 +6,53 @@
 <div class="page-header">
     <h1>VMEvalKit Results</h1>
     <p class="subtitle">{{ overview.total_models }} models · {{ overview.total_domains }} domains · {{ overview.total_inferences }} inferences</p>
+    <div style="margin-top: 20px;">
+        <button onclick="expandAll()" style="padding: 8px 16px; margin-right: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            ➕ Expand All Models
+        </button>
+        <button onclick="collapseAll()" style="padding: 8px 16px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            ➖ Collapse All Models
+        </button>
+    </div>
+    {% if hierarchy %}
+    <div style="margin-top: 15px; padding: 15px; background-color: #fff3cd; border-radius: 6px; border: 1px solid #ffc107;">
+        <strong>📌 Quick Navigation:</strong>
+        {% for model in hierarchy %}
+        <button onclick="navigateToModel('model-{{ loop.index }}')" 
+                style="padding: 5px 10px; margin: 5px; background-color: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+            🤖 {{ model }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 
 <!-- Hierarchical View: Models → Domains → Tasks -->
 {% for model, domains in hierarchy.items() %}
 <section class="model-section">
-    <div class="model-header" onclick="toggleSection('model-{{ loop.index }}')">
+    <div class="model-header" onclick="toggleSection('model-{{ loop.index }}')" style="cursor: pointer; background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 10px; transition: background-color 0.3s;">
                 <h2>
-                    <span class="expand-icon" id="icon-model-{{ loop.index }}">▶</span>
+                    <span class="expand-icon" id="icon-model-{{ loop.index }}">{% if loop.first %}▼{% else %}▶{% endif %}</span>
             🤖 {{ model }}
             <span class="badge">{{ domains.values()|map('length')|sum }} tasks</span>
+            <span style="float: right; color: #666; font-size: 14px;">Click to {% if loop.first %}collapse{% else %}expand{% endif %}</span>
         </h2>
     </div>
     
-    <div class="model-content" id="model-{{ loop.index }}" style="display: none;">
+    <div class="model-content" id="model-{{ loop.index }}" style="display: {% if loop.first %}block{% else %}none{% endif %}">
         {% for domain, tasks in domains.items() %}
         <div class="domain-section">
-            <div class="domain-header" onclick="toggleSection('domain-{{ loop.index0 }}-{{ loop.index }}')">
+            <div class="domain-header" onclick="toggleSection('domain-{{ loop.index0 }}-{{ loop.index }}')" style="cursor: pointer; background-color: #f8f9fa; padding: 10px 15px; border-radius: 6px; margin-bottom: 8px; transition: background-color 0.3s;">
                 <h3>
-                    <span class="expand-icon" id="icon-domain-{{ loop.index0 }}-{{ loop.index }}">▶</span>
+                    <span class="expand-icon" id="icon-domain-{{ loop.index0 }}-{{ loop.index }}">{% if loop.index0 == 1 and loop.first %}▼{% else %}▶{% endif %}</span>
                     {% if domain == 'chess' %}♟️{% elif domain == 'maze' %}🌀{% elif domain == 'raven' %}🧩{% elif domain == 'rotation' %}🔄{% elif domain == 'sudoku' %}🔢{% else %}📝{% endif %}
                     {{ domain|title }}
                     <span class="badge">{{ tasks|length }} tasks</span>
+                    <span style="float: right; color: #999; font-size: 12px;">Click to toggle</span>
                 </h3>
             </div>
             
-            <div class="domain-content" id="domain-{{ loop.index0 }}-{{ loop.index }}" style="display: none;">
+            <div class="domain-content" id="domain-{{ loop.index0 }}-{{ loop.index }}" style="display: {% if loop.index0 == 1 and loop.first %}block{% else %}none{% endif %}">
                 <div class="tasks-grid">
                     {% for task in tasks %}
                     <div class="task-card">
@@ -100,6 +121,59 @@ function toggleSection(sectionId) {
         icon.textContent = '▶';
     }
 }
+
+function expandAll() {
+    // Expand all model sections
+    {% for model in hierarchy %}
+    document.getElementById('model-{{ loop.index }}').style.display = 'block';
+    document.getElementById('icon-model-{{ loop.index }}').textContent = '▼';
+    {% endfor %}
+}
+
+function collapseAll() {
+    // Collapse all model sections
+    {% for model in hierarchy %}
+    document.getElementById('model-{{ loop.index }}').style.display = 'none';
+    document.getElementById('icon-model-{{ loop.index }}').textContent = '▶';
+    {% endfor %}
+}
+
+function navigateToModel(modelId) {
+    // First ensure the section is expanded
+    const section = document.getElementById(modelId);
+    const icon = document.getElementById('icon-' + modelId);
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+        icon.textContent = '▼';
+    }
+    // Then scroll to it
+    setTimeout(function() {
+        document.getElementById(modelId).parentElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }, 100);
+}
+
+// Add hover effects to clickable headers
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effect to model headers
+    document.querySelectorAll('.model-header').forEach(header => {
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#e1e8f0';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#f0f4f8';
+        });
+    });
+    
+    // Add hover effect to domain headers
+    document.querySelectorAll('.domain-header').forEach(header => {
+        header.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#eef0f2';
+        });
+        header.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+    });
+});
 
 // Lazy load videos as they come into view
 document.addEventListener('DOMContentLoaded', function() {

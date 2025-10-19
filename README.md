@@ -221,8 +221,7 @@ VMEvalKit supports 40 models across 11 families with a **modular architecture** 
 - **String Module Paths**: Flexible loading without circular imports
 
 **Documentation:**
-- 📚 **Adding Models Guide**: [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md)
-- 🏗️ **Architecture Details**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 📚 **Adding Models Guide**: [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) (includes architecture details)
 
 Both API-based and open-source (submodule) integration patterns are supported.
 

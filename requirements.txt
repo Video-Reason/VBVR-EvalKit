@@ -61,3 +61,10 @@ sphinx-rtd-theme>=2.0.0
 
 # AWS
 boto3>=1.34.0
+
+# Web framework
+flask>=3.1.2
+click>=8.3.0
+itsdangerous>=2.2.0
+werkzeug>=3.1.3
+blinker>=1.9.0

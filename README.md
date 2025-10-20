@@ -283,77 +283,23 @@ python examples/experiment_2025-10-14.py --all-tasks --only-model veo-3.0-genera
 
 ## Evaluation
 
-VMEvalKit provides two evaluation methods to assess video generation models' reasoning capabilities:
-
-### Human Evaluation
-
-Interactive web interface for manual assessment:
+VMEvalKit provides evaluation methods to assess video generation models' reasoning capabilities:
 
 ```bash
-# Launch human evaluation interface - evaluates entire pilot experiment
+# Human evaluation with web interface
 python examples/run_evaluation.py human
 
-# With custom annotator name
-python examples/run_evaluation.py human --annotator "Jane Smith"
-
-# With public share link
-python examples/run_evaluation.py human --share
-```
-
-**Features:**
-- Gradio-based web interface
-- Side-by-side comparison of input and output
-- Simple 1-5 correctness scale evaluation
-- Progress tracking
-
-### GPT-4O Evaluation
-
-Automatic evaluation using OpenAI's vision model:
-
-```bash
-# Set API key
+# Automatic GPT-4O evaluation
 export OPENAI_API_KEY=your_api_key
-
-# Evaluate entire pilot experiment
 python examples/run_evaluation.py gpt4o
-```
 
-**Note:** The evaluation system automatically **skips already evaluated tasks**, so you can safely re-run the command to resume evaluation.
-
-**Features:**
-- Multi-frame video analysis
-- Task-specific evaluation prompts
-- Batch processing
-- 1-5 correctness scale with detailed explanations
-
-### Custom Evaluation
-
-Example of creating a custom evaluator:
-
-```bash
-# Run the custom evaluation example
+# Custom evaluation example
 python examples/run_evaluation.py custom
 ```
 
-### Evaluation Output
+Results are saved in `data/evaluations/`. 
 
-Results are saved in `data/evaluations/` with the following structure:
-```
-data/evaluations/
-├── pilot_experiment/
-│   ├── luma-ray-2/
-│   │   ├── chess_task/
-│   │   │   ├── chess_0000/
-│   │   │   │   ├── human-eval.json
-│   │   │   │   └── gpt-4o-eval.json
-│   │   │   └── ...
-│   │   └── ...
-│   └── ...
-```
-
-Each evaluation file contains individual task results. Analysis and summary statistics should be computed separately from these raw evaluation results.
-
-See [vmevalkit/eval/README.md](vmevalkit/eval/README.md) for detailed documentation.
+📚 **For detailed documentation, see [vmevalkit/eval/README.md](vmevalkit/eval/README.md)**
 
 ## License
 

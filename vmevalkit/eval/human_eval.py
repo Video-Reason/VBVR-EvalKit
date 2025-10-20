@@ -14,34 +14,47 @@ class HumanEvaluator:
     """Gradio-based interface for human evaluation of generated videos."""
     
     def __init__(self, output_dir: str = "data/evaluations", 
-                 experiment_name: str = "pilot_experiment",
-                 annotator_name: str = "anonymous"):
+                 experiment_name: str = "pilot_experiment"):
         self.output_dir = Path(output_dir)
         self.experiment_name = experiment_name
         self.experiment_dir = Path("data/outputs") / experiment_name
-        self.annotator_name = annotator_name
+        self.annotator_name = "Anonymous"  # Default, will be set in interface
         self.evaluation_queue = []
         self.current_index = 0
         self._load_evaluation_queue()
     
     def _load_evaluation_queue(self):
-        """Load tasks that need evaluation."""
+        """Load tasks that need evaluation, checking evaluations folder to avoid repetition."""
         self.evaluation_queue = []
+        skipped_count = 0
+        
         for model_dir in self.experiment_dir.iterdir():
             if not model_dir.is_dir(): continue
             for task_type_dir in model_dir.iterdir():
                 if not task_type_dir.is_dir(): continue
                 for task_dir in task_type_dir.iterdir():
                     if not task_dir.is_dir(): continue
+                    
                     # Check if already evaluated
-                    eval_path = self.output_dir / self.experiment_name / model_dir.name / task_type_dir.name / task_dir.name / "human-eval.json"
-                    if not eval_path.exists():
+                    eval_path = self.output_dir / self.experiment_name / model_dir.name / task_type_dir.name / task_dir.name
+                    
+                    # Look for any existing evaluation files
+                    has_evaluation = False
+                    if eval_path.exists():
+                        eval_files = list(eval_path.glob("*-eval.json"))
+                        if eval_files:
+                            has_evaluation = True
+                            skipped_count += 1
+                            logger.debug(f"Skipping {model_dir.name}/{task_type_dir.name}/{task_dir.name} - already evaluated")
+                    
+                    if not has_evaluation:
                         self.evaluation_queue.append({
                             "model_name": model_dir.name,
                             "task_type": task_type_dir.name,
                             "task_id": task_dir.name
                         })
-        logger.info(f"Loaded {len(self.evaluation_queue)} tasks to evaluate")
+        
+        logger.info(f"Loaded {len(self.evaluation_queue)} tasks to evaluate ({skipped_count} already evaluated, skipped)")
     
     def _get_task_data(self, model_name: str, task_type: str, task_id: str) -> Optional[Dict[str, Any]]:
         """Get data for a specific task."""
@@ -88,8 +101,19 @@ class HumanEvaluator:
     def launch_interface(self, share: bool = False, port: int = 7860):
         """Launch Gradio interface."""
         with gr.Blocks(title="VMEvalKit Human Evaluation") as interface:
-            gr.Markdown(f"# VMEvalKit Human Evaluation\n**Annotator:** {self.annotator_name} | **Experiment:** {self.experiment_name}")
+            gr.Markdown(f"# VMEvalKit Human Evaluation\n**Experiment:** {self.experiment_name}")
             
+            # Annotator name input
+            with gr.Row():
+                annotator_input = gr.Textbox(
+                    label="Annotator Name", 
+                    value=self.annotator_name,
+                    placeholder="Enter your name",
+                    interactive=True
+                )
+                annotator_btn = gr.Button("Set Annotator", variant="primary")
+            
+            annotator_status = gr.Markdown(f"Current annotator: **{self.annotator_name}**")
             progress_text = gr.Markdown(f"Progress: 0/{len(self.evaluation_queue)} tasks")
             
             with gr.Row():
@@ -164,6 +188,13 @@ class HumanEvaluator:
                                                self.current_index + direction))
                 return update_display(self.current_index)
             
+            def set_annotator(name):
+                """Update annotator name."""
+                if not name or name.strip() == "":
+                    return {annotator_status: "⚠️ Please enter a valid name"}
+                self.annotator_name = name.strip()
+                return {annotator_status: f"Current annotator: **{self.annotator_name}**"}
+            
             def submit_evaluation(correctness, comments_text):
                 """Submit evaluation."""
                 if correctness is None:
@@ -184,6 +215,7 @@ class HumanEvaluator:
                 return updates
             
             # Connect buttons
+            annotator_btn.click(set_annotator, inputs=[annotator_input], outputs=[annotator_status])
             prev_btn.click(lambda: navigate(-1), outputs=ui_outputs)
             next_btn.click(lambda: navigate(1), outputs=ui_outputs)
             submit_btn.click(submit_evaluation, inputs=[correctness_score, comments], outputs=ui_outputs)

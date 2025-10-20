@@ -13,12 +13,32 @@ Interactive web interface for human annotation of generated videos.
 - Structured evaluation criteria
 - Progress tracking
 - Export results as JSON
+- **Automatic skip of already evaluated tasks** (checks evaluations folder)
+- **In-interface annotator name input** (no command-line setup needed)
 
 **Usage:**
 ```bash
 # Run human evaluation interface (evaluates entire pilot experiment)
-# Automatically creates a public share link for easy access
+# Automatically skips tasks that have any existing evaluation
 python examples/run_evaluation.py human
+```
+
+When launched, the interface will:
+- Prompt for the annotator name
+- Automatically skip tasks with existing evaluations
+- Show progress and statistics
+
+**Python Usage:**
+```python
+from vmevalkit.eval import HumanEvaluator
+
+evaluator = HumanEvaluator(
+    experiment_name="pilot_experiment"
+)
+# Automatically skips tasks with existing evaluations in data/evaluations/
+# Annotator name is set within the Gradio interface
+
+evaluator.launch_interface(share=True, port=7860)
 ```
 
 ### 2. GPT-4O Evaluator
@@ -36,10 +56,6 @@ Automatic evaluation using OpenAI's GPT-4O vision model.
 # Evaluate entire pilot experiment (all models, all tasks)
 python examples/run_evaluation.py gpt4o
 ```
-
-**Resume Capability:** Human evaluation skips already evaluated tasks. Automated GPT-4O evaluation overwrites existing results by default.
-
-Note: Set `OPENAI_API_KEY` environment variable before running.
 
 **Requirements:**
 - Set `OPENAI_API_KEY` environment variable
@@ -76,58 +92,89 @@ Each `*-eval.json` file contains individual evaluation results with metadata. Su
 
 ## Custom Evaluators
 
-To create a custom evaluator:
+To create a custom evaluator, follow the pattern of the existing evaluators:
 
-1. Inherit from `BaseEvaluator`
-2. Implement `evaluate_single()` method
-
-Example:
 ```python
-from vmevalkit.eval import BaseEvaluator
+from pathlib import Path
+from datetime import datetime
+import json
 
-class MyEvaluator(BaseEvaluator):
-    def evaluate_single(self, model_name, task_type, task_id, video_path, question_data):
+class MyEvaluator:
+    def __init__(self, output_dir="data/evaluations", 
+                 experiment_name="pilot_experiment"):
+        self.output_dir = Path(output_dir)
+        self.experiment_name = experiment_name
+        self.experiment_dir = Path("data/outputs") / experiment_name
+    
+    def evaluate_single(self, model_name, task_type, task_id, video_path):
         # Your evaluation logic here
         return {
             "solution_correctness_score": 5,  # 1-5 scale
             "explanation": "The solution perfectly solves the task"
         }
+    
+    def evaluate_model(self, model_name):
+        # Iterate through tasks and evaluate
+        # Save results using same structure as other evaluators
+        pass
 ```
 
-Note: Evaluators focus only on evaluation - analysis and summary statistics should be handled by separate analysis tools.
+Note: Evaluators are now standalone classes - no base class required. Just ensure your evaluator saves results in the standard format.
 
 ## API Reference
-
-### BaseEvaluator
-Base class providing common evaluation functionality.
-
-**Methods:**
-- `evaluate_model(model_name)`: Evaluate all tasks for a model
-- `evaluate_all_models()`: Evaluate all models in experiment
-- `evaluate_single()`: Abstract method to evaluate one task (implement in subclasses)
-- `_save_results()`: Save evaluation results
 
 ### HumanEvaluator
 Gradio-based interface for human annotation.
 
+**Parameters:**
+- `output_dir`: Directory for saving evaluations (default: "data/evaluations")
+- `experiment_name`: Name of experiment to evaluate (default: "pilot_experiment")
+
 **Methods:**
-- `launch_interface(share, port)`: Start web interface
+- `launch_interface(share, port)`: Start web interface with annotator name input
+
+**Automatic Features:**
+- Checks `data/evaluations/` for existing `*-eval.json` files
+- Automatically skips tasks that have been evaluated
+- Logs number of tasks skipped and loaded
+- Annotator name is entered via the interface (not constructor)
 
 ### GPT4OEvaluator
 Automatic evaluation using GPT-4O by comparing final frames.
 
+**Parameters:**
+- `output_dir`: Directory for saving evaluations
+- `experiment_name`: Name of experiment to evaluate
+- `api_key`: OpenAI API key (defaults to OPENAI_API_KEY env var)
+- `model`: GPT model to use (default: "gpt-4o")
+- `temperature`: Temperature for responses (default: 0.1)
+
 **Methods:**
 - `extract_final_frame(video_path)`: Extract the final frame from video
-- `create_evaluation_prompt(task_type)`: Generate task-specific prompts
+- `create_prompt(task_type)`: Generate task-specific prompts
 - `evaluate_single()`: Evaluate one video by comparing final frames
+- `evaluate_model()`: Evaluate all tasks for a model
+- `evaluate_all_models()`: Evaluate all models in experiment
+
+## Resume Capability
+
+**Human Evaluation:**
+- Automatically skips already evaluated tasks
+- Checks `data/evaluations/` for any `*-eval.json` files
+- Logs how many tasks were skipped
+- To re-evaluate: manually delete the evaluation files
+
+**GPT-4O Evaluation:**
+- Currently overwrites existing results
+- To skip already evaluated: manually check for existing files
 
 ## Tips
 
 1. **For Human Evaluation:**
-   - The interface automatically creates a public share link
+   - The interface shows progress and statistics
    - Complete evaluations in one session when possible
    - Add detailed comments for edge cases
-   - Default annotator name is "Annotator" 
+   - Check logs for detailed skip information
 
 2. **For GPT-4O Evaluation:**
    - Monitor API costs for large experiments

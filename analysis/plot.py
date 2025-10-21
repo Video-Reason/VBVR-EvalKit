@@ -7,7 +7,7 @@ Only scores 4 and 5 are considered "correct" (successful).
 
 Usage:
     python analysis/plot.py --eval-folder data/evaluations/human-eval/
-    python analysis/plot.py --eval-folder data/evaluations/gpt4o-eval/ --output results.png
+    python analysis/plot.py --eval-folder data/evaluations/gpt4o-eval/
 """
 
 import os
@@ -118,18 +118,18 @@ def calculate_overall_performance(evaluations: list) -> pd.DataFrame:
     
     return df
 
-def create_visualizations(domain_df: pd.DataFrame, overall_df: pd.DataFrame, output_path: str = None):
-    """Create comprehensive visualizations."""
+def create_visualizations(domain_df: pd.DataFrame, overall_df: pd.DataFrame, output_path: str):
+    """Create comprehensive visualizations and save to specified path."""
     
     # Create figures directory if it doesn't exist
     figures_dir = Path(__file__).parent / "figures"
     figures_dir.mkdir(exist_ok=True)
     
-    # Create figure with subplots
-    fig = plt.figure(figsize=(20, 15))
+    # Create figure with 3 essential plots
+    fig = plt.figure(figsize=(18, 6))
     
-    # 1. Heatmap of success rates by model and domain
-    plt.subplot(2, 3, 1)
+    # 1. Success Rate Heatmap
+    plt.subplot(1, 3, 1)
     pivot_success = domain_df.pivot(index="model", columns="domain", values="success_rate")
     sns.heatmap(pivot_success, annot=True, fmt='.1f', cmap='RdYlGn', 
                 vmin=0, vmax=100, cbar_kws={'label': 'Success Rate (%)'})
@@ -139,8 +139,8 @@ def create_visualizations(domain_df: pd.DataFrame, overall_df: pd.DataFrame, out
     plt.xticks(rotation=45)
     plt.yticks(rotation=0)
     
-    # 2. Overall ranking bar chart
-    plt.subplot(2, 3, 2)
+    # 2. Overall Model Ranking
+    plt.subplot(1, 3, 2)
     colors = plt.cm.RdYlGn(overall_df["success_rate"] / 100)
     bars = plt.barh(range(len(overall_df)), overall_df["success_rate"], color=colors)
     plt.yticks(range(len(overall_df)), overall_df["model"])
@@ -155,14 +155,14 @@ def create_visualizations(domain_df: pd.DataFrame, overall_df: pd.DataFrame, out
     plt.xlim(0, 100)
     plt.grid(axis='x', alpha=0.3)
     
-    # 3. Domain-specific performance comparison
-    plt.subplot(2, 3, 3)
+    # 3. Domain Difficulty Ranking
+    plt.subplot(1, 3, 3)
     domain_means = domain_df.groupby("domain")["success_rate"].mean().sort_values(ascending=True)
     colors_domain = plt.cm.viridis(np.linspace(0, 1, len(domain_means)))
     bars = plt.barh(range(len(domain_means)), domain_means.values, color=colors_domain)
     plt.yticks(range(len(domain_means)), domain_means.index)
     plt.xlabel("Average Success Rate (%)", fontweight='bold')
-    plt.title("Domain Difficulty Ranking\n(Average Across All Models)", fontsize=14, fontweight='bold')
+    plt.title("Domain Difficulty Ranking\n(Hardest to Easiest)", fontsize=14, fontweight='bold')
     plt.gca().invert_yaxis()
     
     for i, rate in enumerate(domain_means.values):
@@ -171,76 +171,10 @@ def create_visualizations(domain_df: pd.DataFrame, overall_df: pd.DataFrame, out
     plt.xlim(0, max(domain_means) * 1.2)
     plt.grid(axis='x', alpha=0.3)
     
-    # 4. Score distribution
-    plt.subplot(2, 3, 4)
-    all_scores = []
-    for _, row in domain_df.iterrows():
-        all_scores.extend(row["scores"])
-    
-    score_counts = pd.Series(all_scores).value_counts().sort_index()
-    colors_scores = ['red', 'orange', 'yellow', 'lightgreen', 'green'][:len(score_counts)]
-    
-    bars = plt.bar(score_counts.index, score_counts.values, color=colors_scores, alpha=0.7)
-    plt.xlabel("Score", fontweight='bold')
-    plt.ylabel("Count", fontweight='bold')
-    plt.title("Score Distribution\n(All Models & Domains)", fontsize=14, fontweight='bold')
-    plt.xticks(range(1, 6))
-    plt.grid(axis='y', alpha=0.3)
-    
-    # Add success/failure line
-    plt.axvline(x=3.5, color='black', linestyle='--', alpha=0.7, linewidth=2)
-    plt.text(2.5, max(score_counts) * 0.8, 'Failure', ha='center', fontweight='bold', color='red')
-    plt.text(4.5, max(score_counts) * 0.8, 'Success', ha='center', fontweight='bold', color='green')
-    
-    for bar in bars:
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2., height + 1,
-                f'{int(height)}', ha='center', va='bottom', fontweight='bold')
-    
-    # 5. Model performance by domain (detailed)
-    plt.subplot(2, 3, 5)
-    
-    # Create grouped bar chart
-    models = domain_df["model"].unique()
-    domains = domain_df["domain"].unique()
-    
-    x = np.arange(len(domains))
-    width = 0.8 / len(models)
-    
-    for i, model in enumerate(models):
-        model_data = domain_df[domain_df["model"] == model]
-        rates = [model_data[model_data["domain"] == d]["success_rate"].iloc[0] 
-                if len(model_data[model_data["domain"] == d]) > 0 else 0 
-                for d in domains]
-        
-        plt.bar(x + i * width, rates, width, label=model, alpha=0.8)
-    
-    plt.xlabel("Domain", fontweight='bold')
-    plt.ylabel("Success Rate (%)", fontweight='bold')
-    plt.title("Model Performance by Domain\n(Detailed Comparison)", fontsize=14, fontweight='bold')
-    plt.xticks(x + width * (len(models) - 1) / 2, domains, rotation=45)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.grid(axis='y', alpha=0.3)
-    plt.ylim(0, 100)
-    
-    # 6. Average score heatmap
-    plt.subplot(2, 3, 6)
-    pivot_avg = domain_df.pivot(index="model", columns="domain", values="average_score")
-    sns.heatmap(pivot_avg, annot=True, fmt='.2f', cmap='RdYlBu_r', 
-                vmin=1, vmax=5, cbar_kws={'label': 'Average Score'})
-    plt.title("Average Score by Model and Domain\n(1-5 Scale)", fontsize=14, fontweight='bold')
-    plt.xlabel("Domain", fontweight='bold')
-    plt.ylabel("Model", fontweight='bold')
-    plt.xticks(rotation=45)
-    plt.yticks(rotation=0)
-    
     plt.tight_layout()
-    
-    if output_path:
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        print(f"📊 Visualization saved to: {output_path}")
-    else:
-        plt.show()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"📊 Visualization saved to: {output_path}")
+    plt.close()  # Close the figure to free memory
 
 def print_detailed_results(domain_df: pd.DataFrame, overall_df: pd.DataFrame):
     """Print detailed text results."""
@@ -306,28 +240,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Analyze and save to analysis/figures/ (default behavior)
   python analysis/plot.py --eval-folder data/evaluations/human-eval/
-  
-  # Show plot interactively instead of saving
-  python analysis/plot.py --eval-folder data/evaluations/human-eval/ --show-plot
-  
-  # Save with custom filename
-  python analysis/plot.py --eval-folder data/evaluations/gpt4o-eval/ --output my_results.png
-  
-  # Only print text results, no plots
-  python analysis/plot.py --eval-folder data/evaluations/human-eval/ --no-plot
+  python analysis/plot.py --eval-folder data/evaluations/gpt4o-eval/
         """
     )
     
     parser.add_argument("--eval-folder", required=True, type=str,
                       help="Path to evaluation folder (e.g., data/evaluations/human-eval/)")
-    parser.add_argument("--output", type=str, default=None,
-                      help="Output path for visualization (optional, auto-generates filename in analysis/figures/)")
-    parser.add_argument("--no-plot", action="store_true",
-                      help="Skip showing/creating plots, only print text results")
-    parser.add_argument("--show-plot", action="store_true",
-                      help="Show plot interactively (default saves to analysis/figures/)")
     
     args = parser.parse_args()
     
@@ -354,28 +273,22 @@ Examples:
     print_detailed_results(domain_df, overall_df)
     
     # Create visualizations
-    if not args.no_plot:
-        print(f"\n📊 Creating visualizations...")
-        
-        # Generate default output path if none specified
-        output_path = args.output
-        if not output_path and not args.show_plot:
-            # Extract evaluation type from folder path
-            eval_type = "unknown"
-            if "human-eval" in str(eval_folder):
-                eval_type = "human-eval"
-            elif "gpt4o-eval" in str(eval_folder):
-                eval_type = "gpt4o-eval"
-            elif "custom-eval" in str(eval_folder):
-                eval_type = "custom-eval"
-            
-            # Generate filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_path = f"analysis/figures/vmevalkit_{eval_type}_{timestamp}.png"
-        
-        # Use None for show_plot to display interactively
-        final_output_path = None if args.show_plot else output_path
-        create_visualizations(domain_df, overall_df, final_output_path)
+    print(f"\n📊 Creating visualizations...")
+    
+    # Extract evaluation type from folder path
+    eval_type = "unknown"
+    if "human-eval" in str(eval_folder):
+        eval_type = "human-eval"
+    elif "gpt4o-eval" in str(eval_folder):
+        eval_type = "gpt4o-eval"
+    elif "custom-eval" in str(eval_folder):
+        eval_type = "custom-eval"
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = f"analysis/figures/vmevalkit_{eval_type}_{timestamp}.png"
+    
+    create_visualizations(domain_df, overall_df, output_path)
 
 if __name__ == "__main__":
     main()

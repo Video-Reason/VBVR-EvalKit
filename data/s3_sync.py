@@ -15,7 +15,7 @@ def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
     
     Args:
         data_dir: Path to data directory (default: ./data)
-        date_prefix: Date folder (default: today's date YYYYMMDD)
+        date_prefix: Date folder (default: today's date YYYYMMDDHHMM)
         
     Returns:
         S3 URI of uploaded data
@@ -26,7 +26,7 @@ def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
     
     # S3 setup
     bucket = os.getenv("S3_BUCKET", "vmevalkit")
-    date_folder = date_prefix or datetime.datetime.now().strftime("%Y%m%d")
+    date_folder = date_prefix or datetime.datetime.now().strftime("%Y%m%d%H%M")
     s3_prefix = f"{date_folder}/data"
     
     # Create S3 client
@@ -82,7 +82,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Sync data to S3")
-    parser.add_argument("--date", help="Date folder (YYYYMMDD)")
+    parser.add_argument("--date", help="Date folder (YYYYMMDDHHMM)")
     parser.add_argument("--log", action="store_true", help="Log version after upload")
     
     args = parser.parse_args()

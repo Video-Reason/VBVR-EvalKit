@@ -156,30 +156,29 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     # Create gradient colors based on success rate
     colors = [SUCCESS_CMAP(rate/100) for rate in success_rates]
     
-    # Create horizontal bar chart for better readability of model names
-    y_pos = np.arange(len(models))
-    bars = ax.barh(y_pos, success_rates, color=colors,
-                   edgecolor='#333333', linewidth=1.2, height=0.7,
-                   alpha=0.85)
+    # Create VERTICAL bar chart
+    x_pos = np.arange(len(models))
+    bars = ax.bar(x_pos, success_rates, color=colors,
+                  edgecolor='#333333', linewidth=1.2, width=0.7,
+                  alpha=0.85)
     
     # Set labels and title
-    ax.set_xlabel('Success Rate', fontsize=13, color='#333333', fontweight='bold')
-    ax.set_ylabel('Model', fontsize=13, color='#333333', fontweight='bold')
+    ax.set_xlabel('Model', fontsize=13, color='#333333', fontweight='bold')
+    ax.set_ylabel('Success Rate', fontsize=13, color='#333333', fontweight='bold')
     ax.set_title('Overall Model Performance Ranking', 
                 fontsize=16, fontweight='bold', pad=20, color='#333333')
     
-    # Set y-axis
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(models)
-    ax.invert_yaxis()  # Highest at the top
+    # Set x-axis
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(models, rotation=45, ha='right')
     
-    # Set x-axis (0-100%)
-    ax.set_xlim(0, 105)
-    ax.set_xticks(np.arange(0, 101, 10))
-    ax.set_xticklabels([f'{int(x)}%' for x in np.arange(0, 101, 10)])
+    # Set y-axis (0-100%)
+    ax.set_ylim(0, 105)
+    ax.set_yticks(np.arange(0, 101, 20))
+    ax.set_yticklabels([f'{int(y)}%' for y in np.arange(0, 101, 20)])
     
     # Add subtle grid
-    ax.grid(axis='x', alpha=0.2, linestyle='--', linewidth=0.5)
+    ax.grid(axis='y', alpha=0.2, linestyle='--', linewidth=0.5)
     ax.set_axisbelow(True)
     
     # Remove top and right spines
@@ -191,37 +190,18 @@ def create_overall_model_figure(overall_df: pd.DataFrame):
     # Add value labels
     for i, (bar, row) in enumerate(zip(bars, overall_df.itertuples())):
         rate = row.success_rate
-        # Success rate at end of bar
-        ax.text(rate + 1, i, f'{rate:.1f}%', 
-               va='center', ha='left', fontsize=10, 
+        # Success rate on top of bar
+        ax.text(i, rate + 1, f'{rate:.1f}%', 
+               ha='center', va='bottom', fontsize=10, 
                fontweight='bold', color='#333333')
         
-        # Task count in the middle of bar
-        label_color = 'white' if rate > 50 else '#333333'
-        ax.text(rate/2, i, f'{row.correct_tasks}/{row.total_tasks}',
-               va='center', ha='center', fontsize=9,
-               color=label_color, fontweight='bold')
-        
-        # Rank on the left
-        ax.text(-2, i, f'#{row.rank}', 
-               va='center', ha='right', fontsize=10,
-               fontweight='bold', color='#666666')
-    
-    # Add summary statistics
-    total_evals = sum(overall_df["total_tasks"])
-    total_correct = sum(overall_df["correct_tasks"])
-    overall_rate = (total_correct / total_evals * 100) if total_evals > 0 else 0
-    
-    summary_text = (f"Total Evaluations: {total_evals:,} | "
-                   f"Overall Success Rate: {overall_rate:.1f}% | "
-                   f"Models Evaluated: {len(overall_df)}")
-    ax.text(0.5, -0.08, summary_text, transform=ax.transAxes,
-           ha='center', va='top', fontsize=10, color='#666666')
+        # Removed rank labels for cleaner look
     
     plt.tight_layout()
     
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
     output_path = figures_dir / "overall_model_ranking.png"
     plt.savefig(output_path, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
@@ -297,50 +277,20 @@ def create_overall_domain_figure(domain_df: pd.DataFrame):
                ha='center', va='bottom', fontsize=11,
                fontweight='bold', color='#333333')
         
-        # Task count in middle of bar
-        total = domain_stats.loc[domain, "total_tasks"]
-        correct = domain_stats.loc[domain, "correct_tasks"]
-        label_color = 'white' if rate > 40 else '#333333'
-        ax.text(i, rate/2, f'{int(correct)}/{int(total)}',
-               ha='center', va='center', fontsize=9,
-               color=label_color, fontweight='bold')
-        
-        # Difficulty level below x-axis
-        difficulty = "Easy" if rate > 70 else "Medium" if rate > 40 else "Hard"
-        color_diff = "#2E7D32" if rate > 70 else "#FFA726" if rate > 40 else "#D32F2F"
-        ax.text(i, -8, difficulty, ha='center', va='top',
-               color=color_diff, fontweight='bold', fontsize=10)
+        # Removed difficulty labels below x-axis for cleaner look
     
-    # Add horizontal reference lines
-    ax.axhline(y=70, color='#2E7D32', linestyle=':', alpha=0.3, linewidth=1)
-    ax.axhline(y=40, color='#FFA726', linestyle=':', alpha=0.3, linewidth=1)
+    # Removed reference lines and legend for cleaner look
+    # Uncomment below if you want reference lines back:
+    # ax.axhline(y=70, color='#2E7D32', linestyle=':', alpha=0.3, linewidth=1)
+    # ax.axhline(y=40, color='#FFA726', linestyle=':', alpha=0.3, linewidth=1)
     
-    # Add legend for difficulty levels
-    from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor='#2E7D32', alpha=0.7, label='Easy (>70%)'),
-        Patch(facecolor='#FFA726', alpha=0.7, label='Medium (40-70%)'),
-        Patch(facecolor='#D32F2F', alpha=0.7, label='Hard (<40%)')
-    ]
-    ax.legend(handles=legend_elements, loc='upper right', 
-             frameon=True, fancybox=False, shadow=False,
-             edgecolor='#CCCCCC', facecolor='white', fontsize=9)
-    
-    # Add summary statistics
-    total_tasks = domain_stats["total_tasks"].sum()
-    total_correct = domain_stats["correct_tasks"].sum()
-    overall_rate = (total_correct / total_tasks * 100) if total_tasks > 0 else 0
-    
-    summary_text = (f"Total Tasks: {int(total_tasks):,} | "
-                   f"Overall Success Rate: {overall_rate:.1f}% | "
-                   f"Number of Domains: {len(domains)}")
-    ax.text(0.5, -0.12, summary_text, transform=ax.transAxes,
-           ha='center', va='top', fontsize=10, color='#666666')
+    # Removed summary statistics for cleaner look
     
     plt.tight_layout()
     
     # Save figure
     figures_dir = Path(__file__).parent / "figures"
+    figures_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
     output_path = figures_dir / "overall_domain_difficulty.png"
     plt.savefig(output_path, dpi=300, bbox_inches='tight',
                facecolor='white', edgecolor='none')
@@ -428,19 +378,10 @@ def create_individual_model_plots(domain_df: pd.DataFrame, overall_df: pd.DataFr
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
                    f'{rate:.1f}%', ha='center', va='bottom',
                    fontsize=10, fontweight='bold', color='#333333')
-            
-            # Add task count below percentage
-            tasks = model_data_sorted.iloc[i]["total_tasks"]
-            correct = model_data_sorted.iloc[i]["correct_tasks"]
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height()/2,
-                   f'{correct}/{tasks}', ha='center', va='center',
-                   fontsize=9, color='white' if rate > 50 else '#333333',
-                   fontweight='bold')
         
-        # Add overall stats as subtitle
+        # Add overall stats as subtitle (without rank)
         overall_stats = overall_df[overall_df["model"] == model].iloc[0]
         subtitle_text = (f"Overall Success: {overall_stats['success_rate']:.1f}% | "
-                        f"Rank: #{overall_stats['rank']}/{len(overall_df)} | "
                         f"Average Score: {overall_stats['average_score']:.2f}")
         ax.text(0.5, -0.12, subtitle_text, transform=ax.transAxes,
                ha='center', va='top', fontsize=10, color='#666666')

@@ -31,7 +31,7 @@ TASK_GUIDANCE = {
 class GPT4OEvaluator:
     """Automatic evaluation using GPT-4O vision model."""
     
-    def __init__(self, output_dir: str = "data/evaluations",
+    def __init__(self, output_dir: str = "data/evaluations/gpt4o-eval",
                  experiment_name: str = "pilot_experiment",
                  api_key: Optional[str] = None,
                  model: str = "gpt-4o",
@@ -39,6 +39,10 @@ class GPT4OEvaluator:
         self.output_dir = Path(output_dir)
         self.experiment_name = experiment_name
         self.experiment_dir = Path("data/outputs") / experiment_name
+        
+        # Create output directory
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY env var.")
@@ -49,6 +53,12 @@ class GPT4OEvaluator:
             timeout=httpx.Timeout(60.0),
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         )
+    
+    def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
+        """Check if task has already been evaluated."""
+        eval_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        eval_file = eval_path / "GPT4OEvaluator.json"
+        return eval_file.exists()
     
     def extract_final_frame(self, video_path: str) -> np.ndarray:
         """Extract final frame from video."""
@@ -151,82 +161,134 @@ Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief e
     def evaluate_single(self, model_name: str, task_type: str, task_id: str,
                        video_path: str) -> Dict[str, Any]:
         """Evaluate a single video (sync wrapper)."""
-        return asyncio.run(self.evaluate_single_async(model_name, task_type, task_id, video_path))
+        async def _single_eval_with_cleanup():
+            try:
+                return await self.evaluate_single_async(model_name, task_type, task_id, video_path)
+            finally:
+                await self.client.aclose()
+        
+        return asyncio.run(_single_eval_with_cleanup())
+    
+    async def evaluate_model_async(self, model_name: str, close_client: bool = False) -> Dict[str, Any]:
+        """Evaluate all results for a model (async version)."""
+        try:
+            model_dir = self.experiment_dir / model_name
+            if not model_dir.exists():
+                raise ValueError(f"Model directory not found: {model_dir}")
+            
+            results = {"model_name": model_name, "evaluations": {}}
+            total_tasks = 0
+            skipped_tasks = 0
+            evaluated_tasks = 0
+            failed_tasks = 0
+            
+            for task_type_dir in model_dir.iterdir():
+                if not task_type_dir.is_dir(): continue
+                task_type = task_type_dir.name
+                results["evaluations"][task_type] = {}
+                
+                for task_dir in task_type_dir.iterdir():
+                    if not task_dir.is_dir(): continue
+                    task_id = task_dir.name
+                    total_tasks += 1
+                    
+                    # Check if already evaluated (RESUME MECHANISM)
+                    if self._has_evaluation(model_name, task_type, task_id):
+                        logger.debug(f"Skipping {model_name}/{task_type}/{task_id} - already evaluated")
+                        skipped_tasks += 1
+                        continue
+                    
+                    output_dirs = list(task_dir.iterdir())
+                    if not output_dirs:
+                        logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
+                        continue
+                    
+                    output_dir = output_dirs[0]
+                    video_files = list((output_dir / "video").glob("*.mp4"))
+                    if not video_files:
+                        logger.warning(f"No video in {output_dir / 'video'}")
+                        continue
+                    
+                    try:
+                        logger.info(f"Evaluating {model_name}/{task_type}/{task_id}")
+                        eval_result = await self.evaluate_single_async(model_name, task_type, task_id, str(video_files[0]))
+                        results["evaluations"][task_type][task_id] = eval_result
+                        
+                        # Save immediately after each evaluation (RESUME SUPPORT)
+                        self._save_single_result(model_name, task_type, task_id, eval_result)
+                        evaluated_tasks += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
+                        results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
+                        failed_tasks += 1
+            
+            logger.info(f"GPT-4O Evaluation Summary for {model_name}:")
+            logger.info(f"  - Total tasks: {total_tasks}")
+            logger.info(f"  - Already completed (skipped): {skipped_tasks}")
+            logger.info(f"  - Newly evaluated: {evaluated_tasks}")
+            logger.info(f"  - Failed: {failed_tasks}")
+            
+            return results
+        finally:
+            if close_client:
+                await self.client.aclose()
     
     def evaluate_model(self, model_name: str) -> Dict[str, Any]:
         """Evaluate all results for a model."""
-        model_dir = self.experiment_dir / model_name
-        if not model_dir.exists():
-            raise ValueError(f"Model directory not found: {model_dir}")
-        
-        results = {"model_name": model_name, "evaluations": {}}
-        
-        for task_type_dir in model_dir.iterdir():
-            if not task_type_dir.is_dir(): continue
-            task_type = task_type_dir.name
-            results["evaluations"][task_type] = {}
+        return asyncio.run(self.evaluate_model_async(model_name, close_client=True))
+    
+    async def evaluate_all_models_async(self) -> Dict[str, Any]:
+        """Evaluate all models in experiment (async version)."""
+        try:
+            all_results = {}
+            for model_dir in self.experiment_dir.iterdir():
+                if model_dir.is_dir():
+                    model_name = model_dir.name
+                    logger.info(f"Evaluating model: {model_name}")
+                    all_results[model_name] = await self.evaluate_model_async(model_name)
             
-            for task_dir in task_type_dir.iterdir():
-                if not task_dir.is_dir(): continue
-                task_id = task_dir.name
-                
-                output_dirs = list(task_dir.iterdir())
-                if not output_dirs:
-                    logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
-                    continue
-                
-                output_dir = output_dirs[0]
-                video_files = list((output_dir / "video").glob("*.mp4"))
-                if not video_files:
-                    logger.warning(f"No video in {output_dir / 'video'}")
-                    continue
-                
-                try:
-                    eval_result = self.evaluate_single(model_name, task_type, task_id, str(video_files[0]))
-                    results["evaluations"][task_type][task_id] = eval_result
-                except Exception as e:
-                    logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
-                    results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
-        
-        self._save_results(model_name, results)
-        return results
+            # Save combined results
+            output_path = self.output_dir / self.experiment_name / "GPT4OEvaluator_all_models.json"
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w') as f:
+                json.dump({"metadata": {"evaluator": "GPT4OEvaluator", "timestamp": datetime.now().isoformat()},
+                          "results": all_results}, f, indent=2)
+            return all_results
+        finally:
+            await self.client.aclose()
     
     def evaluate_all_models(self) -> Dict[str, Any]:
         """Evaluate all models in experiment."""
-        all_results = {}
-        for model_dir in self.experiment_dir.iterdir():
-            if model_dir.is_dir():
-                model_name = model_dir.name
-                logger.info(f"Evaluating model: {model_name}")
-                all_results[model_name] = self.evaluate_model(model_name)
+        return asyncio.run(self.evaluate_all_models_async())
+    
+    def _save_single_result(self, model_name: str, task_type: str, task_id: str, eval_result: Dict[str, Any]):
+        """Save a single evaluation result immediately (for resume support)."""
+        task_output_dir = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        task_output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Save combined results
-        output_path = self.output_dir / self.experiment_name / "GPT4OEvaluator_all_models.json"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
-            json.dump({"metadata": {"evaluator": "GPT4OEvaluator", "timestamp": datetime.now().isoformat()},
-                      "results": all_results}, f, indent=2)
-        return all_results
+        with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:
+            json.dump({
+                "metadata": {
+                    "evaluator": "GPT4OEvaluator",
+                    "timestamp": datetime.now().isoformat(),
+                    "model_name": model_name,
+                    "task_type": task_type,
+                    "task_id": task_id
+                },
+                "result": eval_result
+            }, f, indent=2)
+        
+        logger.debug(f"Saved evaluation for {model_name}/{task_type}/{task_id}")
     
     def _save_results(self, model_name: str, results: Dict[str, Any]):
-        """Save evaluation results."""
+        """Save evaluation results (legacy method - now individual saves are preferred)."""
         output_base = self.output_dir / self.experiment_name / model_name
         
         for task_type, task_results in results["evaluations"].items():
             for task_id, eval_result in task_results.items():
-                task_output_dir = output_base / task_type / task_id
-                task_output_dir.mkdir(parents=True, exist_ok=True)
-                
-                with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:
-                    json.dump({
-                        "metadata": {
-                            "evaluator": "GPT4OEvaluator",
-                            "timestamp": datetime.now().isoformat(),
-                            "model_name": model_name,
-                            "task_type": task_type,
-                            "task_id": task_id
-                        },
-                        "result": eval_result
-                    }, f, indent=2)
+                # Only save if not already saved by _save_single_result
+                if not self._has_evaluation(model_name, task_type, task_id):
+                    self._save_single_result(model_name, task_type, task_id, eval_result)
         
-        logger.info(f"Saved evaluation results for {model_name} to {output_base}")
+        logger.info(f"Completed evaluation results for {model_name}")

@@ -25,7 +25,7 @@ cd web
 ### 2. Install dependencies
 ```bash
 source ../venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 ```
 
 ### 3. Start the dashboard
@@ -125,6 +125,8 @@ Returns JSON with filtered results based on query parameters:
 
 ### Using Gunicorn
 ```bash
+# Ensure dependencies are installed from main requirements.txt
+pip install -r ../requirements.txt
 gunicorn --bind 0.0.0.0:5000 --workers 4 app:app
 ```
 
@@ -144,7 +146,6 @@ The app includes Flask-Talisman for security headers in production.
 ```
 web/
 ├── app.py                      # Main Flask application
-├── requirements.txt            # Python dependencies  
 ├── README.md                   # This file
 ├── utils/
 │   ├── __init__.py

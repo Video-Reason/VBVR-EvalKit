@@ -9,8 +9,6 @@ This script provides easy access to VMEvalKit's evaluation methods:
 
 Usage:
     python run_evaluation.py human
-    python run_evaluation.py human --no-skip-existing
-    python run_evaluation.py human --check-eval-types human-eval
     python run_evaluation.py gpt4o
     python run_evaluation.py custom
 """
@@ -52,38 +50,63 @@ def example_human_evaluation():
 def example_gpt4o_evaluation():
     """Example of running GPT-4O evaluation on entire pilot experiment."""
     print("\n=== GPT-4O Evaluation Example ===")
-    print("Evaluating ENTIRE pilot experiment with GPT-4O")
+    print("🤖 Evaluating ENTIRE pilot experiment with GPT-4O")
+    print("⚠️  Note: This will make API calls to OpenAI and may take time/cost money")
+    print("✅ Resume-capable: Interrupted evaluations can be continued")
     
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
-        print("Error: Please set OPENAI_API_KEY environment variable")
+        print("❌ Error: Please set OPENAI_API_KEY environment variable")
         return
     
-    # Create evaluator
+    # Create evaluator (auto-creates gpt4o-eval directory)
     evaluator = GPT4OEvaluator(
         experiment_name="pilot_experiment",
         temperature=0.1
     )
     
+    # Check existing evaluations for resume info
+    eval_dir = Path("data/evaluations/gpt4o-eval/pilot_experiment")
+    if eval_dir.exists():
+        existing_files = list(eval_dir.rglob("*.json"))
+        if existing_files:
+            print(f"📊 Found {len(existing_files)} existing GPT-4O evaluations - will resume from where left off")
+    
     # Evaluate all models and tasks
-    print("\nEvaluating ALL models and ALL tasks in pilot_experiment...")
-    all_results = evaluator.evaluate_all_models()
+    print(f"\n🚀 Starting GPT-4O evaluation on pilot_experiment...")
+    print("💡 Tip: You can interrupt (Ctrl+C) and resume later - progress is saved after each task")
     
-    # Print basic counts for each model
-    for model_name, results in all_results.items():
-        if "evaluations" in results:
-            total_tasks = 0
-            evaluated_tasks = 0
-            for task_type, tasks in results["evaluations"].items():
-                for task_id, result in tasks.items():
-                    total_tasks += 1
-                    if "error" not in result:
-                        evaluated_tasks += 1
-            
-            print(f"\n{model_name}:")
-            print(f"  - Tasks evaluated: {evaluated_tasks}/{total_tasks}")
-    
-    print("\nEND-TO-END EVALUATION COMPLETE!")
+    try:
+        all_results = evaluator.evaluate_all_models()
+        
+        # Print comprehensive summary
+        print("\n📈 GPT-4O EVALUATION RESULTS:")
+        total_all = 0
+        completed_all = 0
+        for model_name, results in all_results.items():
+            if "evaluations" in results:
+                total_tasks = 0
+                evaluated_tasks = 0
+                for task_type, tasks in results["evaluations"].items():
+                    for task_id, result in tasks.items():
+                        total_tasks += 1
+                        if "error" not in result and result.get("status") != "failed":
+                            evaluated_tasks += 1
+                
+                total_all += total_tasks
+                completed_all += evaluated_tasks
+                
+                status = "✅ Complete" if evaluated_tasks == total_tasks else f"🔄 {evaluated_tasks}/{total_tasks}"
+                print(f"  • {model_name}: {status}")
+        
+        print(f"\n🎉 GPT-4O EVALUATION COMPLETE!")
+        print(f"📊 Total: {completed_all}/{total_all} tasks evaluated successfully")
+        print(f"💾 Results saved to: data/evaluations/gpt4o-eval/pilot_experiment/")
+        
+    except KeyboardInterrupt:
+        print(f"\n⚠️  GPT-4O evaluation interrupted!")
+        print(f"💾 Progress has been saved. Run the same command again to resume.")
+        print(f"📁 Partial results available in: data/evaluations/gpt4o-eval/pilot_experiment/")
 
 
 def example_custom_evaluation():
@@ -95,7 +118,7 @@ def example_custom_evaluation():
     class SimpleEvaluator:
         """A simple custom evaluator for demonstration."""
         
-        def __init__(self, output_dir="data/evaluations", experiment_name="pilot_experiment"):
+        def __init__(self, output_dir="data/evaluations/custom-eval", experiment_name="pilot_experiment"):
             self.output_dir = Path(output_dir)
             self.experiment_name = experiment_name
             self.experiment_dir = Path("data/outputs") / experiment_name

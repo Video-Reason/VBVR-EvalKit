@@ -32,7 +32,7 @@ echo "🔍 Checking dependencies..."
 python -c "import flask" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "📥 Installing dependencies..."
-    pip install -r requirements.txt
+    pip install -r ../requirements.txt
 fi
 
 # Check if output directory exists

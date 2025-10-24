@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-PLEASE REMEMBER THAT runner/inference.py is the only official module for your to run experiments.

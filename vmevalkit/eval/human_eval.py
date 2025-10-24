@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class HumanEvaluator:
     """Gradio-based interface for human evaluation of generated videos."""
     
-    def __init__(self, output_dir: str = "data/evaluations", 
+    def __init__(self, output_dir: str = "data/evaluations/human-eval", 
                  experiment_name: str = "pilot_experiment"):
         self.output_dir = Path(output_dir)
         self.experiment_name = experiment_name
@@ -54,7 +54,12 @@ class HumanEvaluator:
                             "task_id": task_dir.name
                         })
         
-        logger.info(f"Loaded {len(self.evaluation_queue)} tasks to evaluate ({skipped_count} already evaluated, skipped)")
+        self.total_tasks = len(self.evaluation_queue) + skipped_count
+        self.already_evaluated = skipped_count
+        logger.info(f"Evaluation Queue Status:")
+        logger.info(f"  - Total tasks in experiment: {self.total_tasks}")
+        logger.info(f"  - Already evaluated: {self.already_evaluated}")
+        logger.info(f"  - Remaining in queue: {len(self.evaluation_queue)}")
     
     def _get_task_data(self, model_name: str, task_type: str, task_id: str) -> Optional[Dict[str, Any]]:
         """Get data for a specific task."""
@@ -98,6 +103,43 @@ class HumanEvaluator:
             json.dump(result, f, indent=2)
         logger.info(f"Saved evaluation for {model_name}/{task_type}/{task_id}")
     
+    def _get_queue_status_text(self) -> str:
+        """Generate queue status text for display."""
+        if not hasattr(self, 'total_tasks'):
+            self.total_tasks = len(self.evaluation_queue)
+            self.already_evaluated = 0
+        
+        completion_pct = (self.already_evaluated / self.total_tasks * 100) if self.total_tasks > 0 else 0
+        
+        # Count by model
+        model_counts = {}
+        eval_dir = self.output_dir / self.experiment_name
+        for model_dir in self.experiment_dir.iterdir():
+            if not model_dir.is_dir():
+                continue
+            model_name = model_dir.name
+            total = sum(1 for td in model_dir.iterdir() if td.is_dir() for t in td.iterdir() if t.is_dir())
+            if total == 0:
+                continue
+            evaluated = 0
+            if (eval_dir / model_name).exists():
+                evaluated = sum(1 for f in (eval_dir / model_name).rglob('*-eval.json'))
+            model_counts[model_name] = (evaluated, total)
+        
+        status_text = f"""### 📊 Queue Status
+**Total Progress:** {self.already_evaluated}/{self.total_tasks} tasks ({completion_pct:.1f}% complete)
+- ✅ **Evaluated:** {self.already_evaluated} tasks
+- 📋 **Remaining:** {len(self.evaluation_queue)} tasks
+
+**By Model:**
+"""
+        for model, (evaluated, total) in sorted(model_counts.items()):
+            pct = (evaluated / total * 100) if total > 0 else 0
+            emoji = "✅" if evaluated == total else "🔄"
+            status_text += f"- {emoji} **{model}:** {evaluated}/{total} ({pct:.0f}%)\n"
+        
+        return status_text
+    
     def launch_interface(self, share: bool = False, port: int = 7860):
         """Launch Gradio interface."""
         with gr.Blocks(title="VMEvalKit Human Evaluation") as interface:
@@ -114,7 +156,15 @@ class HumanEvaluator:
                 annotator_btn = gr.Button("Set Annotator", variant="primary")
             
             annotator_status = gr.Markdown(f"Current annotator: **{self.annotator_name}**")
-            progress_text = gr.Markdown(f"Progress: 0/{len(self.evaluation_queue)} tasks")
+            
+            # Queue status panel
+            with gr.Row():
+                with gr.Column(scale=3):
+                    queue_status = gr.Markdown(self._get_queue_status_text())
+                with gr.Column(scale=1):
+                    refresh_btn = gr.Button("🔄 Refresh Queue", variant="secondary")
+            
+            progress_text = gr.Markdown(f"Progress: 0/{len(self.evaluation_queue)} tasks remaining")
             
             with gr.Row():
                 model_info = gr.Textbox(label="Model", interactive=False)
@@ -135,7 +185,7 @@ class HumanEvaluator:
             gr.Markdown("### Evaluation")
             correctness_score = gr.Radio(
                 choices=[1, 2, 3, 4, 5],
-                label="Solution Correctness (1=Wrong, 5=Perfect)"
+                label="Solution Correctness (1=Wrong, 5=Perfect). We will mark 4, 5 as correct in our binary grading."
             )
             comments = gr.Textbox(label="Comments (Optional)", lines=3)
             
@@ -149,7 +199,7 @@ class HumanEvaluator:
             # Define UI outputs list once
             ui_outputs = [model_info, task_info, input_image, prompt_text, if_has_final, 
                          expected_output, video_player, progress_text, status_text,
-                         correctness_score, comments]
+                         correctness_score, comments, queue_status]
             
             def update_display(index):
                 """Update display with current task."""
@@ -157,8 +207,9 @@ class HumanEvaluator:
                     return {
                         model_info: "", task_info: "", input_image: None, prompt_text: "",
                         expected_output: None, video_player: None, correctness_score: None, comments: "",
-                        progress_text: f"Progress: {index}/{len(self.evaluation_queue)} tasks",
-                        status_text: "No more tasks to evaluate!"
+                        progress_text: f"Progress: {index + 1}/{len(self.evaluation_queue)} tasks remaining",
+                        status_text: "No more tasks to evaluate!",
+                        queue_status: self._get_queue_status_text()
                     }
                 
                 task = self.evaluation_queue[index]
@@ -176,10 +227,11 @@ class HumanEvaluator:
                     if_has_final: has_final,
                     expected_output: task_data["final_frame"] if has_final else None,
                     video_player: task_data["video_path"],
-                    progress_text: f"Progress: {index}/{len(self.evaluation_queue)} tasks",
+                    progress_text: f"Progress: {index + 1}/{len(self.evaluation_queue)} tasks remaining",
                     status_text: "Task loaded successfully",
                     correctness_score: None,
-                    comments: ""
+                    comments: "",
+                    queue_status: self._get_queue_status_text()
                 }
             
             def navigate(direction):
@@ -209,13 +261,28 @@ class HumanEvaluator:
                     {"solution_correctness_score": correctness, "comments": comments_text}
                 )
                 
+                # Update counter
+                self.already_evaluated += 1
+                
                 self.current_index += 1
                 updates = update_display(self.current_index)
                 updates[status_text] = "Evaluation saved successfully!"
+                updates[queue_status] = self._get_queue_status_text()
+                return updates
+            
+            def refresh_queue():
+                """Reload the evaluation queue to reflect current state."""
+                self._load_evaluation_queue()
+                self.current_index = 0
+                updates = update_display(0)
+                updates[progress_text] = f"Progress: 1/{len(self.evaluation_queue)} tasks remaining"
+                updates[status_text] = f"Queue refreshed! {len(self.evaluation_queue)} tasks remaining."
+                updates[queue_status] = self._get_queue_status_text()
                 return updates
             
             # Connect buttons
             annotator_btn.click(set_annotator, inputs=[annotator_input], outputs=[annotator_status])
+            refresh_btn.click(refresh_queue, outputs=ui_outputs)
             prev_btn.click(lambda: navigate(-1), outputs=ui_outputs)
             next_btn.click(lambda: navigate(1), outputs=ui_outputs)
             submit_btn.click(submit_evaluation, inputs=[correctness_score, comments], outputs=ui_outputs)

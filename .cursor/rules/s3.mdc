@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-S3 is used both for saving our data and sometimes provide image url for close-model inferences.

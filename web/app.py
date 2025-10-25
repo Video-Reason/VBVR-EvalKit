@@ -20,8 +20,13 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 
+# Configure for subpath deployment
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Security: Use environment variable for secret key or generate one
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
+app.config['APPLICATION_ROOT'] = '/video-reason'
 app.config['OUTPUT_DIR'] = Path(__file__).parent.parent / 'data' / 'outputs' / 'pilot_experiment'
 app.config['QUESTIONS_DIR'] = Path(__file__).parent.parent / 'data' / 'questions'
 app.config['JSON_SORT_KEYS'] = False

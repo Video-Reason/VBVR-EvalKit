@@ -14,7 +14,7 @@
         <div class="intro-content">
             <p><strong>About:</strong> This dashboard displays results from evaluating video generation models on cognitive reasoning tasks including maze solving, chess puzzles, Raven's matrices, 3D rotation, and Sudoku problems.</p>
             
-            <p><strong>Dataset:</strong> {{ overview.total_models }} models · {{ overview.total_domains }} domains · {{ overview.total_inferences }} inferences</p>
+            <p><strong>Dataset:</strong> {{ overview.total_models }} models · {{ overview.total_domains }} domains</p>
             
             {% if run_info %}
             <div class="run-info">
@@ -45,14 +45,31 @@
     </div>
     
     {% if hierarchy %}
-    <div class="quick-navigation">
-        <strong>📌 Quick Navigation:</strong>
-        {% for model in hierarchy %}
-        <button onclick="navigateToModel('model-{{ loop.index }}')" 
-                class="nav-button">
-            🤖 {{ model }}
-        </button>
-        {% endfor %}
+    <div class="quick-navigation" style="padding: 12px 14px; background-color: #fcfdff; border: 1px solid #e6ecf2; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <div style="font-weight: 600;">📌 Quick Navigation (Model → Task)</div>
+            <div style="font-size: 12px; color: #6b7280;">Jump directly to a model/task</div>
+        </div>
+        <div class="menu-row" style="margin-top: 10px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <label for="modelMenu" style="font-weight: 500; color: #374151;">Model</label>
+            <select id="modelMenu" class="nav-select" onchange="onModelChange(this.value)" style="min-width: 180px;">
+                <option value="">Select model…</option>
+                {% for model in hierarchy %}
+                <option value="{{ loop.index }}">🤖 {{ model }}</option>
+                {% endfor %}
+            </select>
+            <label for="taskMenu" style="margin-left: 8px; font-weight: 500; color: #374151;">Task</label>
+            <select id="taskMenu" class="nav-select" disabled onchange="navigateToModelTask()" style="min-width: 200px;">
+                <option value="">Select task…</option>
+            </select>
+        </div>
+        <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+            {% for model in hierarchy %}
+            <button onclick="navigateToModel('model-{{ loop.index }}')" class="nav-button" style="padding: 6px 10px; border-radius: 6px;">
+                🤖 {{ model }}
+            </button>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 </div>
@@ -189,6 +206,134 @@ function navigateToModel(modelId) {
     setTimeout(function() {
         document.getElementById(modelId).parentElement.scrollIntoView({behavior: 'smooth', block: 'start'});
     }, 100);
+}
+
+// Populate the Task menu when a model is selected
+function onModelChange(modelIndex) {
+    const taskMenu = document.getElementById('taskMenu');
+    taskMenu.innerHTML = '<option value="">Select task…</option>';
+    taskMenu.disabled = true;
+
+    if (!modelIndex) {
+        return;
+    }
+
+    const modelSection = document.getElementById('model-' + modelIndex);
+    if (!modelSection) {
+        return;
+    }
+
+    // Ensure the model section is visible to query tasks
+    if (modelSection.style.display === 'none') {
+        modelSection.style.display = 'block';
+        const modelIcon = document.getElementById('icon-model-' + modelIndex);
+        if (modelIcon) modelIcon.textContent = '▼';
+    }
+
+    // Collect tasks within this model across all domains
+    const taskCards = modelSection.querySelectorAll('.task-card .task-id');
+    const tasks = Array.from(taskCards).map(el => el.textContent.trim()).filter(Boolean);
+
+    tasks.forEach((taskId) => {
+        const opt = document.createElement('option');
+        opt.value = taskId;
+        opt.textContent = taskId;
+        taskMenu.appendChild(opt);
+    });
+
+    if (tasks.length > 0) {
+        taskMenu.disabled = false;
+    }
+}
+
+// Navigate to selected model and task
+function navigateToModelTask() {
+    const modelMenu = document.getElementById('modelMenu');
+    const taskMenu = document.getElementById('taskMenu');
+    const modelIndex = modelMenu.value;
+    const taskId = taskMenu.value;
+    if (!modelIndex || !taskId) return;
+
+    // Expand model
+    const modelSection = document.getElementById('model-' + modelIndex);
+    const modelIcon = document.getElementById('icon-model-' + modelIndex);
+    if (modelSection && modelSection.style.display === 'none') {
+        modelSection.style.display = 'block';
+        if (modelIcon) modelIcon.textContent = '▼';
+    }
+
+    // Find the card with the task id
+    const target = Array.from(modelSection.querySelectorAll('.task-card .task-id'))
+        .find(el => el.textContent.trim() === taskId);
+    if (target) {
+        // Ensure its domain section is expanded
+        const domainContent = target.closest('.domain-content');
+        if (domainContent && domainContent.style.display === 'none') {
+            domainContent.style.display = 'block';
+            const domainId = domainContent.id; // e.g., domain-1-2
+            const domainIcon = document.getElementById('icon-' + domainId);
+            if (domainIcon) domainIcon.textContent = '▼';
+        }
+
+        setTimeout(() => {
+            target.closest('.task-card').scrollIntoView({behavior: 'smooth', block: 'center'});
+        }, 100);
+    }
+}
+
+function navigateToTask(taskDomain) {
+    // Find the first domain section that matches the task domain
+    const allDomainHeaders = document.querySelectorAll('.domain-header h3');
+    let targetDomainId = null;
+    let targetModelId = null;
+    
+    for (let header of allDomainHeaders) {
+        const domainText = header.textContent.trim().toLowerCase();
+        if (domainText.includes(taskDomain.toLowerCase())) {
+            // Extract the domain ID from the expand icon
+            const expandIcon = header.querySelector('.expand-icon');
+            if (expandIcon) {
+                const iconId = expandIcon.id; // format: icon-domain-X-Y
+                targetDomainId = iconId.replace('icon-', '');
+                targetModelId = iconId.match(/icon-domain-(\d+)-/)?.[1];
+                break;
+            }
+        }
+    }
+    
+    if (targetDomainId && targetModelId) {
+        // First expand the model section
+        const modelSection = document.getElementById('model-' + targetModelId);
+        const modelIcon = document.getElementById('icon-model-' + targetModelId);
+        if (modelSection && modelSection.style.display === 'none') {
+            modelSection.style.display = 'block';
+            if (modelIcon) modelIcon.textContent = '▼';
+        }
+        
+        // Then expand the domain section
+        const domainSection = document.getElementById(targetDomainId);
+        const domainIcon = document.getElementById('icon-' + targetDomainId);
+        if (domainSection && domainSection.style.display === 'none') {
+            domainSection.style.display = 'block';
+            if (domainIcon) domainIcon.textContent = '▼';
+        }
+        
+        // Load videos when sections become visible
+        if (modelSection) {
+            const videos = modelSection.querySelectorAll('video[preload="none"]');
+            videos.forEach(video => {
+                video.preload = 'metadata';
+            });
+        }
+        
+        // Scroll to the domain section
+        setTimeout(function() {
+            const targetElement = document.getElementById(targetDomainId);
+            if (targetElement) {
+                targetElement.parentElement.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }, 150);
+    }
 }
 
 // Add hover effects to clickable headers

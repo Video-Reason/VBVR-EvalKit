@@ -141,7 +141,7 @@ body {
 
 /* Project Introduction Box */
 .project-intro-box {
-    margin: 1.5rem auto;
+    margin: 2rem auto;
     max-width: 900px;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -246,7 +246,7 @@ body {
 
 /* Quick Navigation */
 .quick-navigation {
-    margin-top: 1.5rem;
+    margin: 2rem 0;
     padding: 1rem;
     background: #fff3cd;
     border-radius: 6px;
@@ -269,6 +269,15 @@ body {
     background: var(--bg-secondary);
     transform: translateY(-1px);
     box-shadow: var(--shadow-light);
+}
+
+/* Task buttons variation */
+.task-button {
+    border-color: #17a2b8;
+}
+
+.task-button:hover {
+    background: #e8f7fa;
 }
 
 /* Model Section */

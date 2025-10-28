@@ -1,0 +1,1 @@
+Move the green dot from its starting position through the maze paths to the red flag. Navigate only through open spaces (white).

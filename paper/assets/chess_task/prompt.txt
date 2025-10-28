@@ -1,0 +1,1 @@
+White can deliver checkmate in one move. Show the winning move.

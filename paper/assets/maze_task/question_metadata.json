@@ -1,0 +1,27 @@
+{
+  "id": "maze_0001",
+  "prompt": "Move the green dot from its starting position through the maze paths to the red flag. Navigate only through open spaces (white).",
+  "first_image_path": "maze_task/maze_0001/first_frame.png",
+  "final_image_path": "maze_task/maze_0001/final_frame.png",
+  "task_category": "Maze",
+  "maze_data": {
+    "generation_method": "kruskal_algorithm",
+    "solution_length": 2
+  },
+  "difficulty": "easy",
+  "maze_size": [
+    3,
+    3
+  ],
+  "start_pos": [
+    2,
+    1
+  ],
+  "end_pos": [
+    2,
+    2
+  ],
+  "solution_length": 2,
+  "created_at": "2025-10-15T22:14:40.465301Z",
+  "domain": "maze"
+}

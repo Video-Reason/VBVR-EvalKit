@@ -1,0 +1,20 @@
+{
+  "id": "rotation_0014",
+  "prompt": "A 9-block sculpture sits fixed on a table. First frame: Your camera is tilted at 38\u00b0 elevation, viewing from 142\u00b0 azimuth. Final frame: Your camera remains at 38\u00b0 elevation, but rotates horizontally to 322\u00b0 azimuth. This is a 180-degree rotation Create a smooth video showing the camera's horizontal rotation around the sculpture, and try to maintain the tilted viewing angle throughout.",
+  "first_image_path": "rotation_task/rotation_0014/first_frame.png",
+  "final_image_path": "rotation_task/rotation_0014/final_frame.png",
+  "task_category": "3D Mental Rotation",
+  "rotation_data": {
+    "generation_method": "3D voxel snake with viewpoint rotation",
+    "num_voxels": 9,
+    "first_view_elev": 38,
+    "first_view_azim": 142,
+    "final_view_elev": 38,
+    "final_view_azim": 322,
+    "angle_difference": 180,
+    "structural_complexity": "snake_like_3d_voxels"
+  },
+  "difficulty": "easy",
+  "created_at": "2025-10-15T22:14:41.779215Z",
+  "domain": "rotation"
+}

@@ -91,6 +91,7 @@ AWS_ACCESS_KEY_ID=your_aws_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret
 S3_BUCKET=vmevalkit
 AWS_DEFAULT_REGION=us-east-2
+WAVESPEED_API_KEY=your_wavespeed_api_key
 ```
 
 ## Architecture

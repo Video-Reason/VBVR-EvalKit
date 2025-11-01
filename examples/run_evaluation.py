@@ -228,21 +228,21 @@ def main():
         description="VMEvalKit End-to-End Evaluation Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-End-to-End Evaluation Examples:
-  # Run human evaluation (automatically skips already evaluated tasks)
-  python run_evaluation.py human
-  
-  Note: 
-  - Tasks with existing evaluations are automatically skipped
-  - Annotator name is entered directly in the Gradio interface
-  
-  # Run GPT-4O evaluation on ENTIRE pilot experiment
-  python run_evaluation.py gpt4o
-  
-  # Demonstrate custom evaluator
-  python run_evaluation.py custom
+        End-to-End Evaluation Examples:
+        # Run human evaluation (automatically skips already evaluated tasks)
+        python run_evaluation.py human
+        
+        Note: 
+        - Tasks with existing evaluations are automatically skipped
+        - Annotator name is entered directly in the Gradio interface
+        
+        # Run GPT-4O evaluation on ENTIRE pilot experiment
+        python run_evaluation.py gpt4o
+        
+        # Demonstrate custom evaluator
+        python run_evaluation.py custom
 
-Note: All methods evaluate the complete pilot experiment (all models, all tasks).
+        Note: All methods evaluate the complete pilot experiment (all models, all tasks).
         """
     )
     

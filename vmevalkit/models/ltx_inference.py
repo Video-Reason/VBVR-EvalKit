@@ -22,7 +22,7 @@ sys.path.insert(0, str(LTXV_PATH))
 try:
     from ltx_video.inference import LTXVInference
 except ImportError:
-    print(f"LTX-Video not found at {LTXV_PATH}. Please ensure submodule is initialized.")
+    print(f"import ltx_video.inference failed, please check if the module is installed")
     LTXVInference = None
 
 

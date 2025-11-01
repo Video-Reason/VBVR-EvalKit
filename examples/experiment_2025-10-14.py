@@ -24,23 +24,19 @@ Requirements:
 - Output directory: ./data/outputs/pilot_experiment/
 """
 
-import os
 import sys
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 import traceback
 from PIL import Image
-import time
-import signal
-import atexit
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vmevalkit.runner.inference import run_inference, InferenceRunner
-from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
+from vmevalkit.runner.inference import  InferenceRunner
+from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS
 
 
 # ========================================

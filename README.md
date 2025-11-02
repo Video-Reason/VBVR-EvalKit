@@ -77,7 +77,7 @@ Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video re
 
 Each task pair is organized in its own folder (`data/questions/{domain}_task/{question_id}/`) containing all four files. Models must generate videos showing the reasoning process from initial → final state.
 
-![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.pdf)
+![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.jpg)
 
 **📊 See all experimental results and videos:** [**Interactive Results Page**](https://grow-ai-like-a-child.com/video-reason/)
 
@@ -326,7 +326,7 @@ This codebase implements the experimental framework from our research paper, whi
 **Resources:**
 - 📄 **Paper**: [paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf](paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf)
 - 🌐 **Results Page**: [https://grow-ai-like-a-child.com/video-reason/](https://grow-ai-like-a-child.com/video-reason/) - Interactive visualization of all experimental results
-- 📊 **Task Structure**: [paper/video-models-start-to-solve/assets/question_set.pdf](paper/video-models-start-to-solve/assets/question_set.pdf)
+- 📊 **Task Structure**: [paper/video-models-start-to-solve/assets/question_set.jpg](paper/video-models-start-to-solve/assets/question_set.jpg)
 
 **Citation:**
 ```bibtex

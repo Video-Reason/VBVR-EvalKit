@@ -8,30 +8,30 @@ A framework to evaluate reasoning capabilities in video generation models at sca
 
 VMEvalKit aims to provide an infrastructure for reasoning research in video models at scale:
 
-- **🎯 Task Creation at Scale**: Create question dataset of many different cognitive tasks programmatically at scale and make sure the dataset well-organized.
+- **🎯 Task Creation at Scale**: Create question dataset of many different cognitive tasks programmatically at scale and our framework makes sure the dataset to be well-organized.
 - **🚀 Model Inference at Scale**: Easy one-click inference of the entire question dataset across many video models (commercial APIs + open-source) with automatic resume, error handling, and structured output management, and automatically sync the inference results into the dataset. 
 - **⚖️ Evaluation Pipeline**: Human evaluation via web interface and AI evaluation via automated MLLM scoring, also automatically sync the eval results into the dataset. 
 - **☁️ Dataset Management**: Manage question datasets from task creation, inference results from video models, and evaluation results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use case, with version tracking and built-in logging for reproducibility. 
 
-We have completed running a question dataset of chess, maze, Sudoku, mental rotation, and Raven's Matrices on latest video models. Checkout our raw results ([**videos**](https://grow-ai-like-a-child.com/video-reason/)) on this [**website**](https://grow-ai-like-a-child.com/video-reason/).
+We have completed running a question dataset of chess, maze, Sudoku, mental rotation, and Raven's Matrices on latest video models. Checkout our raw results ([**videos**](https://grow-ai-like-a-child.com/video-reason/)) on this [**website**](https://grow-ai-like-a-child.com/video-reason/). Here are a few examples.
 
-## Solving Chess
+Solving Chess
 
 ![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
 
-## Solving Maze
+Solving Maze
 
 ![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
 
-## Mental Rotation
+Mental Rotation
 
 ![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
 
-## Raven's Matrices
+Raven's Matrices
 
 ![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
 
-## Sudoku Solving
+Sudoku Solving
 
 ![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 

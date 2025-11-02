@@ -11,7 +11,7 @@ VMEvalKit aims to provide an infrastructure for reasoning research in video mode
 - **⚖️ Evaluation Pipeline**: Human evaluation via web interface and AI evaluation via automated MLLM scoring, also automatically sync the eval results into the dataset. 
 - **☁️ Dataset Management**: Manage question datasets from task creation, inference results from video models, and evaluation results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use case, with version tracking and built-in logging for reproducibility. 
 
-We have completed running a question dataset of chess, maze, Sudoku, mental rotation, and Raven's Matrices on latest video models. Checkout our raw results (videos) on this [**website**](https://grow-ai-like-a-child.com/video-reason/).
+We have completed running a question dataset of chess, maze, Sudoku, mental rotation, and Raven's Matrices on latest video models. Checkout our raw results ([videos](https://grow-ai-like-a-child.com/video-reason/)) on this [**website**](https://grow-ai-like-a-child.com/video-reason/).
 
 ## Solving Chess
 

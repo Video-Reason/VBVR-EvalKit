@@ -113,23 +113,21 @@ print(f"📁 Output folder: {result['inference_dir']}")
 # └── metadata.json               # Complete inference record
 ```
 
-### System Design
-
-VMEvalKit uses a **three-layer modular architecture** that cleanly supports both commercial (closed-source) APIs and open-source video models—enabling seamless scaling, easy model addition, and clear separation of concerns.
+### 🏗️ System Design
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                               InferenceRunner                              │
-│        Top-level orchestrator: manages workflow, batching, and output      │
+│                               InferenceRunner                               │
+│        Top-level orchestrator: manages workflow, batching, and output       │
 └───────────────────────┬─────────────────────────────────────────────────────┘
                         │      Dynamic Model Loading (importlib)              
                         ▼                                                    
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              MODEL_CATALOG                                 │
-│  Unified model registry:                                                   │
-│    - Lists all available models (both API and open-source)                 │
-│    - Records provider family, wrapper paths, model meta-info               │
-│    - No imports of implementations (pure config)                           │
+│                              MODEL_CATALOG                                  │
+│  Unified model registry:                                                    │
+│    - Lists all available models (both API and open-source)                  │
+│    - Records provider family, wrapper paths, model meta-info                │
+│    - No imports of implementations (pure config)                            │
 └───────────────────────┬─────────────────────────────────────────────────────┘
                         │      importlib.import_module() dynamically loads   
                         ▼
@@ -148,6 +146,42 @@ VMEvalKit uses a **three-layer modular architecture** that cleanly supports both
 │   - API Services handle endpoints, retries, S3-upload (when needed)         │
 │   - Open-source backends directly invoke local model code                   │
 └─────────────────────────────────────────────────────────────────────────────┘
+```
+See **[Inference Guide](docs/INFERENCE.md)** for details. 
+
+## Evaluation Pipeline
+
+### 1. Human Evaluator
+
+**Usage**
+
+```bash
+# Full pilot experiment
+python examples/run_evaluation.py human
+
+# Runner module
+python -m vmevalkit.runner.evaluate human \
+  --experiment pilot_experiment \
+  --annotator "John Doe" \
+  --port 7860 --share
+```
+
+### 2. GPT-4O Evaluator
+
+```bash
+python examples/run_evaluation.py gpt4o
+python -m vmevalkit.runner.evaluate gpt4o \
+  --experiment pilot_experiment \
+  --output-dir data/evaluations \
+  --temperature 0.1
+```
+**Python Modules** 
+
+```python
+from vmevalkit.eval import HumanEvaluator
+
+evaluator = HumanEvaluator(experiment_name="pilot_experiment")
+evaluator.launch_interface(share=True, port=7860)
 ```
 
 ## Documentation

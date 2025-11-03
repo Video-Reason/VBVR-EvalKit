@@ -269,7 +269,7 @@ See **[Web Dashboard](docs/WEB_DASHBOARD.md)** for details.
 
 VMEvalKit is designed to be easily extensible. You can add new video generation models and cognitive tasks with minimal effort:
 
-### Adding New Models
+**Adding New Models**
 
 Add any video generation model (API-based or open-source) with just a few steps:
 
@@ -288,21 +288,21 @@ Then register it in `MODEL_CATALOG.py`:
 "my-model": {
     "provider": "mycompany",
     "wrapper_path": "vmevalkit.models.my_model.MyModelWrapper",
-    "requires_api_key": True
+    ...
 }
 ```
 
 See **[Adding Models Guide](docs/ADDING_MODELS.md)** for complete documentation.
 
-### Adding New Tasks
+**Adding New Tasks**
 
-Create new cognitive tasks programmatically at scale:
+Create new reasoning tasks programmatically at scale:
 
 ```python
 from vmevalkit.tasks.base_task import BaseTask
 
 class MyTask(BaseTask):
-    def generate_task_pair(self, difficulty="medium"):
+    def generate_task_pair(self, ...):
         # Generate initial and final states
         initial_state = self.create_initial_state()
         final_state = self.create_final_state()

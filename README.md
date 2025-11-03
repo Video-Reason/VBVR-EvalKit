@@ -39,35 +39,42 @@ Sudoku Solving
 
 ## Installation & Setup
 
-Clone the repository and set up your Python environment:
-
+1. **Clone the repository:**
 ```bash
 git clone https://github.com/hokindeng/VMEvalKit.git
 cd VMEvalKit
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install -e .
 ```
 
-Copy the environment template and configure your API keys:
-
-```bash
-cp env.template .env
-```
-
-Initialize submodules (required for optional open-source models and datasets):
-
+2. **Initialize submodules** (required for optional open-source models and datasets):
 ```bash
 git submodule update --init --recursive
 ```
 
-Included submodules:
-- **maze-dataset**: Maze datasets for ML evaluation
-- **HunyuanVideo-I2V**: High-quality image-to-video generation (720p)
-- **LTX-Video**: Real-time video generation models
-- **VideoCrafter**: Text-guided video generation
-- **DynamiCrafter**: Image animation with video diffusion
+   Included submodules:
+   - **maze-dataset**: Maze datasets for ML evaluation
+   - **HunyuanVideo-I2V**: High-quality image-to-video generation (720p)
+   - **LTX-Video**: Real-time video generation models
+   - **VideoCrafter**: Text-guided video generation
+   - **DynamiCrafter**: Image animation with video diffusion
+
+3. **Configure environment:**  
+   Copy the example environment file and add your API keys:
+```bash
+cp env.template .env
+```
+
+4. **Set up Python environment:**  
+   (Recommended: use a fresh virtual environment)
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+5. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+pip install -e .
+```
 
 ## Tasks
 

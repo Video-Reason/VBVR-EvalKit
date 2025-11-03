@@ -1,6 +1,8 @@
 # VMEvalKit 🎥🧠
 
-A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 See preliminary [**results**](https://grow-ai-like-a-child.com/video-reason/)
+A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
+
+👀 ✨ See preliminary [**results**](https://grow-ai-like-a-child.com/video-reason/) 🎬
 
 ![VMEvalKit Framework](paper/video-models-start-to-solve/assets/draft_1.jpg)
 

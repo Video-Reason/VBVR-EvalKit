@@ -73,7 +73,7 @@ pip install -e .
 
 ## Tasks
 
-The foundation of every VMEvalKit dataset is the **Task Pair**: a set of files defining a single video reasoning challenge.
+Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning evaluation:
 
 Each Task Pair consists of three core components:
 - 📸 **Initial state image** (`first_frame.png`): shows the starting point or problem to be solved

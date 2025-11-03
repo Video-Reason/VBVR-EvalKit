@@ -54,14 +54,9 @@ VMEvalKit evaluates models across 5 cognitive reasoning domains:
 
 ## Configuration
 
-Create `.env`:
+Copy the environment template and configure your API keys:
 ```bash
-LUMA_API_KEY=your_key_here
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-S3_BUCKET=vmevalkit
-AWS_DEFAULT_REGION=us-east-2
-WAVESPEED_API_KEY=your_wavespeed_api_key
+cp env.template .env
 ```
 
 ## Documentation

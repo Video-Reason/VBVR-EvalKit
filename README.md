@@ -73,7 +73,14 @@ pip install -e .
 
 ## Tasks
 
-VMEvalKit evaluates models across 5 cognitive reasoning domains:
+Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning evaluation:
+
+- 📸 **Initial state image** (`first_frame.png` - the reasoning problem)
+- 🎯 **Final state image** (`final_frame.png` - the solution/goal state)  
+- 📝 **Text prompt** (`prompt.txt` - instructions for video model)
+- 📊 **Rich metadata** (`question_metadata.json` - difficulty, task-specific parameters, etc.)
+
+Each task pair is organized in its own folder (`data/questions/{domain}_task/{question_id}/`) containing all four files. Models must generate videos showing the reasoning process from initial → final state.
 
 ![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.jpg)
 

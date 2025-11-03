@@ -39,32 +39,23 @@ Sudoku Solving
 
 ## Installation & Setup
 
-1. **Clone the repository:**
+1. **Clone the repository**
 ```bash
 git clone https://github.com/hokindeng/VMEvalKit.git
 cd VMEvalKit
 ```
 
-2. **Initialize submodules** (required for optional open-source models and datasets):
+2. **Initialize submodules** - good for optional open-source models and datasets
 ```bash
 git submodule update --init --recursive
 ```
 
-   Included submodules:
-   - **maze-dataset**: Maze datasets for ML evaluation
-   - **HunyuanVideo-I2V**: High-quality image-to-video generation (720p)
-   - **LTX-Video**: Real-time video generation models
-   - **VideoCrafter**: Text-guided video generation
-   - **DynamiCrafter**: Image animation with video diffusion
-
-3. **Configure environment:**  
-   Copy the example environment file and add your API keys:
+3. **Configure environment** - Copy the example environment file and add your API keys
 ```bash
 cp env.template .env
 ```
 
-4. **Set up Python environment:**  
-   (Recommended: use a fresh virtual environment)
+4. **Set up Python environment** - Recommended: use a fresh virtual environment
 ```bash
 python -m venv venv
 source venv/bin/activate

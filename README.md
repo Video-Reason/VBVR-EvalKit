@@ -2,9 +2,39 @@
 
 A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
 
-👀 ✨ See preliminary [**results**](https://grow-ai-like-a-child.com/video-reason/) 🎬 🧠
+
+<p align="center">
+    <a href="asset/leaderboard.html">🏆 Leaderboard</a> •
+    <a href="https://grow-ai-like-a-child.com/video-reason/">🔍 Preliminary results</a> 
+</p>
 
 ![VMEvalKit Framework](paper/video-models-start-to-solve/assets/draft_1.jpg)
+
+
+## 🎬 Supported Models
+
+VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
+
+### Commercial APIs (32 models)
+
+| Provider | Models | Key Features | 
+|----------|---------|-------------|
+| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | 
+| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | 
+| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | 
+| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | 
+| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | 
+| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | 
+| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | 
+
+### Open-Source Models (8 models)
+
+| Provider | Models | Key Features | Hardware Requirements |
+|----------|---------|-------------|----------------------|
+| **LTX-Video** | 3 | 2B/13B variants, real-time generation | GPU with 16GB+ VRAM |
+| **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
+| **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
+| **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
 
 ### Basic Idea
 
@@ -154,6 +184,17 @@ See **[Inference Guide](docs/INFERENCE.md)** for details.
 Quick Usecase
 
 ```bash
+
+
+python vmevalkit/runner/create_dataset.py 
+# create questions in data/
+
+python examples/experiment_2025-10-14.py  --task [maze, chess, sudoku, rotation, raven] --model [luma-ray-2, veo-3.0-generate, veo-3.1-720p, runway-gen4-turbo, openai-sora-2, wavespeed-wan-2.2-i2v-720p]
+# requires LUMA_API_KEY=your_luma_api_key_here
+
+
+
+
 # Full experiment evaluation
 python examples/run_evaluation.py human
 python examples/run_evaluation.py gpt4o

@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 """
-Quick Test Experiment: Test 6 representative models on 1 task per domain with sequential execution.
+VMEvalKit Video Generation - Flexible Model and Task Runner
 
-This script runs inference on 1 task from each domain (chess, maze, raven, rotation, sudoku)
-for rapid testing and validation of all model integrations. Models are processed sequentially
-(one model at a time), and for each model, tasks are processed one by one.
+This script provides flexible video generation with customizable model and task selection.
+Run on specific models, domains, or individual tasks with full control over the process.
 
-Models tested:
-- Luma Dream Machine: luma-ray-2
-- Google Veo 3.0: veo-3.0-generate  
-- Google Veo 3.1 (via WaveSpeed): veo-3.1-720p
-- Runway ML: runway-gen4-turbo
-- OpenAI Sora: openai-sora-2
-- WaveSpeed WAN 2.2: wavespeed-wan-2.2-i2v-720p
-
-Total: 5 tasks × 6 models = 30 quick test generations (sequential)
+Key Features:
+- Choose any available models from 40+ options across 11+ providers
+- Select specific domains (chess, maze, raven, rotation, sudoku) or individual task IDs
+- Control number of tasks per domain or run all available tasks
+- Sequential execution with progress tracking and resume capability
+- Structured output with automatic organization
 
 Human Curation: Only tasks with existing folders are processed (deleted folders = rejected tasks)
 
 Requirements:
-- All necessary API keys configured in environment
-- venv activated
+- Relevant API keys configured in environment for selected models
+- Python environment activated
+- Questions available in: ./data/questions/
 - Output directory: ./data/outputs/pilot_experiment/
+
+Use --help for detailed usage examples and options.
 """
 
 import sys
@@ -36,22 +35,22 @@ from PIL import Image
 sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
-from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS
+from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
 
 
 # ========================================
 # PILOT EXPERIMENT CONFIGURATION
 # ========================================
 
-# Test 6 models including the new Veo 3.1
-PILOT_MODELS = {
-    "luma-ray-2": "Luma Dream Machine",
-    "veo-3.0-generate": "Google Veo 3.0",
-    "veo-3.1-720p": "Google Veo 3.1 (via WaveSpeed)",
-    "runway-gen4-turbo": "Runway ML",
-    "openai-sora-2": "OpenAI Sora",
-    "wavespeed-wan-2.2-i2v-720p": "WaveSpeed WAN 2.2",
-}
+# Default models for quick testing (can be overridden with --model)
+DEFAULT_TEST_MODELS = [
+    "luma-ray-2",
+    "veo-3.0-generate", 
+    "veo-3.1-720p",
+    "runway-gen4-turbo",
+    "openai-sora-2",
+    "wavespeed-wan-2.2-i2v-720p"
+]
 
 # Questions directory path
 QUESTIONS_DIR = Path("data/questions")
@@ -295,7 +294,7 @@ def run_single_inference(
             "task_id": task_id,
             "category": category,
             "model_name": model_name,
-            "model_family": PILOT_MODELS[model_name],
+            "model_family": get_model_family(model_name),
             "start_time": start_time.isoformat(),
             "end_time": datetime.now().isoformat(),
             "success": result.get("status") != "failed"
@@ -316,7 +315,7 @@ def run_single_inference(
             "task_id": task_id,
             "category": category,
             "model_name": model_name,
-            "model_family": PILOT_MODELS[model_name],
+            "model_family": get_model_family(model_name),
             "start_time": start_time.isoformat(),
             "end_time": datetime.now().isoformat(),
             "success": False,
@@ -516,15 +515,89 @@ def main():
     import argparse
     
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="VMEvalKit Quick Test Experiment")
-    parser.add_argument("--all-tasks", action="store_true", help="Run all tasks, not just 1 per domain")
+    parser = argparse.ArgumentParser(
+        description="VMEvalKit Video Generation - Flexible model and task selection",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run 1 task per domain on default models
+  python generate_videos.py
+  
+  # Run all tasks on default models  
+  python generate_videos.py --all-tasks
+  
+  # Run on specific models
+  python generate_videos.py --model luma-ray-2 openai-sora-2
+  
+  # Run specific tasks/domains
+  python generate_videos.py --task chess maze --pairs-per-domain 3
+  
+  # Run specific task IDs
+  python generate_videos.py --task-id chess_0001 maze_0005 --model luma-ray-2
+        """
+    )
+    
+    parser.add_argument(
+        "--model", 
+        nargs="+", 
+        default=None,
+        help=f"Specific model(s) to run. Available: {', '.join(list(AVAILABLE_MODELS.keys())[:10])}... (see --list-models for all)"
+    )
+    
+    parser.add_argument(
+        "--task",
+        nargs="+",
+        choices=["chess", "maze", "raven", "rotation", "sudoku"],
+        default=None,
+        help="Specific task domain(s) to run. If not specified, runs all domains."
+    )
+    
+    parser.add_argument(
+        "--task-id",
+        nargs="+", 
+        default=None,
+        help="Specific task ID(s) to run (e.g., chess_0001 maze_0005). Overrides other task selection."
+    )
+    
+    parser.add_argument(
+        "--pairs-per-domain", 
+        type=int, 
+        default=1, 
+        help="Number of task pairs to run per domain (default: 1)"
+    )
+    
+    parser.add_argument("--all-tasks", action="store_true", help="Run ALL available tasks (overrides --pairs-per-domain)")
+    
+    parser.add_argument("--list-models", action="store_true", help="List all available models and exit")
+    
+    # Legacy parameter for compatibility
     parser.add_argument(
         "--only-model",
         nargs="*",
         default=None,
-        help="Optional list of model names to run/resume (others will be skipped)"
+        help="(Legacy) Same as --model"
     )
+    
     args = parser.parse_args()
+    
+    # Handle --list-models
+    if args.list_models:
+        print("🎬 Available Models:")
+        print("=" * 60)
+        families = {}
+        for model_name, model_info in AVAILABLE_MODELS.items():
+            family = model_info.get('family', 'Unknown')
+            if family not in families:
+                families[family] = []
+            families[family].append((model_name, model_info.get('description', '')))
+        
+        for family, models in sorted(families.items()):
+            print(f"\n📁 {family}:")
+            for model_name, description in sorted(models):
+                print(f"   • {model_name:25} - {description}")
+        
+        print(f"\nTotal: {len(AVAILABLE_MODELS)} models across {len(families)} families")
+        sys.exit(0)
     
     print("🔍 Discovering human-approved tasks from folder structure...")
     
@@ -537,43 +610,87 @@ def main():
     # Discover all approved tasks from folders
     all_tasks_by_domain = discover_all_tasks_from_folders(QUESTIONS_DIR)
     
-    # Choose task set based on args
+    # Select tasks based on arguments
     tasks_by_domain = {}
-    if args.all_tasks:
-        tasks_by_domain = all_tasks_by_domain
-        print(f"   🎯 Running ALL approved tasks")
+    
+    if args.task_id:
+        # Specific task IDs requested
+        print(f"   🎯 Running specific task IDs: {', '.join(args.task_id)}")
+        tasks_by_domain = {}
+        for task_id in args.task_id:
+            # Find which domain this task belongs to
+            found = False
+            for domain, tasks in all_tasks_by_domain.items():
+                for task in tasks:
+                    if task['id'] == task_id:
+                        if domain not in tasks_by_domain:
+                            tasks_by_domain[domain] = []
+                        tasks_by_domain[domain].append(task)
+                        found = True
+                        break
+            if not found:
+                print(f"   ⚠️  Task ID '{task_id}' not found")
+    
+    elif args.all_tasks:
+        # All tasks requested
+        if args.task:
+            # All tasks from specific domains
+            tasks_by_domain = {domain: tasks for domain, tasks in all_tasks_by_domain.items() if domain in args.task}
+            print(f"   🎯 Running ALL tasks from domains: {', '.join(args.task)}")
+        else:
+            # All tasks from all domains
+            tasks_by_domain = all_tasks_by_domain
+            print(f"   🎯 Running ALL approved tasks")
+    
     else:
-        # Limit to 1 task per domain for quick testing
-        for domain, tasks in all_tasks_by_domain.items():
-            if tasks:
-                tasks_by_domain[domain] = [tasks[0]]  # Take only first task
-                print(f"   🎯 Testing with 1 task from {domain}: {tasks[0]['id']}")
+        # Limited number per domain
+        if args.task:
+            # Specific domains
+            selected_domains = args.task
+        else:
+            # All domains
+            selected_domains = list(all_tasks_by_domain.keys())
+        
+        for domain in selected_domains:
+            if domain in all_tasks_by_domain and all_tasks_by_domain[domain]:
+                num_tasks = min(args.pairs_per_domain, len(all_tasks_by_domain[domain]))
+                tasks_by_domain[domain] = all_tasks_by_domain[domain][:num_tasks]
+                task_names = [task['id'] for task in tasks_by_domain[domain]]
+                print(f"   🎯 Running {num_tasks} task(s) from {domain}: {', '.join(task_names)}")
             else:
                 tasks_by_domain[domain] = []
     
-    # Verify models are available
-    # Optionally restrict to a subset of models
-    selected_models = PILOT_MODELS
-    if args.only_model:
-        selected_models = {
-            k: v for k, v in PILOT_MODELS.items() if k in set(args.only_model)
-        }
-        if not selected_models:
-            print("❌ No valid models selected with --only-model")
-            sys.exit(1)
-        skipped_models = set(PILOT_MODELS.keys()) - set(selected_models.keys())
-        print(f"\n🎯 Running selected models: {', '.join(selected_models.keys())}")
-        if skipped_models:
-            print(f"⏭️  Skipping models: {', '.join(sorted(skipped_models))}")
+    # Select models based on arguments
+    model_names = []
+    if args.model:
+        model_names = args.model
+    elif args.only_model:  # Legacy support
+        model_names = args.only_model
+    else:
+        model_names = DEFAULT_TEST_MODELS
+    
+    # Validate and filter available models
+    selected_models = {}
+    unavailable_models = []
+    for model_name in model_names:
+        if model_name in AVAILABLE_MODELS:
+            selected_models[model_name] = AVAILABLE_MODELS[model_name].get('family', 'Unknown')
+        else:
+            unavailable_models.append(model_name)
+    
+    if unavailable_models:
+        print(f"⚠️  Models not available: {', '.join(unavailable_models)}")
+        print("   Use --list-models to see all available models")
+    
+    if not selected_models:
+        print("❌ No valid models selected")
+        sys.exit(1)
+        
+    print(f"\n🎯 Selected {len(selected_models)} model(s): {', '.join(selected_models.keys())}")
 
     print(f"\n🔍 Verifying {len(selected_models)} model(s) for testing...")
     for model_name, family in selected_models.items():
-        if model_name in AVAILABLE_MODELS:
-            print(f"   ✅ {model_name}: {family}")
-        else:
-            print(f"   ❌ {model_name}: NOT FOUND in available models")
-            print(f"      Please check model name or add it to AVAILABLE_MODELS")
-            # Don't exit, just warn - some models might not be configured yet
+        print(f"   ✅ {model_name}: {family}")
     
     print(f"\n{'=' * 80}")
     # Removed interactive prompt for non-interactive execution
@@ -595,7 +712,7 @@ def main():
     
     # Print final summary
     print(f"\n{'=' * 80}")
-    print("🎉 QUICK TEST COMPLETE!")
+    print("🎉 VIDEO GENERATION COMPLETE!")
     print(f"{'=' * 80}")
     stats = experiment_results["statistics"]
     
@@ -603,8 +720,8 @@ def main():
     actual_total_attempted = stats['completed'] + stats['failed'] + stats['skipped']
     
     print(f"\n📊 Final Statistics:")
-    print(f"   Models tested: {len(selected_models)}")  # Use selected_models, not PILOT_MODELS
-    print(f"   Approved tasks per model: {stats['total_tasks']}")
+    print(f"   Models tested: {len(selected_models)}")
+    print(f"   Tasks per model: {stats['total_tasks']}")
     print(f"   Total possible generations: {stats['total_generations']}")
     print(f"   Total attempted: {actual_total_attempted}")
     print(f"   Completed: {stats['completed']} ({stats['completed']/max(actual_total_attempted,1)*100:.1f}%)")

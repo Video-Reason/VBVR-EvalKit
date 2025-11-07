@@ -186,7 +186,7 @@ Quick Usecase
 ```bash
 
 
-python vmevalkit/runner/create_dataset.py 
+python vmevalkit/runner/create_dataset.py --task maze chess
 # create questions in data/
 
 python examples/experiment_2025-10-14.py  --task [maze, chess, sudoku, rotation, raven] --model [luma-ray-2, veo-3.0-generate, veo-3.1-720p, runway-gen4-turbo, openai-sora-2, wavespeed-wan-2.2-i2v-720p]

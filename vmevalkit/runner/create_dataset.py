@@ -180,24 +180,36 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
     
     return generated_pairs
 
-def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 42) -> Tuple[Dict[str, Any], str]:
+def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 42, 
+                                 selected_tasks: List[str] = None) -> Tuple[Dict[str, Any], str]:
     """
     Create VMEvalKit Dataset directly into per-question folder structure.
     
     Args:
         pairs_per_domain: Number of task pairs to generate per domain (default: 50)
         random_seed: Random seed for reproducible generation (default: 42)
+        selected_tasks: List of task names to generate. If None, generate all tasks.
         
     Returns:
         Tuple of (dataset dictionary, path to questions directory)
     """
     
-    num_domains = len(DOMAIN_REGISTRY)
+    # Determine which domains to generate
+    if selected_tasks is None:
+        domains_to_generate = list(DOMAIN_REGISTRY.keys())
+    else:
+        # Validate task names
+        invalid_tasks = [task for task in selected_tasks if task not in DOMAIN_REGISTRY]
+        if invalid_tasks:
+            raise ValueError(f"Unknown tasks: {invalid_tasks}. Available tasks: {list(DOMAIN_REGISTRY.keys())}")
+        domains_to_generate = selected_tasks
+    
+    num_domains = len(domains_to_generate)
     total_pairs = pairs_per_domain * num_domains
     
     print("=" * 70)
     print("🚀 VMEvalKit Dataset Creation - Direct Folder Generation")
-    print(f"🎯 Total target: {total_pairs} task pairs across {num_domains} domains")
+    print(f"🎯 Total target: {total_pairs} task pairs across {num_domains} domain(s)")
     print("=" * 70)
     
     # Setup output directory
@@ -205,10 +217,10 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 
     output_base = base_dir / "data" / "questions"
     output_base.mkdir(parents=True, exist_ok=True)
     
-    # Equal allocation across all registered domains
+    # Allocation for selected domains only
     allocation = {
         domain: pairs_per_domain 
-        for domain in DOMAIN_REGISTRY.keys()
+        for domain in domains_to_generate
     }
     
     print(f"📈 Task Distribution:")
@@ -248,6 +260,7 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int = 
                     "description": config['description']
                 }
                 for domain, config in DOMAIN_REGISTRY.items()
+                if domain in domains_to_generate
             }
         },
         "pairs": all_pairs
@@ -400,6 +413,8 @@ def main():
     parser.add_argument("--pairs-per-domain", type=int, default=50, help="Number of task pairs to generate per domain")
     parser.add_argument("--random-seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--read-only", action="store_true", help="Only read existing dataset from folders, don't generate")
+    parser.add_argument("--task", nargs='+', choices=list(DOMAIN_REGISTRY.keys()), 
+                       help="Specific task(s) to generate. Can specify multiple tasks (e.g., --task maze chess). If not specified, generates all tasks.")
     args = parser.parse_args()
 
     if args.read_only:
@@ -416,7 +431,8 @@ def main():
     # Generate dataset directly to folders
     dataset, questions_dir = create_vmeval_dataset_direct(
         pairs_per_domain=args.pairs_per_domain, 
-        random_seed=args.random_seed
+        random_seed=args.random_seed,
+        selected_tasks=args.task
     )
     
     # Print comprehensive summary

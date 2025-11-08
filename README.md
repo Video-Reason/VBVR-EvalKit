@@ -1,10 +1,10 @@
 # VMEvalKit 🎥🧠
 
-A framework to evaluate reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run evaluations**](docs/EVALUATION.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
+A framework to score reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run scoring**](docs/SCORING.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
 
 
 <p align="center">
-    <a href="asset/leaderboard.html">🏆 Leaderboard</a> •
+    <a href="asset/leaderboard.html">🏆 Leaderboard (Under Construction)</a> •
     <a href="https://grow-ai-like-a-child.com/video-reason/">🔍 Preliminary results</a> 
 </p>
 
@@ -42,8 +42,8 @@ VMEvalKit aims to provide an infrastructure for reasoning research in video mode
 
 - 🎯  [**Task Creation at Scale**](docs/ADDING_TASKS.md): Create question dataset of many different cognitive tasks programmatically at scale and our framework makes sure the dataset to be well-organized.
 - 🚀  [**Model Inference at Scale**](docs/INFERENCE.md): Easy one-click inference of the entire question dataset across many video models (commercial APIs + open-source) with automatic resume, error handling, and structured output management, and automatically sync the inference results into the dataset. 
-- ⚖️  [**Evaluation Pipeline**](docs/EVALUATION.md): Human evaluation via web interface and AI evaluation via automated MLLM scoring, also automatically sync the eval results into the dataset. 
-- ☁️  [**Dataset Management**](docs/DATA_MANAGEMENT.md): Manage question datasets from task creation, inference results from video models, and evaluation results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use cases, with version tracking and built-in logging for reproducibility. 
+- ⚖️  [**Scoring Pipeline**](docs/SCORING.md): Human scoring via web interface and AI scoring via automated MLLM scoring, also automatically sync the scoring results into the dataset. 
+- ☁️  [**Dataset Management**](docs/DATA_MANAGEMENT.md): Manage question datasets from task creation, inference results from video models, and scoring results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use cases, with version tracking and built-in logging for reproducibility. 
 
 We have completed running a question dataset of [**chess**](/vmevalkit/tasks/chess_task/CHESS.md), [**maze**](/vmevalkit/tasks/maze_task/MAZE.md), [**Sudoku**](/vmevalkit/tasks/sudoku_task/SUDOKU.md), [**mental rotation**](/vmevalkit/tasks/rotation_task/ROTATION.md), and [**Raven's Matrices**](/vmevalkit/tasks/raven_task/RAVEN.md) on [**latest video models**](https://grow-ai-like-a-child.com/video-reason/). Checkout our raw results videos on this [**website**](https://grow-ai-like-a-child.com/video-reason/). Here are a few examples.
 
@@ -101,9 +101,61 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+## 🚀 Quick Start - End-to-End Example
+
+Here's a complete workflow from creating questions to scoring results:
+
+### 1️⃣ Create Questions
+```bash
+# Generate 5 chess and maze questions each
+python examples/create_questions.py --task chess maze --pairs-per-domain 5
+
+# Output: Creates data/questions/ with chess_task/ and maze_task/ folders
+```
+
+### 2️⃣ Generate Videos
+```bash
+# List available models
+python examples/generate_videos.py --list-models
+
+# Run on specific model (e.g., Luma Ray 2)
+python examples/generate_videos.py --model luma-ray-2 --task chess maze
+
+# Output: Creates data/outputs/pilot_experiment/ with generated videos
+```
+
+### 3️⃣ Score Results
+```bash
+# Option A: Human scoring via web interface
+python examples/score_videos.py human
+
+# Option B: Automated GPT-4O scoring
+python examples/score_videos.py gpt4o
+
+# Output: Creates data/scorings/ with scoring results
+```
+
+### 4️⃣ View Results
+```bash
+# Launch web dashboard to explore results
+cd web && ./start.sh
+# Open http://localhost:5000 in your browser
+```
+
+That's it! You now have:
+- ✅ Custom reasoning questions in `data/questions/`  
+- ✅ Generated videos in `data/outputs/`
+- ✅ Scoring results in `data/scorings/`
+- ✅ Interactive dashboard to explore everything
+
+**Tips:**
+- Start small: `--pairs-per-domain 2` for quick testing
+- Use `--task-id chess_0001` to run specific questions  
+- Try different models: `--model openai-sora-2 veo-3.0-generate`
+
 ## Tasks
 
-Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning evaluation:
+Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning scoring:
 
 Each Task Pair consists of three core components:
 - 📸 **Initial state image** (`first_frame.png`): shows the starting point or problem to be solved
@@ -179,48 +231,43 @@ print(f"📁 Output folder: {result['inference_dir']}")
 ```
 See **[Inference Guide](docs/INFERENCE.md)** for details. 
 
-## Evaluation Pipeline
+## Scoring Pipeline
 
-Quick Usecase
+### Example Usage
 
 ```bash
+# Create questions for specific domains
+python examples/create_questions.py --task chess maze --pairs-per-domain 10
 
+# Generate videos with selected models  
+python examples/generate_videos.py --model luma-ray-2 veo-3.0-generate --task chess maze
 
-python vmevalkit/runner/create_dataset.py --task maze chess
-# create questions in data/
+# Score results
+python examples/score_videos.py human
+python examples/score_videos.py gpt4o
 
-python examples/experiment_2025-10-14.py  --task [maze, chess, sudoku, rotation, raven] --model [luma-ray-2, veo-3.0-generate, veo-3.1-720p, runway-gen4-turbo, openai-sora-2, wavespeed-wan-2.2-i2v-720p]
-# requires LUMA_API_KEY=your_luma_api_key_here
-
-
-
-
-# Full experiment evaluation
-python examples/run_evaluation.py human
-python examples/run_evaluation.py gpt4o
-
-# Runner module
-python -m vmevalkit.runner.evaluate human \
+# Using runner modules directly
+python -m vmevalkit.runner.score human \
   --experiment pilot_experiment \
   --annotator "John Doe" \
   --port 7860 --share
 
-python -m vmevalkit.runner.evaluate gpt4o \
+python -m vmevalkit.runner.score gpt4o \
   --experiment pilot_experiment \
-  --output-dir data/evaluations \
+  --output-dir data/scorings \
   --temperature 0.1 
 ```
 
 Use as Python Modules
 
 ```python
-from vmevalkit.eval import HumanEvaluator
+from vmevalkit.eval import HumanScorer
 
-evaluator = HumanEvaluator(experiment_name="pilot_experiment")
-evaluator.launch_interface(share=True, port=7860)
+scorer = HumanScorer(experiment_name="pilot_experiment")
+scorer.launch_interface(share=True, port=7860)
 ```
 
-See **[Evaluation Guide](docs/EVALUATION.md)** for details.
+See **[Scoring Guide](docs/SCORING.md)** for details.
 
 ## Dataset Management
 
@@ -256,13 +303,13 @@ data/
 │                       │   └── first_frame.png
 │                       └── metadata.json
 │
-├── evaluations/                     # Evaluation results
+├── scorings/                        # Scoring results
 │   └── pilot_experiment/
 │       └── <model_name>/
 │           └── <domain>_task/
 │               └── <task_id>/
-│                   ├── human-eval.json      # Human evaluation scores
-│                   └── GPT4OEvaluator.json  # GPT-4O evaluation scores
+│                   ├── human-score.json     # Human scoring scores
+│                   └── GPT4OScorer.json     # GPT-4O scoring scores
 │
 └── data_logging/                    # Version tracking
     ├── version_log.json            # Version history
@@ -379,7 +426,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 
 📚 **Core Documentation:**
 - **[Inference Guide](docs/INFERENCE.md)** - Complete guide to running inference, supported models, and architecture
-- **[Evaluation Guide](docs/EVALUATION.md)** - Human and automated evaluation methods
+- **[Scoring Guide](docs/SCORING.md)** - Human and automated scoring methods
 - **[Data Management](docs/DATA_MANAGEMENT.md)** - Dataset organization, S3 sync, and version tracking
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks

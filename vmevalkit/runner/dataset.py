@@ -2,7 +2,7 @@
 """
 VMEvalKit Dataset Creation Script
 
-Directly generates the video reasoning evaluation dataset into per-question folder structure
+Directly generates the video reasoning scoring dataset into per-question folder structure
 with <x> task pairs per domain, evenly distributed across all five reasoning domains:
 
 - Chess: Strategic thinking and tactical pattern recognition
@@ -20,7 +20,6 @@ import os
 import sys
 import json
 import random
-import argparse
 import shutil
 from pathlib import Path
 from datetime import datetime
@@ -33,7 +32,6 @@ sys.path.insert(0, str(project_root))
 # Domain Registry: Scalable way to add new domains
 # ============================================================
 # TO ADD A NEW TASK: Simply add an entry here with:
-#   - emoji: Visual icon for the task
 #   - name: Display name
 #   - description: Brief task description
 #   - module: Path to the task module
@@ -42,7 +40,6 @@ sys.path.insert(0, str(project_root))
 # ============================================================
 DOMAIN_REGISTRY = {
     'chess': {
-        'emoji': '♟️',
         'name': 'Chess',
         'description': 'Strategic thinking and tactical pattern recognition',
         'module': 'vmevalkit.tasks.chess_task',
@@ -50,7 +47,6 @@ DOMAIN_REGISTRY = {
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'maze': {
-        'emoji': '🌀',
         'name': 'Maze',
         'description': 'Spatial reasoning and navigation planning',
         'module': 'vmevalkit.tasks.maze_task',
@@ -58,7 +54,6 @@ DOMAIN_REGISTRY = {
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'raven': {
-        'emoji': '🧩',
         'name': 'RAVEN',
         'description': 'Abstract reasoning and pattern completion',
         'module': 'vmevalkit.tasks.raven_task',
@@ -66,7 +61,6 @@ DOMAIN_REGISTRY = {
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'rotation': {
-        'emoji': '🔄',
         'name': 'Rotation',
         'description': '3D mental rotation and spatial visualization',
         'module': 'vmevalkit.tasks.rotation_task.rotation_reasoning',
@@ -74,7 +68,6 @@ DOMAIN_REGISTRY = {
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'sudoku': {
-        'emoji': '🔢',
         'name': 'Sudoku',
         'description': 'Logical reasoning and constraint satisfaction',
         'module': 'vmevalkit.tasks.sudoku_task.sudoku_reasoning',
@@ -114,8 +107,8 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
     
     generated_pairs = []
     
-    # Print generation message with emoji
-    print(f"{domain_config['emoji']} Generating {num_samples} {domain_config['name']} Tasks...")
+    # Print generation message
+    print(f"Generating {num_samples} {domain_config['name']} Tasks...")
     
     # Dynamic import and function call
     import importlib
@@ -406,45 +399,5 @@ def print_dataset_summary(dataset: Dict[str, Any]):
         print(f"   ... and {len(categories) - 10} more categories")
     print()
 
-def main():
-    """Generate VMEvalKit Dataset directly into per-question folder structure."""
-
-    parser = argparse.ArgumentParser(description="Create VMEvalKit dataset directly in per-question folders")
-    parser.add_argument("--pairs-per-domain", type=int, default=50, help="Number of task pairs to generate per domain")
-    parser.add_argument("--random-seed", type=int, default=42, help="Random seed for reproducibility")
-    parser.add_argument("--read-only", action="store_true", help="Only read existing dataset from folders, don't generate")
-    parser.add_argument("--task", nargs='+', choices=list(DOMAIN_REGISTRY.keys()), 
-                       help="Specific task(s) to generate. Can specify multiple tasks (e.g., --task maze chess). If not specified, generates all tasks.")
-    args = parser.parse_args()
-
-    if args.read_only:
-        # Just read existing dataset from folders
-        print("=" * 70)
-        print("📂 Reading existing dataset from folder structure...")
-        dataset = read_dataset_from_folders()
-        print_dataset_summary(dataset)
-        print("=" * 70)
-        return
-
-    # Clean option removed: artifacts are preserved between runs
-    
-    # Generate dataset directly to folders
-    dataset, questions_dir = create_vmeval_dataset_direct(
-        pairs_per_domain=args.pairs_per_domain, 
-        random_seed=args.random_seed,
-        selected_tasks=args.task
-    )
-    
-    # Print comprehensive summary
-    print_dataset_summary(dataset)
-    
-    print(f"💾 Master dataset JSON saved: {questions_dir}/vmeval_dataset.json")
-    print(f"📁 Questions generated in: {questions_dir}")
-    print(f"🔗 Per-question folders: {questions_dir}/<domain>_task/<question_id>/")
-    print()
-    print("🎉 VMEvalKit Dataset ready for video reasoning evaluation!")
-    print("🚀 Use `vmevalkit/runner/inference.py` to evaluate models on this dataset")
-    print("=" * 70)
-
-if __name__ == "__main__":
-    main()
+# CLI functionality has been moved to examples/create_dataset.py
+# This module now provides pure functions for dataset creation

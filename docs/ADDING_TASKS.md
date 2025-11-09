@@ -70,7 +70,6 @@ DOMAIN_REGISTRY = {
 ✅ **Prompt Templates**: `PROMPTS.py` with standardized prompts  
 ✅ **Module Init**: `__init__.py` exporting required functions  
 ✅ **Documentation**: `{TASK_NAME}.md` describing the task  
-✅ **Registry Entry**: Add to `DOMAIN_REGISTRY` in `create_dataset.py`
 
 ### Image Requirements
 

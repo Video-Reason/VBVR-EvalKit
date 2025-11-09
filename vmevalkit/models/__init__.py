@@ -14,7 +14,8 @@ __all__ = [
     "LTXVideoService", "LTXVideoWrapper",
     "HunyuanVideoService", "HunyuanVideoWrapper", 
     "VideoCrafterService", "VideoCrafterWrapper",
-    "DynamiCrafterService", "DynamiCrafterWrapper"
+    "DynamiCrafterService", "DynamiCrafterWrapper",
+    "SVDService", "SVDWrapper"
 ]
 
 # Module name mapping
@@ -28,6 +29,7 @@ _MODULE_MAP = {
     "openai_inference": ["SoraService", "OpenAIWrapper"],
     "videocrafter_inference": ["VideoCrafterService", "VideoCrafterWrapper"],
     "dynamicrafter_inference": ["DynamiCrafterService", "DynamiCrafterWrapper"],
+    "svd_inference": ["SVDService", "SVDWrapper"],
 }
 
 

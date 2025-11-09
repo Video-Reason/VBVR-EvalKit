@@ -50,7 +50,8 @@ DEFAULT_TEST_MODELS = [
     "veo-3.1-720p",
     "runway-gen4-turbo",
     "openai-sora-2",
-    "wavespeed-wan-2.2-i2v-720p"
+    "wavespeed-wan-2.2-i2v-720p",
+    "svd"
 ]
 
 # Questions directory path

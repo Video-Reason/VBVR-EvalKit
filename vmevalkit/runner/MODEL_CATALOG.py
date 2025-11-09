@@ -384,6 +384,26 @@ DYNAMICRAFTER_MODELS = {
     }
 }
 
+# Stable Video Diffusion Models (Stability AI)
+SVD_MODELS = {
+    "svd": {
+        "wrapper_module": "vmevalkit.models.svd_inference",
+        "wrapper_class": "SVDWrapper",
+        "service_class": "SVDService",
+        "model": "stabilityai/stable-video-diffusion-img2vid-xt",
+        "description": "Stable Video Diffusion XT - High-quality image-to-video generation",
+        "family": "Stable Video Diffusion"
+    },
+    "svd-xt": {
+        "wrapper_module": "vmevalkit.models.svd_inference",
+        "wrapper_class": "SVDWrapper",
+        "service_class": "SVDService",
+        "model": "stabilityai/stable-video-diffusion-img2vid-xt",
+        "description": "Stable Video Diffusion XT - High-quality image-to-video generation",
+        "family": "Stable Video Diffusion"
+    }
+}
+
 # ========================================
 # COMBINED REGISTRIES
 # ========================================
@@ -400,7 +420,8 @@ AVAILABLE_MODELS = {
     **LTX_VIDEO_MODELS,
     **HUNYUAN_VIDEO_MODELS,
     **VIDEOCRAFTER_MODELS,
-    **DYNAMICRAFTER_MODELS
+    **DYNAMICRAFTER_MODELS,
+    **SVD_MODELS
 }
 
 # Model families metadata for easier management
@@ -415,7 +436,8 @@ MODEL_FAMILIES = {
     "LTX-Video": LTX_VIDEO_MODELS,
     "HunyuanVideo": HUNYUAN_VIDEO_MODELS,
     "VideoCrafter": VIDEOCRAFTER_MODELS,
-    "DynamiCrafter": DYNAMICRAFTER_MODELS
+    "DynamiCrafter": DYNAMICRAFTER_MODELS,
+    "Stable Video Diffusion": SVD_MODELS
 }
 
 # ========================================

@@ -1,3 +1,12 @@
+## Installation
+
+
+```
+
+uv pip install transformers diffusers
+```
+
+
 ## HunyuanVideo-I2V
 
 Use conda to install the HunyuanVideo-I2V submodule first, then install the vmevalkit.

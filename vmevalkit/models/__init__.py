@@ -14,6 +14,7 @@ from .ltx_inference import LTXVideoService, LTXVideoWrapper
 from .hunyuan_inference import HunyuanVideoService, HunyuanVideoWrapper
 from .videocrafter_inference import VideoCrafterService, VideoCrafterWrapper
 from .dynamicrafter_inference import DynamiCrafterService, DynamiCrafterWrapper
+from .morphic_inference import MorphicFramesToVideoWrapper, MorphicConfigurationError
 
 __all__ = [
     # Commercial API services
@@ -27,5 +28,6 @@ __all__ = [
     "LTXVideoService", "LTXVideoWrapper",
     "HunyuanVideoService", "HunyuanVideoWrapper", 
     "VideoCrafterService", "VideoCrafterWrapper",
-    "DynamiCrafterService", "DynamiCrafterWrapper"
+    "DynamiCrafterService", "DynamiCrafterWrapper",
+    "MorphicFramesToVideoWrapper", "MorphicConfigurationError"
 ]

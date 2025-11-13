@@ -384,6 +384,23 @@ DYNAMICRAFTER_MODELS = {
     }
 }
 
+# Morphic Frames-to-Video (Wan2.2 interpolation)
+MORPHIC_MODELS = {
+    "morphic-wan2.2-i2v": {
+        "wrapper_module": "vmevalkit.models.morphic_inference",
+        "wrapper_class": "MorphicFramesToVideoWrapper",
+        "service_class": None,
+        "model": "morphic-wan2.2-i2v",
+        "args": {
+            "task": "i2v-A14B",
+            "size": "1280*720",
+            "frame_num": 81
+        },
+        "description": "Morphic Frames-to-Video (Wan2.2 I2V A14B + Morphic LoRA) image interpolation",
+        "family": "Morphic Frames-to-Video"
+    }
+}
+
 # ========================================
 # COMBINED REGISTRIES
 # ========================================
@@ -400,7 +417,8 @@ AVAILABLE_MODELS = {
     **LTX_VIDEO_MODELS,
     **HUNYUAN_VIDEO_MODELS,
     **VIDEOCRAFTER_MODELS,
-    **DYNAMICRAFTER_MODELS
+    **DYNAMICRAFTER_MODELS,
+    **MORPHIC_MODELS
 }
 
 # Model families metadata for easier management
@@ -415,7 +433,8 @@ MODEL_FAMILIES = {
     "LTX-Video": LTX_VIDEO_MODELS,
     "HunyuanVideo": HUNYUAN_VIDEO_MODELS,
     "VideoCrafter": VIDEOCRAFTER_MODELS,
-    "DynamiCrafter": DYNAMICRAFTER_MODELS
+    "DynamiCrafter": DYNAMICRAFTER_MODELS,
+    "Morphic Frames-to-Video": MORPHIC_MODELS
 }
 
 # ========================================

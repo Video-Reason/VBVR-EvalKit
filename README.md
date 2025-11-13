@@ -431,6 +431,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization
+- **[Morphic Frames-to-Video](docs/models/MORPHIC.md)** - Configure the Morphic/Wan2.2 submodule
 
 ## Research
 

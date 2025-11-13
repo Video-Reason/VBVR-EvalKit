@@ -22,3 +22,6 @@
 [submodule "submodules/RAVEN"]
 	path = submodules/RAVEN
 	url = https://github.com/WellyZhang/RAVEN.git
+[submodule "morphic-frames-to-video"]
+	path = submodules/frames-to-video
+	url = https://github.com/morphicfilms/frames-to-video.git

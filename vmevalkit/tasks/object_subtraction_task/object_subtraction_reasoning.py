@@ -410,9 +410,6 @@ class RuleGenerator:
         else:  # 3 objects
             prompt = f"Remove {target_descriptions[0]}, {target_descriptions[1]}, and {target_descriptions[2]} from the scene. Keep all other objects fixed in their positions."
         
-        # Alternatively, use template from PROMPTS_L2 if preferred
-        # prompt = PROMPTS_L2[prompt_index % len(PROMPTS_L2)]
-        
         rule = {
             "level": "L2",
             "targets": targets,

@@ -34,13 +34,6 @@ def hf_upload(
     revision: str = "main",
     token_env: str = "HF_TOKEN",
 ) -> None:
-    if not local_path.exists():
-        raise FileNotFoundError(f"Local path not found: {local_path}")
-    if not local_path.is_dir():
-        raise ValueError(f"Local path must be a directory: {local_path}")
-    if not repo_id or "/" not in repo_id:
-        raise ValueError("repo_id must be in the form 'username/repo_name'")
-
     token = _get_token(token_env)
     api = HfApi(token=token)
 
@@ -72,10 +65,6 @@ def hf_download(
     token_env: str = "HF_TOKEN",
     local_dir_use_symlinks: bool = False,
 ) -> Path:
-    if not repo_id or "/" not in repo_id:
-        raise ValueError("repo_id must be in the form 'username/repo_name'")
-    if not target_dir:
-        raise ValueError("target_dir is required")
     target_dir.mkdir(parents=True, exist_ok=True)
 
     token = _get_token(token_env)
@@ -97,8 +86,6 @@ def hf_list_files(
     revision: str = "main",
     token_env: str = "HF_TOKEN",
 ) -> List[str]:
-    if not repo_id or "/" not in repo_id:
-        raise ValueError("repo_id must be in the form 'username/repo_name'")
     token = _get_token(token_env)
     api = HfApi(token=token)
     files = api.list_repo_files(

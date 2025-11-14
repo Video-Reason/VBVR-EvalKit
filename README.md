@@ -438,8 +438,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 📚 **Core Documentation:**
 - **[Inference Guide](docs/INFERENCE.md)** - Complete guide to running inference, supported models, and architecture
 - **[Scoring Guide](docs/SCORING.md)** - Human and automated scoring methods
-- **[Data Management](docs/DATA_MANAGEMENT.md)** - Dataset organization, S3 sync, and version tracking
-- **[HuggingFace Support](docs/HF_Support.md)** - Upload/download datasets to HF Hub
+- **[Data Management](docs/DATA_MANAGEMENT.md)** - Dataset organization, S3 sync, version tracking, and HuggingFace integration
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization

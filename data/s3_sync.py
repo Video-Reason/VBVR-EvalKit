@@ -6,7 +6,6 @@ import sys
 import datetime
 from pathlib import Path
 import boto3
-from botocore.exceptions import ClientError
 
 # Load environment variables from .env file
 def load_env_file():
@@ -53,18 +52,13 @@ def download_from_s3(date_prefix: str, data_dir: Path = None, subfolder: str = N
         raise ValueError("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables are required")
     
     # Create S3 client
-    try:
-        s3 = boto3.client("s3",
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=os.getenv("AWS_REGION", "us-east-2")
-        )
-        # Test connection
-        s3.head_bucket(Bucket=bucket)
-    except ClientError as e:
-        raise ValueError(f"S3 connection failed: {e}")
-    except Exception as e:
-        raise ValueError(f"Failed to create S3 client: {e}")
+    s3 = boto3.client("s3",
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=os.getenv("AWS_REGION", "us-east-2")
+    )
+    # Test connection
+    s3.head_bucket(Bucket=bucket)
     
     # Set up S3 prefix
     s3_prefix = f"{date_prefix}/data"
@@ -80,44 +74,37 @@ def download_from_s3(date_prefix: str, data_dir: Path = None, subfolder: str = N
     file_count = 0
     total_size = 0
     
-    try:
-        # List all objects with the prefix
-        paginator = s3.get_paginator('list_objects_v2')
-        pages = paginator.paginate(Bucket=bucket, Prefix=s3_prefix)
-        
-        for page in pages:
-            if 'Contents' in page:
-                for obj in page['Contents']:
-                    s3_key = obj['Key']
-                    
-                    # Skip directories (keys ending with '/')
-                    if s3_key.endswith('/'):
-                        continue
-                    
-                    # Create local path
-                    rel_path = s3_key.replace(f"{date_prefix}/data/", "")
-                    local_path = data_dir / rel_path
-                    local_path.parent.mkdir(parents=True, exist_ok=True)
-                    
-                    try:
-                        s3.download_file(bucket, s3_key, str(local_path))
-                        file_count += 1
-                        total_size += obj['Size']
-                        
-                        if file_count % 50 == 0:
-                            print(f"  ↳ {file_count} files...")
-                    except Exception as e:
-                        print(f"  ⚠️ Failed: {rel_path}: {e}")
-        
-        size_mb = total_size / (1024 * 1024)
-        
-        print(f"✅ Downloaded {file_count} files ({size_mb:.1f} MB)")
-        print(f"📍 Location: {data_dir}")
-        
-        return str(data_dir)
-        
-    except Exception as e:
-        raise ValueError(f"Download failed: {e}")
+    # List all objects with the prefix
+    paginator = s3.get_paginator('list_objects_v2')
+    pages = paginator.paginate(Bucket=bucket, Prefix=s3_prefix)
+    
+    for page in pages:
+        if 'Contents' in page:
+            for obj in page['Contents']:
+                s3_key = obj['Key']
+                
+                # Skip directories (keys ending with '/')
+                if s3_key.endswith('/'):
+                    continue
+                
+                # Create local path
+                rel_path = s3_key.replace(f"{date_prefix}/data/", "")
+                local_path = data_dir / rel_path
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                s3.download_file(bucket, s3_key, str(local_path))
+                file_count += 1
+                total_size += obj['Size']
+                
+                if file_count % 50 == 0:
+                    print(f"  ↳ {file_count} files...")
+    
+    size_mb = total_size / (1024 * 1024)
+    
+    print(f"✅ Downloaded {file_count} files ({size_mb:.1f} MB)")
+    print(f"📍 Location: {data_dir}")
+    
+    return str(data_dir)
 
 
 def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
@@ -153,18 +140,13 @@ def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
     s3_prefix = f"{date_folder}/data"
     
     # Create S3 client
-    try:
-        s3 = boto3.client("s3",
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=os.getenv("AWS_REGION", "us-east-2")
-        )
-        # Test connection
-        s3.head_bucket(Bucket=bucket)
-    except ClientError as e:
-        raise ValueError(f"S3 connection failed: {e}")
-    except Exception as e:
-        raise ValueError(f"Failed to create S3 client: {e}")
+    s3 = boto3.client("s3",
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=os.getenv("AWS_REGION", "us-east-2")
+    )
+    # Test connection
+    s3.head_bucket(Bucket=bucket)
     
     # Count files
     file_count = 0
@@ -179,15 +161,12 @@ def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
             rel_path = local_path.relative_to(data_dir)
             s3_key = f"{s3_prefix}/{rel_path.as_posix()}"
             
-            try:
-                s3.upload_file(str(local_path), bucket, s3_key)
-                file_count += 1
-                total_size += local_path.stat().st_size
-                
-                if file_count % 100 == 0:
-                    print(f"  ↳ {file_count} files...")
-            except Exception as e:
-                print(f"  ⚠️ Failed: {rel_path}: {e}")
+            s3.upload_file(str(local_path), bucket, s3_key)
+            file_count += 1
+            total_size += local_path.stat().st_size
+            
+            if file_count % 100 == 0:
+                print(f"  ↳ {file_count} files...")
     
     s3_uri = f"s3://{bucket}/{s3_prefix}"
     size_mb = total_size / (1024 * 1024)
@@ -197,19 +176,14 @@ def sync_to_s3(data_dir: Path = None, date_prefix: str = None) -> str:
     
     # Log version if requested
     if '--log' in sys.argv:
-        try:
-            # Add current directory to path for import
-            sys.path.insert(0, str(Path(__file__).parent))
-            from data_logging.version_tracker import log_version
-            version = input("📝 Version number (e.g. 1.0): ").strip()
-            if version:
-                log_version(version, s3_uri, {'size_mb': size_mb, 'files': file_count})
-            else:
-                print("⚠️  No version provided - skipping version logging")
-        except ImportError as e:
-            print(f"⚠️  Could not import version tracker: {e}")
-        except Exception as e:
-            print(f"⚠️  Version logging failed: {e}")
+        # Add current directory to path for import
+        sys.path.insert(0, str(Path(__file__).parent))
+        from data_logging.version_tracker import log_version
+        version = input("📝 Version number (e.g. 1.0): ").strip()
+        if version:
+            log_version(version, s3_uri, {'size_mb': size_mb, 'files': file_count})
+        else:
+            print("⚠️  No version provided - skipping version logging")
     
     return s3_uri
 
@@ -252,28 +226,20 @@ Required Environment Variables:
     
     args = parser.parse_args()
     
-    try:
-        if args.download:
-            if not args.date:
-                print("❌ --date is required when downloading")
-                return 1
-            
-            print("📥 Starting S3 download...")
-            download_from_s3(date_prefix=args.date, subfolder=args.subfolder)
-            print("🎉 S3 download completed successfully!")
-        else:
-            print("📤 Starting S3 upload...")
-            sync_to_s3(date_prefix=args.date)
-            print("🎉 S3 upload completed successfully!")
+    if args.download:
+        if not args.date:
+            print("❌ --date is required when downloading")
+            return 1
         
-        return 0
-    except ValueError as e:
-        print(f"❌ Configuration Error: {e}")
-        print("💡 Check your environment variables and settings")
-        return 1
-    except Exception as e:
-        print(f"❌ Operation Failed: {e}")
-        return 1
+        print("📥 Starting S3 download...")
+        download_from_s3(date_prefix=args.date, subfolder=args.subfolder)
+        print("🎉 S3 download completed successfully!")
+    else:
+        print("📤 Starting S3 upload...")
+        sync_to_s3(date_prefix=args.date)
+        print("🎉 S3 upload completed successfully!")
+    
+    return 0
 
 
 if __name__ == "__main__":

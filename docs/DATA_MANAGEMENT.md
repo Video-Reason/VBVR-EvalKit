@@ -692,6 +692,7 @@ This guarantees seamless use with:
 If you prefer a tabular dataset (for metadata-centric workflows), you can still convert `vmeval_dataset.json` to a HuggingFace `datasets` object and push it. For complete reproducibility of files, the folder mirroring approach above is recommended.
 
 ```python
+import json
 from datasets import Dataset, load_dataset
 import pandas as pd
 
@@ -733,50 +734,6 @@ for item in dataset:
 - Use separate repos for different data categories if they are very large.
 - Keep your `HF_TOKEN` in a secure secret store for CI.
 - Prefer `download` when collaborating to ensure a consistent layout across machines.
-
-### Install & Auth
-
-Dependencies are included in `requirements.txt`:
-- `huggingface_hub`
-- `datasets`
-- `pyarrow`
-
-Authenticate using an environment variable:
-```bash
-export HF_TOKEN=hf_xxx_your_token_here
-```
-
-### Python API
-
-Use the small helper functions to upload/download/list repo contents programmatically:
-
-```python
-from pathlib import Path
-from data.hf_sync import hf_upload, hf_download, hf_list_files
-
-# Upload folder
-hf_upload(
-    local_path=Path("data/questions"),
-    repo_id="your-username/vmevalkit-questions",
-    private=True,
-    commit_message="Upload questions",
-)
-
-# Download snapshot
-out_dir = hf_download(
-    repo_id="your-username/vmevalkit-questions",
-    target_dir=Path("data/questions"),
-)
-
-# List files
-files = hf_list_files(repo_id="your-username/vmevalkit-questions")
-print(len(files), "files on hub")
-```
-
-### Best Practices (HF)
-- Use separate repos for large artifacts (e.g., `...-outputs`, `...-evaluations`).
-- Store `HF_TOKEN` in a secret manager for CI and automation.
-- Prefer `download` for collaborators to ensure identical on-disk structure.
 
 ## Troubleshooting
 

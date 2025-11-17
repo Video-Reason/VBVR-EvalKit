@@ -38,6 +38,35 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **Morphic** | 1 | Video generation | GPU with 16GB+ VRAM |
 | **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
 
+## 📊 Supported Datasets
+
+VMEvalKit provides access to **3 external benchmark datasets** and **6 local task generation engines**:
+
+### External Benchmarks (HuggingFace)
+
+| Dataset | Tasks | Domains | Key Features |
+|---------|-------|---------|--------------|
+| **VideoThinkBench** | ~4,000 | 4 subsets | Vision-centric (ARC-AGI, Eyeballing, Visual Puzzles) + Text-centric reasoning |
+| **MME-CoF** | 59 | 16 domains | Video Chain-of-Frame reasoning across cognitive domains |
+
+**VideoThinkBench Subsets:**
+- `arc_agi_2` - Abstract reasoning (1,000 tasks)
+- `eyeballing_puzzles` - Visual estimation (1,050 tasks)  
+- `visual_puzzles` - Pattern recognition (496 tasks)
+- `text_centric_tasks` - Math & multimodal reasoning (1,453 tasks)
+
+### Local Task Generation Engines
+
+| Task | Description | Generation Method |
+|------|-------------|-------------------|
+| **Chess** | Strategic thinking & tactical patterns | Chess engine with mate-in-1 puzzles |
+| **Maze** | Path-finding & navigation | Procedural maze generation (Kruskal's algorithm) |
+| **Raven** | Abstract reasoning matrices | RAVEN dataset patterns |
+| **Rotation** | 3D mental rotation | Procedural 3D object generation |
+| **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
+| **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
+
+All tasks follow the unified **First Frame → Final Frame** format with text prompts, enabling consistent evaluation across diverse reasoning domains.
 
 ### Basic Idea
 
@@ -49,26 +78,6 @@ VMEvalKit aims to provide an infrastructure for reasoning research in video mode
 - ☁️  [**Dataset Management**](docs/DATA_MANAGEMENT.md): Manage question datasets from task creation, inference results from video models, and scoring results from humans or MLLM pipelines. Provides AWS S3 integration with version tracking and built-in logging for reproducibility. 
 
 We have completed running a question dataset of [**chess**](/vmevalkit/tasks/chess_task/CHESS.md), [**maze**](/vmevalkit/tasks/maze_task/MAZE.md), [**Sudoku**](/vmevalkit/tasks/sudoku_task/SUDOKU.md), [**mental rotation**](/vmevalkit/tasks/rotation_task/ROTATION.md), and [**Raven's Matrices**](/vmevalkit/tasks/raven_task/RAVEN.md) on [**latest video models**](https://grow-ai-like-a-child.com/video-reason/). Checkout our raw results videos on this [**website**](https://grow-ai-like-a-child.com/video-reason/). Here are a few examples.
-
-Solving Chess
-
-![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
-
-Solving Maze
-
-![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
-
-Mental Rotation
-
-![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
-
-Raven's Matrices
-
-![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
-
-Sudoku Solving
-
-![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 
 ## Installation & Setup
 
@@ -162,6 +171,28 @@ That's it! You now have:
 - Start small: `--pairs-per-domain 2` for quick testing
 - Use `--task-id chess_0001` to run specific questions  
 - Try different models: `--model openai-sora-2 veo-3.0-generate`
+
+## Examples
+
+Solving Chess
+
+![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
+
+Solving Maze
+
+![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
+
+Mental Rotation
+
+![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
+
+Raven's Matrices
+
+![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
+
+Sudoku Solving
+
+![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 
 ## Tasks
 

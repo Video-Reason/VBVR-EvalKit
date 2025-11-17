@@ -30,7 +30,7 @@ from vmevalkit.runner.dataset import (
     print_dataset_summary,
     download_hf_domain_to_folders
 )
-from vmevalkit.utils.constant import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 def main():
     """Flexible VMEvalKit question creation with customizable options."""
@@ -40,26 +40,26 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
             Examples:
-            # Generate 50 questions per domain (default)
-            python create_questions.py
+            # Download entire VideoThinkBench dataset (all 4 subsets, ~4k tasks)
+            python create_questions.py --task videothinkbench
             
-            # Generate specific number per domain
-            python create_questions.py --pairs-per-domain 100
+            # Generate 50 questions per domain (default) for original tasks
+            python create_questions.py --task chess maze raven --pairs-per-domain 50
             
-            # Generate for specific domains only
-            python create_questions.py --task chess maze --pairs-per-domain 25
+            # Mix VideoThinkBench and generated tasks
+            python create_questions.py --task videothinkbench chess sudoku --pairs-per-domain 25
             
-            # Download arc_agi_2 tasks from HuggingFace
-            python create_questions.py --task arc_agi_2
+            # Download specific VideoThinkBench subsets
+            python create_questions.py --task arc_agi_2 visual_puzzles text_centric_tasks
             
-            # Generate small test set
-            python create_questions.py --task chess --pairs-per-domain 5
+            # Generate for all original domains
+            python create_questions.py --task chess maze raven rotation sudoku object_subtraction --pairs-per-domain 50
+            
+            # List all available domains
+            python create_questions.py --list-domains
             
             # Just read and analyze existing questions
             python create_questions.py --read-only
-            
-            # Use different random seed
-            python create_questions.py --random-seed 123 --pairs-per-domain 10
         """
     )
     
@@ -127,7 +127,23 @@ def main():
     output_path = Path(args.output_dir)
     selected_domains = args.task if args.task else list(DOMAIN_REGISTRY.keys())
     
-    hf_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is True]
+    # Expand meta-tasks (like 'videothinkbench') into their constituent subsets
+    expanded_domains = []
+    for domain in selected_domains:
+        domain_config = DOMAIN_REGISTRY.get(domain, {})
+        if domain_config.get('hf_meta', False):
+            # This is a meta-task that contains multiple subsets
+            subsets = domain_config.get('hf_subsets', [])
+            expanded_domains.extend(subsets)
+            print(f"📦 Expanding '{domain}' meta-task into subsets: {', '.join(subsets)}")
+        else:
+            expanded_domains.append(domain)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    selected_domains = [d for d in expanded_domains if not (d in seen or seen.add(d))]
+    
+    hf_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is True and not DOMAIN_REGISTRY.get(d, {}).get('hf_meta', False)]
     regular_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is not True]
     
     if hf_domains:

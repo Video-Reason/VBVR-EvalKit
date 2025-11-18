@@ -66,7 +66,8 @@ class LTXVideoService:
         num_frames: Optional[int] = None,
         num_inference_steps: Optional[int] = None,
         fps: Optional[int] = None,
-        output_path: Optional[Path] = None
+        output_path: Optional[Path] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         start_time = time.time()
         

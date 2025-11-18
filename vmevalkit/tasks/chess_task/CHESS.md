@@ -29,7 +29,7 @@ python vmevalkit/runner/create_dataset.py --pairs-per-domain 50
 python vmevalkit/runner/inference.py --model gpt4o --task chess
 
 # 5. Evaluate results
-python vmevalkit/runner/evaluate.py --experiment chess_eval
+python vmevalkit/runner/score.py --experiment chess_eval
 ```
 
 ## Task Types
@@ -507,15 +507,13 @@ EVALUATION:
 
 1. **Automatic (GPT-4O)**
    ```python
-   python vmevalkit/runner/evaluate.py \
-     --mode gpt4o \
+   python vmevalkit/runner/score.py gpt4o \
      --experiment chess_eval
    ```
 
 2. **Human Evaluation**
    ```python
-   python vmevalkit/runner/evaluate.py \
-     --mode human \
+   python vmevalkit/runner/score.py human \
      --experiment chess_eval
    ```
 

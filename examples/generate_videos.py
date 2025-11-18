@@ -29,7 +29,6 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-import traceback
 from PIL import Image
 
 # Add parent directory to path
@@ -680,9 +679,6 @@ Examples:
         skip_existing=True,
     )
     
-    # Results saving removed - outputs are in video directories
-    
-    # Print final summary
     print(f"\n{'=' * 80}")
     print("🎉 VIDEO GENERATION COMPLETE!")
     print(f"{'=' * 80}")
@@ -716,8 +712,6 @@ Examples:
             print(f"   {model_name}: ✅ {c} | ❌ {f} | ⏭️  {s}")
     
     print(f"\n📁 All outputs saved to: {OUTPUT_DIR}")
-    
-    # Resume functionality removed
     
     print(f"{'=' * 80}\n")
 

@@ -9,7 +9,6 @@ VMEvalKit's data management system handles:
 - ☁️ **S3 Synchronization** - Automated backup and sharing via AWS S3
 - 🔖 **Version Tracking** - Built-in versioning for reproducibility
 - 🎥 **Web Dashboard** - Interactive visualization of results
-- 🤗 **HuggingFace Integration** - Alternative dataset hosting option
 - 🔄 **Experiment Management** - Organized experiment tracking and results
 - ✅ **Data Validation** - Integrity checking and dataset verification
 
@@ -599,48 +598,6 @@ def parallel_validate(dataset, num_workers=4):
     with Pool(num_workers) as pool:
         results = pool.map(validate_single_item, dataset['pairs'])
     return results
-```
-
-## HuggingFace Integration
-
-Alternative to S3, use HuggingFace for dataset hosting:
-
-```python
-from datasets import Dataset, load_dataset
-import pandas as pd
-
-# Convert VMEvalKit dataset to HuggingFace format
-def to_huggingface_dataset():
-    # Load VMEvalKit dataset
-    with open("data/questions/vmeval_dataset.json") as f:
-        data = json.load(f)
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(data['pairs'])
-    
-    # Create HuggingFace dataset
-    dataset = Dataset.from_pandas(df)
-    
-    # Add metadata
-    dataset.info.description = data['description']
-    dataset.info.version = data.get('version', '1.0')
-    
-    return dataset
-
-# Upload to HuggingFace
-dataset = to_huggingface_dataset()
-dataset.push_to_hub(
-    "your-username/vmevalkit-questions",
-    private=False,
-    commit_message="Update VMEvalKit dataset"
-)
-
-# Download from HuggingFace
-dataset = load_dataset("your-username/vmevalkit-questions")
-
-# Use in inference
-for item in dataset:
-    process_task(item)
 ```
 
 ## Troubleshooting

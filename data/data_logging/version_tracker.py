@@ -14,27 +14,16 @@ VERSIONS_DIR = DATA_LOGGING_DIR / "versions"
 
 def load_log() -> Dict:
     """Load version log."""
-    # Ensure directories exist
-    DATA_LOGGING_DIR.mkdir(exist_ok=True)
-    VERSIONS_DIR.mkdir(exist_ok=True)
-    
     if VERSION_LOG_PATH.exists():
-        try:
-            with open(VERSION_LOG_PATH, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"⚠️  Warning: Could not read version log ({e}), creating new one")
+        with open(VERSION_LOG_PATH, 'r') as f:
+            return json.load(f)
     return {'versions': []}
 
 
 def save_log(log: Dict) -> None:
     """Save version log."""
-    try:
-        with open(VERSION_LOG_PATH, 'w') as f:
-            json.dump(log, f, indent=2)
-    except IOError as e:
-        print(f"❌ Failed to save version log: {e}")
-        raise
+    with open(VERSION_LOG_PATH, 'w') as f:
+        json.dump(log, f, indent=2)
 
 
 def log_version(version: str, s3_uri: str, stats: Dict) -> None:
@@ -44,7 +33,7 @@ def log_version(version: str, s3_uri: str, stats: Dict) -> None:
     # Check if already exists
     for v in log['versions']:
         if v['version'] == version:
-            print(f"⚠️  Version {version} already exists - skipping")
+            print(f"Version {version} already exists")
             return
     
     # Add version
@@ -71,15 +60,14 @@ def print_summary() -> None:
     """Print version summary."""
     log = load_log()
     if not log['versions']:
-        print("📝 No versions logged yet")
+        print("No versions logged")
         return
     
     print("\n📊 Dataset Versions")
-    print("=" * 50)
+    print("=" * 40)
     for v in log['versions']:
-        print(f"📦 v{v['version']} ({v['date']}) → {v['s3_uri']}")
-        print(f"   💾 {v.get('size_mb', 0):.1f}MB, {v.get('files', 0)} files")
-    print("=" * 50)
+        print(f"v{v['version']} ({v['date']}) → {v['s3_uri']}")
+        print(f"  {v.get('size_mb', 0):.1f}MB, {v.get('files', 0)} files")
 
 
 def main() -> None:

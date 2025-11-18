@@ -40,14 +40,13 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 
 ## 📊 Supported Datasets
 
-VMEvalKit provides access to **3 external benchmark datasets** and **6 local task generation engines**:
+VMEvalKit provides access to external benchmark datasets and **6 local task generation engines**:
 
 ### External Benchmarks (HuggingFace)
 
 | Dataset | Tasks | Domains | Key Features |
 |---------|-------|---------|--------------|
 | **VideoThinkBench** | ~4,000 | 4 subsets | Vision-centric (ARC-AGI, Eyeballing, Visual Puzzles) + Text-centric reasoning |
-| **MME-CoF** | 59 | 16 domains | Video Chain-of-Frame reasoning across cognitive domains |
 
 **VideoThinkBench Subsets:**
 - `arc_agi_2` - Abstract reasoning (1,000 tasks)

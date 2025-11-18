@@ -18,7 +18,7 @@ Programmatically created tasks (e.g., Chess, Maze, Sudoku)
 - Requires `PROMPTS.py`
 
 ### Downloaded Tasks
-External datasets from HuggingFace (e.g., VideoThinkBench, MME-CoF)
+External datasets from HuggingFace (e.g., VideoThinkBench)
 - Pre-curated benchmarks
 - Located in `vmevalkit/tasks/external/`
 - Prompts included in dataset

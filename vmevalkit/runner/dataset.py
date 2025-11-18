@@ -93,22 +93,19 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
     for idx, item in enumerate(dataset):
         task_id = f"{task_id_prefix}_{idx:04d}"
         
-        # Handle datasets with labels instead of prompts (e.g., MME-CoF)
+        # Handle datasets with labels instead of prompts
         if not has_prompt and label_column in item:
-            # Generate prompt from label using task-specific function
+            # Generate prompt from label using task-specific function when available
             import importlib
-            try:
-                module = importlib.import_module(domain_config['module'])
-                if hasattr(module, 'process_mme_cof_item'):
-                    processed = module.process_mme_cof_item(item, idx)
-                    prompt = processed.get('prompt', '')
-                    category = processed.get('category', '')
-                else:
-                    prompt = f"Animate this {item.get(label_column, 'task')} step-by-step"
-                    category = item.get(label_column, '')
-            except (ImportError, AttributeError) as e:
-                print(f"      ⚠️  Warning: Could not load prompt generator: {e}")
+            module = importlib.import_module(domain_config['module'])
+            processor_name = domain_config.get('label_processor', 'process_label_item')
+            processor = getattr(module, processor_name, None)
+            processed = processor(item, idx) if callable(processor) else None
+            prompt = processed.get('prompt', '') if processed else ''
+            category = processed.get('category', '') if processed else ''
+            if not prompt:
                 prompt = f"Animate this {item.get(label_column, 'task')} step-by-step"
+            if not category:
                 category = item.get(label_column, '')
         else:
             prompt = item.get(prompt_column, "")
@@ -133,7 +130,7 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
             "solution_image": solution_image
         }
         
-        # Add category for label-based datasets
+        # Add category for label-based datasets when present
         if category:
             task['category'] = category
         
@@ -183,7 +180,7 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
             "subset": domain_config.get('hf_subset')
         }
         
-        # Add category if present (e.g., for MME-CoF)
+        # Add category if present
         if 'category' in task:
             task_metadata['category'] = task['category']
         

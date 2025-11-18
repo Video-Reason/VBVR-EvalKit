@@ -87,13 +87,6 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
-    'mme_cof': {
-        'name': 'MME-CoF',
-        'description': 'Video Chain-of-Frame reasoning evaluation across 16 cognitive domains (59 tasks)',
-        'module': 'vmevalkit.tasks.external.mme_cof_task',
-        'create_function': 'create_dataset',
-        'process_dataset': lambda dataset, num_samples: dataset['pairs']
-    },
     'perspective_taking': {
         'name': 'Perspective Taking',
         'description': 'Spatial reasoning and viewpoint transformation from agent perspective',

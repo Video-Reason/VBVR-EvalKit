@@ -6,7 +6,6 @@ These tasks are pre-curated benchmarks rather than locally generated.
 
 Available external tasks:
 - VideoThinkBench (meta-task and subsets)
-- MME-CoF (Video Chain-of-Frame reasoning)
 """
 
 __all__ = []

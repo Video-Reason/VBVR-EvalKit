@@ -192,7 +192,7 @@ for pair in dataset['pairs']:
 
 ## Domain Registry
 
-Registered in `vmevalkit/utils/constant.py`:
+Registered in `vmevalkit/runner/TASK_CATALOG.py`:
 
 ```python
 'sliding_puzzle': {

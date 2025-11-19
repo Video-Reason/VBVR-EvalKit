@@ -279,7 +279,8 @@ class RuleGenerator:
         self.rng = rng if rng is not None else random.Random()
     
     def generate_l1_rule(self, objects: List[Dict[str, Any]], 
-                        prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
+                        prompt_index: int = 0,
+                        task_type_hint: Optional[str] = None) -> Tuple[Dict[str, Any], str]:
         """
         Generate Level 1 rule: Remove objects by explicit visual attributes.
         Supports: color, shape only (size-based rules removed)
@@ -287,12 +288,17 @@ class RuleGenerator:
         Args:
             objects: List of objects
             prompt_index: Index into PROMPTS_L1 list
+            task_type_hint: Optional hint for task type ("color" or "shape") for balanced distribution
             
         Returns:
             (rule_dict, prompt_text)
         """
         # Choose a removal criterion (color or shape only)
-        criterion_type = self.rng.choice(["color", "shape"])
+        # Use hint if provided, otherwise random choice
+        if task_type_hint in ["color", "shape"]:
+            criterion_type = task_type_hint
+        else:
+            criterion_type = self.rng.choice(["color", "shape"])
         
         if criterion_type == "color":
             # Find all unique colors
@@ -456,7 +462,8 @@ class RuleGenerator:
     
     def generate_l3_rule(self, objects: List[Dict[str, Any]], 
                          canvas_size: Tuple[int, int],
-                         prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
+                         prompt_index: int = 0,
+                         relation_type_hint: Optional[str] = None) -> Tuple[Dict[str, Any], str]:
         """
         Generate Level 3 rule: Remove objects using spatial relations.
         
@@ -464,6 +471,7 @@ class RuleGenerator:
             objects: List of objects
             canvas_size: (width, height) of canvas
             prompt_index: Index into PROMPTS_L3 list
+            relation_type_hint: Optional hint for relation type ("leftmost", "rightmost", "topmost", "bottommost") for balanced distribution
             
         Returns:
             (rule_dict, prompt_text)
@@ -493,7 +501,11 @@ class RuleGenerator:
             return self.generate_l1_rule(objects, prompt_index)
         
         # Randomly select a relation type
-        relation_type = self.rng.choice(relation_types)
+        # Use hint if provided and available, otherwise random choice
+        if relation_type_hint in relation_types:
+            relation_type = relation_type_hint
+        else:
+            relation_type = self.rng.choice(relation_types)
         
         # Select target objects based on relation type (using strict boundaries + sorting)
         target_object_ids = []
@@ -686,13 +698,15 @@ class RuleGenerator:
         return attributes
     
     def generate_l4_rule(self, objects: List[Dict[str, Any]], 
-                         prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
+                         prompt_index: int = 0,
+                         relation_type_hint: Optional[str] = None) -> Tuple[Dict[str, Any], str]:
         """
         Generate Level 4 rule: Remove objects based on conceptual/semantic properties.
         
         Args:
             objects: List of objects
             prompt_index: Index into PROMPTS_L4 list
+            relation_type_hint: Optional hint for relation type ("remove_outlier", "remove_shape_outlier", "remove_color_outlier") for balanced distribution
             
         Returns:
             (rule_dict, prompt_text)
@@ -775,7 +789,11 @@ class RuleGenerator:
             return self.generate_l1_rule(objects, prompt_index)
         
         # Randomly select from available relation types
-        relation_type = self.rng.choice(relation_types)
+        # Use hint if provided and available, otherwise random choice
+        if relation_type_hint in relation_types:
+            relation_type = relation_type_hint
+        else:
+            relation_type = self.rng.choice(relation_types)
         
         # Select target objects based on relation type
         target_object_ids = []
@@ -911,13 +929,15 @@ class RuleGenerator:
         return prompt
     
     def generate_l2_rule(self, objects: List[Dict[str, Any]], 
-                        prompt_index: int = 0) -> Tuple[Dict[str, Any], str]:
+                        prompt_index: int = 0,
+                        num_to_remove_hint: Optional[int] = None) -> Tuple[Dict[str, Any], str]:
         """
         Generate Level 2 rule: Remove multiple explicitly listed objects by color and shape.
         
         Args:
             objects: List of objects
             prompt_index: Index into PROMPTS_L2 list
+            num_to_remove_hint: Optional hint for number of objects to remove (1, 2, or 3) for balanced distribution
             
         Returns:
             (rule_dict, prompt_text)
@@ -928,7 +948,11 @@ class RuleGenerator:
             return self.generate_l1_rule(objects, prompt_index)
         
         # Randomly select 1-3 objects to remove (ensure at least 1 object remains)
-        num_to_remove = self.rng.randint(1, min(3, len(objects) - 1))
+        # Use hint if provided and valid, otherwise random choice
+        if num_to_remove_hint in [1, 2, 3] and num_to_remove_hint <= len(objects) - 1:
+            num_to_remove = num_to_remove_hint
+        else:
+            num_to_remove = self.rng.randint(1, min(3, len(objects) - 1))
         selected_objects = self.rng.sample(objects, num_to_remove)
         
         # Build targets list with color and shape combinations
@@ -974,7 +998,8 @@ class RuleGenerator:
         rule = {
             "level": "L2",
             "targets": targets,
-            "target_object_ids": target_object_ids
+            "target_object_ids": target_object_ids,
+            "num_to_remove": num_to_remove
         }
         
         return rule, prompt
@@ -997,6 +1022,70 @@ class ObjectSubtractionGenerator:
         self.object_gen = ObjectGenerator(canvas_size=canvas_size)
         self.renderer = SceneRenderer(canvas_size=canvas_size)
         self.rule_gen = RuleGenerator()
+        
+        # Task type counters for balanced distribution
+        # L1: 2 types (color, shape) - each 50%
+        self.l1_counters = {"color": 0, "shape": 0}
+        # L2: 3 types (remove 1, 2, 3 objects) - each 33.33%
+        self.l2_counters = {1: 0, 2: 0, 3: 0}
+        # L3: 4 types (leftmost, rightmost, topmost, bottommost) - each 25%
+        self.l3_counters = {"leftmost": 0, "rightmost": 0, "topmost": 0, "bottommost": 0}
+        # L4: 3 types (remove_outlier, remove_shape_outlier, remove_color_outlier) - each 33.33%
+        self.l4_counters = {"remove_outlier": 0, "remove_shape_outlier": 0, "remove_color_outlier": 0}
+    
+    def _select_task_type_by_balance(self, level: str) -> Optional[str]:
+        """
+        Select task type based on balanced distribution.
+        Returns the task type that needs to be generated to maintain balance.
+        
+        Args:
+            level: "L1", "L2", "L3", or "L4"
+            
+        Returns:
+            Task type identifier, or None if random selection should be used
+        """
+        if level == "L1":
+            # Select the type with minimum count
+            min_count = min(self.l1_counters.values())
+            candidates = [t for t, count in self.l1_counters.items() if count == min_count]
+            return self.rule_gen.rng.choice(candidates) if candidates else None
+        
+        elif level == "L2":
+            # Select the num_to_remove with minimum count
+            min_count = min(self.l2_counters.values())
+            candidates = [t for t, count in self.l2_counters.items() if count == min_count]
+            return self.rule_gen.rng.choice(candidates) if candidates else None
+        
+        elif level == "L3":
+            # Select the relation type with minimum count
+            min_count = min(self.l3_counters.values())
+            candidates = [t for t, count in self.l3_counters.items() if count == min_count]
+            return self.rule_gen.rng.choice(candidates) if candidates else None
+        
+        elif level == "L4":
+            # Select the outlier type with minimum count
+            min_count = min(self.l4_counters.values())
+            candidates = [t for t, count in self.l4_counters.items() if count == min_count]
+            return self.rule_gen.rng.choice(candidates) if candidates else None
+        
+        return None
+    
+    def _update_task_type_counter(self, level: str, task_type: str):
+        """
+        Update counter for a specific task type.
+        
+        Args:
+            level: "L1", "L2", "L3", or "L4"
+            task_type: Task type identifier
+        """
+        if level == "L1" and task_type in self.l1_counters:
+            self.l1_counters[task_type] += 1
+        elif level == "L2" and isinstance(task_type, int) and task_type in self.l2_counters:
+            self.l2_counters[task_type] += 1
+        elif level == "L3" and task_type in self.l3_counters:
+            self.l3_counters[task_type] += 1
+        elif level == "L4" and task_type in self.l4_counters:
+            self.l4_counters[task_type] += 1
     
     def _get_difficulty(self, level: str) -> str:
         """Get difficulty level based on cognitive level."""
@@ -1031,6 +1120,19 @@ class ObjectSubtractionGenerator:
             np.random.seed(seed)
             self.rule_gen.rng.seed(seed)
             self.object_gen.rng.seed(seed)
+        
+        # Select task type based on balanced distribution (before object generation for L4)
+        task_type_hint = self._select_task_type_by_balance(level)
+        
+        # For L4, map task type hint to l4_type for object generation
+        l4_type_hint = None
+        if level == "L4" and task_type_hint:
+            type_map = {
+                "remove_outlier": 1,
+                "remove_shape_outlier": 2,
+                "remove_color_outlier": 3
+            }
+            l4_type_hint = type_map.get(task_type_hint)
         
         # Generate objects
         # For L1, L2, L3, L4: use uniform size (no size differences needed)
@@ -1080,9 +1182,12 @@ class ObjectSubtractionGenerator:
             num_objects = len(objects)
             majority_count = num_objects - 1  # All but one
             
-            # Randomly choose which type of L4 task to create
+            # Choose which type of L4 task to create based on hint or random
             # 1: remove_outlier (combination), 2: remove_shape_outlier, 3: remove_color_outlier
-            l4_type = self.rule_gen.rng.choice([1, 2, 3])
+            if l4_type_hint in [1, 2, 3]:
+                l4_type = l4_type_hint
+            else:
+                l4_type = self.rule_gen.rng.choice([1, 2, 3])
             
             if l4_type == 1:
                 # Type 4.1: Combination outlier (color+shape combination)
@@ -1167,17 +1272,21 @@ class ObjectSubtractionGenerator:
         for attempt in range(max_retries):
             if level == "L1":
                 rule, prompt = self.rule_gen.generate_l1_rule(objects, 
-                                                              prompt_index=DEFAULT_PROMPT_INDEX_L1)
+                                                              prompt_index=DEFAULT_PROMPT_INDEX_L1,
+                                                              task_type_hint=task_type_hint)
             elif level == "L2":
                 rule, prompt = self.rule_gen.generate_l2_rule(objects, 
-                                                              prompt_index=DEFAULT_PROMPT_INDEX_L2)
+                                                              prompt_index=DEFAULT_PROMPT_INDEX_L2,
+                                                              num_to_remove_hint=task_type_hint)
             elif level == "L3":
                 rule, prompt = self.rule_gen.generate_l3_rule(objects, 
                                                               canvas_size=self.canvas_size,
-                                                              prompt_index=DEFAULT_PROMPT_INDEX_L3)
+                                                              prompt_index=DEFAULT_PROMPT_INDEX_L3,
+                                                              relation_type_hint=task_type_hint)
             elif level == "L4":
                 rule, prompt = self.rule_gen.generate_l4_rule(objects, 
-                                                              prompt_index=DEFAULT_PROMPT_INDEX_L4)
+                                                              prompt_index=DEFAULT_PROMPT_INDEX_L4,
+                                                              relation_type_hint=task_type_hint)
                 # Check if we got a proper L4 rule (not fallback to L1)
                 if rule.get("level") == "L4":
                     break  # Success! Got a proper L4 rule
@@ -1304,6 +1413,30 @@ class ObjectSubtractionGenerator:
         if level == "L4" and rule.get("level") != "L4":
             # This should be very rare after retries, but log it
             pass
+        
+        # Update task type counter based on generated rule
+        if level == "L1":
+            rule_type = rule.get("rule_type")
+            if rule_type in ["color", "shape"]:
+                self._update_task_type_counter(level, rule_type)
+        elif level == "L2":
+            # Get num_to_remove from rule (stored during generation)
+            num_to_remove = rule.get("num_to_remove")
+            if num_to_remove is None:
+                # Fallback: count unique target combinations
+                targets = rule.get("targets", [])
+                if targets:
+                    num_to_remove = len(targets)
+            if num_to_remove in [1, 2, 3]:
+                self._update_task_type_counter(level, num_to_remove)
+        elif level == "L3":
+            relation_type = rule.get("relation_type")
+            if relation_type in ["leftmost", "rightmost", "topmost", "bottommost"]:
+                self._update_task_type_counter(level, relation_type)
+        elif level == "L4":
+            relation_type = rule.get("relation_type")
+            if relation_type in ["remove_outlier", "remove_shape_outlier", "remove_color_outlier"]:
+                self._update_task_type_counter(level, relation_type)
         
         # Get target object IDs to remove
         remove_ids = rule["target_object_ids"]

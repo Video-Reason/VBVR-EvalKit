@@ -200,7 +200,7 @@ python examples/create_questions.py --task object_subtraction --pairs-per-domain
 
 ### Domain Registry
 
-Registered in `vmevalkit/utils/constant.py`:
+Registered in `vmevalkit/runner/TASK_CATALOG.py`:
 ```python
 'object_subtraction': {
     'name': 'Object Subtraction',

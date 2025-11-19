@@ -222,18 +222,3 @@ deprecated/
 data/questions/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
-
-# Development and analysis documents (keep local only)
-ADDING_MORPHIC_MODEL_GUIDE.md
-IMPLEMENTATION_CHECK.md
-SLIDING_PUZZLE_IMPLEMENTATION_PLAN.md
-LOCAL_FILES_SUMMARY.md
-vmevalkit/tasks/ALL_TASKS_ANALYSIS.md
-vmevalkit/tasks/object_subtraction_task/L4_CONCEPTUAL_ABSTRACTION.md
-vmevalkit/tasks/object_subtraction_task/LEVEL_ANALYSIS.md
-vmevalkit/tasks/object_subtraction_task/SPATIAL_REASONING_ANALYSIS.md
-generate_object_subtraction_tasks.py
-test_morphic_integration.py
-
-# Temporary directories
-temp_sliding_puzzle/

@@ -107,6 +107,16 @@ DOMAIN_REGISTRY = {
         'module': 'vmevalkit.tasks.perspective_taking_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'vpct': {
+        'name': 'VPCT',
+        'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
+        'module': 'vmevalkit.tasks.external.vpct_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs'],
+        'hf': True,
+        'hf_dataset': 'camelCase12/vpct-1',
+        'hf_special_format': True  # Indicates file-based format, not standard dataset format
     }
 }
 

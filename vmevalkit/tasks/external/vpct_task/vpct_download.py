@@ -78,7 +78,7 @@ def create_dataset(num_samples: int = None) -> Dict[str, Any]:
         pair = {
             'id': task_id,
             'domain': 'vpct',
-            'prompt': 'Can you predict which of the three buckets the ball will fall into?',
+            'prompt': 'Generate a video that shows the ball falling, the ball does not bounce when touch the bucket, video stop when the ball hits the bucket or the boundary of the screen.',
             'first_image': first_image,  # Store PIL Image object instead of file path
             'goal': goal_text,
             'sim_id': sim_id,

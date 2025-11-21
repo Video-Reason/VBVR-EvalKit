@@ -208,7 +208,7 @@ class InferenceRunner:
             shutil.copy2(first_image_path, dest_first)
         
         # Copy final image if available
-        if question_data and 'final_image_path' in question_data:
+        if question_data and 'final_image_path' in question_data and question_data['final_image_path'] is not None:
             final_image_path = Path(question_data['final_image_path'])
             if final_image_path.exists():
                 dest_final = question_dir / f"final_frame{final_image_path.suffix}"

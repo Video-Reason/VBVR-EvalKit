@@ -77,5 +77,5 @@ gunicorn>=21.2.0  # Production WSGI server
 Flask-CORS>=4.0.0  # CORS support
 Flask-Talisman>=1.1.0  # Security headers
 
-ipython>=9.6.0
+ipython>=8.0.0,<9.0.0  # Python 3.10 compatible
 zanj>=0.5.1

@@ -547,7 +547,7 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=["chess", "maze", "raven", "rotation", "sudoku"],
+        choices=["chess", "maze", "raven", "rotation", "sudoku", "tetris"],
         default=None,
         help="Specific task domain(s) to run. If not specified, runs all domains."
     )

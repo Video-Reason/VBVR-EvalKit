@@ -73,6 +73,13 @@ DOMAIN_REGISTRY = {
         'module': 'vmevalkit.tasks.sudoku_task.sudoku_reasoning',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'tetris': {
+        'name': 'Tetris',
+        'description': 'Line clearing and spatial reasoning',
+        'module': 'vmevalkit.tasks.tetris_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

@@ -100,6 +100,13 @@ DOMAIN_REGISTRY = {
         'module': 'vmevalkit.tasks.perspective_taking_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'edit_distance': {
+        'name': 'Edit Distance',
+        'description': 'String edit distance calculation and numerical reasoning',
+        'module': 'vmevalkit.tasks.edit_distance_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

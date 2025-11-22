@@ -27,14 +27,46 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | 
 | **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | 
 
-### Open-Source Models (8 models)
+### Open-Source Models
 
 | Provider | Models | Key Features | Hardware Requirements |
 |----------|---------|-------------|----------------------|
-| **LTX-Video** | 3 | 2B/13B variants, real-time generation | GPU with 16GB+ VRAM |
 | **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
 | **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
 | **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
+| **Stable Video Diffusion** | 1 | Video generation | GPU with 16GB+ VRAM |
+| **Morphic** | 1 | Video generation | GPU with 16GB+ VRAM |
+| **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
+
+## 📊 Supported Datasets
+
+VMEvalKit provides access to **3 external benchmark datasets** and **6 local task generation engines**:
+
+### External Benchmarks (HuggingFace)
+
+| Dataset | Tasks | Domains | Key Features |
+|---------|-------|---------|--------------|
+| **VideoThinkBench** | ~4,000 | 4 subsets | Vision-centric (ARC-AGI, Eyeballing, Visual Puzzles) + Text-centric reasoning |
+| **MME-CoF** | 59 | 16 domains | Video Chain-of-Frame reasoning across cognitive domains |
+
+**VideoThinkBench Subsets:**
+- `arc_agi_2` - Abstract reasoning (1,000 tasks)
+- `eyeballing_puzzles` - Visual estimation (1,050 tasks)  
+- `visual_puzzles` - Pattern recognition (496 tasks)
+- `text_centric_tasks` - Math & multimodal reasoning (1,453 tasks)
+
+### Local Task Generation Engines
+
+| Task | Description | Generation Method |
+|------|-------------|-------------------|
+| **Chess** | Strategic thinking & tactical patterns | Chess engine with mate-in-1 puzzles |
+| **Maze** | Path-finding & navigation | Procedural maze generation (Kruskal's algorithm) |
+| **Raven** | Abstract reasoning matrices | RAVEN dataset patterns |
+| **Rotation** | 3D mental rotation | Procedural 3D object generation |
+| **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
+| **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
+
+All tasks follow the unified **First Frame → Final Frame** format with text prompts, enabling consistent evaluation across diverse reasoning domains.
 
 ### Basic Idea
 
@@ -43,29 +75,9 @@ VMEvalKit aims to provide an infrastructure for reasoning research in video mode
 - 🎯  [**Task Creation at Scale**](docs/ADDING_TASKS.md): Create question dataset of many different cognitive tasks programmatically at scale and our framework makes sure the dataset to be well-organized.
 - 🚀  [**Model Inference at Scale**](docs/INFERENCE.md): Easy one-click inference of the entire question dataset across many video models (commercial APIs + open-source) with automatic resume, error handling, and structured output management, and automatically sync the inference results into the dataset. 
 - ⚖️  [**Scoring Pipeline**](docs/SCORING.md): Human scoring via web interface and AI scoring via automated MLLM scoring, also automatically sync the scoring results into the dataset. 
-- ☁️  [**Dataset Management**](docs/DATA_MANAGEMENT.md): Manage question datasets from task creation, inference results from video models, and scoring results from humans or MLLM pipelines. Provide both AWS S3 or HuggingFace use cases, with version tracking and built-in logging for reproducibility. 
+- ☁️  [**Dataset Management**](docs/DATA_MANAGEMENT.md): Manage question datasets from task creation, inference results from video models, and scoring results from humans or MLLM pipelines. Provides AWS S3 integration with version tracking and built-in logging for reproducibility. 
 
 We have completed running a question dataset of [**chess**](/vmevalkit/tasks/chess_task/CHESS.md), [**maze**](/vmevalkit/tasks/maze_task/MAZE.md), [**Sudoku**](/vmevalkit/tasks/sudoku_task/SUDOKU.md), [**mental rotation**](/vmevalkit/tasks/rotation_task/ROTATION.md), and [**Raven's Matrices**](/vmevalkit/tasks/raven_task/RAVEN.md) on [**latest video models**](https://grow-ai-like-a-child.com/video-reason/). Checkout our raw results videos on this [**website**](https://grow-ai-like-a-child.com/video-reason/). Here are a few examples.
-
-Solving Chess
-
-![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
-
-Solving Maze
-
-![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
-
-Mental Rotation
-
-![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
-
-Raven's Matrices
-
-![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
-
-Sudoku Solving
-
-![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 
 ## Installation & Setup
 
@@ -101,6 +113,8 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+For open-source video generation and evaluator models, please refer to [**Open Source Models**](./examples/opensource/open_source.md) for detailed installation instructions.
+
 ## 🚀 Quick Start - End-to-End Example
 
 Here's a complete workflow from creating questions to scoring results:
@@ -118,6 +132,7 @@ python examples/create_questions.py --task chess maze --pairs-per-domain 5
 # List available models
 python examples/generate_videos.py --list-models
 
+# set Luma key in .env file 
 # Run on specific model (e.g., Luma Ray 2)
 python examples/generate_videos.py --model luma-ray-2 --task chess maze
 
@@ -131,8 +146,6 @@ python examples/score_videos.py human
 
 # Option B: Automated GPT-4O scoring
 python examples/score_videos.py gpt4o
-
-# Output: Creates data/scorings/ with scoring results
 ```
 
 ### 4️⃣ View Results
@@ -140,6 +153,12 @@ python examples/score_videos.py gpt4o
 # Launch web dashboard to explore results
 cd web && ./start.sh
 # Open http://localhost:5000 in your browser
+```
+
+### 5️⃣ (Optional) Sync with Cloud
+```bash
+# AWS S3 (enterprise backup)
+python data/s3_sync.py --log
 ```
 
 That's it! You now have:
@@ -152,6 +171,28 @@ That's it! You now have:
 - Start small: `--pairs-per-domain 2` for quick testing
 - Use `--task-id chess_0001` to run specific questions  
 - Try different models: `--model openai-sora-2 veo-3.0-generate`
+
+## Examples
+
+Solving Chess
+
+![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
+
+Solving Maze
+
+![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
+
+Mental Rotation
+
+![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
+
+Raven's Matrices
+
+![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
+
+Sudoku Solving
+
+![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
 
 ## Tasks
 
@@ -310,28 +351,16 @@ data/
 │               └── <task_id>/
 │                   ├── human-score.json     # Human scoring scores
 │                   └── GPT4OScorer.json     # GPT-4O scoring scores
-│
-└── data_logging/                    # Version tracking
-    ├── version_log.json            # Version history
-    └── versions/                   # Version snapshots
 ```
 
 ### Synchronization
 
-Upload/download your dataset from HuggingFace or S3:
+Upload your dataset to S3:
 
 ```bash
-# Basic upload (uses timestamp: YYYYMMDDHHMM)
-python data/s3_sync.py
-
-# Upload and log version
-python data/s3_sync.py --log
-
-# Upload with specific date
-python data/s3_sync.py --date 20250115
-
-# Future: Download from S3 (to be implemented)
-# python data/s3_sync.py --download --date 20250115
+# AWS S3
+python data/s3_sync.py --log  # Upload with version logging
+python data/s3_sync.py --date 20250115  # Upload with specific timestamp
 ```
 
 See **[Data Management](docs/DATA_MANAGEMENT.md)** for details. 

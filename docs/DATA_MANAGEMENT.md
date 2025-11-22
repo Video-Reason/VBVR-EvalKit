@@ -9,7 +9,6 @@ VMEvalKit's data management system handles:
 - ☁️ **S3 Synchronization** - Automated backup and sharing via AWS S3
 - 🔖 **Version Tracking** - Built-in versioning for reproducibility
 - 🎥 **Web Dashboard** - Interactive visualization of results
-- 🤗 **HuggingFace Integration** - Alternative dataset hosting option
 - 🔄 **Experiment Management** - Organized experiment tracking and results
 - ✅ **Data Validation** - Integrity checking and dataset verification
 
@@ -52,10 +51,6 @@ data/
 │               └── <task_id>/
 │                   ├── human-eval.json      # Human evaluation scores
 │                   └── GPT4OEvaluator.json  # GPT-4O evaluation scores
-│
-└── data_logging/                    # Version tracking
-    ├── version_log.json            # Version history
-    └── versions/                   # Version snapshots
 ```
 
 ## S3 Synchronization
@@ -158,12 +153,6 @@ VMEvalKit includes built-in version tracking for datasets.
 ### Logging Versions
 
 ```bash
-# View version history
-python data/data_logging/version_tracker.py summary
-
-# Get latest version
-python data/data_logging/version_tracker.py latest
-
 # Example output:
 # 📊 Dataset Versions
 # ========================================
@@ -176,10 +165,7 @@ python data/data_logging/version_tracker.py latest
 ### Python API
 
 ```python
-from data.data_logging import log_version, get_latest, print_summary
-from data.data_logging.version_tracker import load_log, save_log
-
-# Log a new version with metadata
+# Version logging functionality has been removed
 log_version(
     version="1.2",
     s3_uri="s3://vmevalkit/202501151030/data",
@@ -215,7 +201,7 @@ save_log(log)
 
 ### Version Log Format
 
-Versions are stored in `data/data_logging/version_log.json`:
+Version logging functionality has been removed from the system.
 
 ```json
 {
@@ -537,8 +523,7 @@ echo "Backup completed: $(date)" >> backup.log
 ### 2. Version Before Major Changes
 
 ```python
-from data.data_logging import log_version
-
+# Version logging functionality has been removed
 # Before adding new tasks
 log_version("1.1-pre", s3_uri, {"change": "Before adding 50 chess puzzles"})
 
@@ -601,48 +586,6 @@ def parallel_validate(dataset, num_workers=4):
     return results
 ```
 
-## HuggingFace Integration
-
-Alternative to S3, use HuggingFace for dataset hosting:
-
-```python
-from datasets import Dataset, load_dataset
-import pandas as pd
-
-# Convert VMEvalKit dataset to HuggingFace format
-def to_huggingface_dataset():
-    # Load VMEvalKit dataset
-    with open("data/questions/vmeval_dataset.json") as f:
-        data = json.load(f)
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(data['pairs'])
-    
-    # Create HuggingFace dataset
-    dataset = Dataset.from_pandas(df)
-    
-    # Add metadata
-    dataset.info.description = data['description']
-    dataset.info.version = data.get('version', '1.0')
-    
-    return dataset
-
-# Upload to HuggingFace
-dataset = to_huggingface_dataset()
-dataset.push_to_hub(
-    "your-username/vmevalkit-questions",
-    private=False,
-    commit_message="Update VMEvalKit dataset"
-)
-
-# Download from HuggingFace
-dataset = load_dataset("your-username/vmevalkit-questions")
-
-# Use in inference
-for item in dataset:
-    process_task(item)
-```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -664,10 +607,7 @@ for item in dataset:
 
 2. **Version Conflict**
    ```python
-   # Force overwrite version
-   from data.data_logging.version_tracker import load_log, save_log
-   
-   log = load_log()
+   # Version logging functionality has been removed
    # Remove conflicting version
    log['versions'] = [v for v in log['versions'] if v['version'] != '1.0']
    # Add new version
@@ -720,10 +660,8 @@ for item in dataset:
 | Command | Description |
 |---------|-------------|
 | `python data/s3_sync.py` | Upload data to S3 |
-| `python data/s3_sync.py --log` | Upload and log version |
+| `python data/s3_sync.py` | Upload to S3 |
 | `python data/s3_sync.py --date YYYYMMDDHHMM` | Upload with specific timestamp |
-| `python data/data_logging/version_tracker.py summary` | View version history |
-| `python data/data_logging/version_tracker.py latest` | Get latest version |
 | `python -m vmevalkit.runner.create_dataset --pairs-per-domain N` | Generate dataset |
 | `python -m vmevalkit.runner.create_dataset --read-only` | Read existing dataset |
 | `python web/app.py` | Start web dashboard |

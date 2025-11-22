@@ -76,7 +76,7 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | `RUNWAY_API_SECRET` |
 | **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | `OPENAI_API_KEY` |
 
-### Open-Source Models (8 models)
+### Open-Source Models (9 models)
 
 | Provider | Models | Key Features | Hardware Requirements |
 |----------|---------|-------------|----------------------|
@@ -84,6 +84,7 @@ VMEvalKit provides unified access to **40 video generation models** across **11 
 | **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
 | **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
 | **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
+| **Morphic** | 1 | Frames-to-video interpolation using Wan2.2 | 8 GPUs (distributed), requires Wan2.2 weights |
 
 **✨ Key Capabilities:**
 - All models support **image + text → video** generation
@@ -124,6 +125,7 @@ VMEvalKit uses a **three-layer modular architecture** that cleanly supports both
 │ │ VeoWrapper   +  VeoService            │ HunyuanWrapper   +  HunyuanSvc  │ │
 │ │ RunwayWrapper+  RunwayService         │ VideoCrafterWrapper+VCService   │ │
 │ │ ...                                   │ DynamiCrafterWrapper+DynService │ │
+│ │                                       │ MorphicWrapper   +  MorphicSvc  │ │
 │ └────────────────────────────┴────────────────────────────────────────────┘ │
 │   - Each Wrapper implements unified VMEvalKit interface                     │
 │   - API Services handle endpoints, retries, S3-upload (when needed)         │
@@ -499,6 +501,20 @@ result = runner.run(
     width=512,
     num_frames=16,  # Number of frames to generate
     seed=42
+)
+
+# Morphic - frames-to-video interpolation (requires final_image_path in question_data)
+result = runner.run(
+    model_name="morphic-frames-to-video",
+    image_path="first_frame.png",
+    text_prompt="prompt",
+    question_data={
+        "id": "task_001",
+        "final_image_path": "final_frame.png"  # Required for Morphic
+    },
+    size="1280*720",      # Video size
+    frame_num=81,         # Number of frames
+    nproc_per_node=8      # Number of GPUs
 )
 ```
 
@@ -890,6 +906,11 @@ AWS_ACCESS_KEY_ID=xxx
 AWS_SECRET_ACCESS_KEY=xxx
 S3_BUCKET=vmevalkit
 AWS_DEFAULT_REGION=us-east-2
+
+# Morphic Frames-to-Video (open-source)
+MORPHIC_WAN2_CKPT_DIR=./Wan2.2-I2V-A14B
+MORPHIC_LORA_WEIGHTS_PATH=./morphic-frames-lora-weights/lora_interpolation_high_noise_final.safetensors
+MORPHIC_NPROC_PER_NODE=8
 ```
 
 ### Success Metrics

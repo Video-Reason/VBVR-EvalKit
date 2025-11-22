@@ -1,274 +1,201 @@
-"""
-LTX-Video Inference Service for VMEvalKit
-
-Wrapper for the LTX-Video model (submodules/LTX-Video) to integrate with VMEvalKit's
-unified inference interface. Supports image-to-video generation with text prompts.
-"""
-
-import os
-import sys
-import subprocess
-import tempfile
-from pathlib import Path
-from typing import Dict, Any, Optional, Union
-from .base import ModelWrapper
-import json
 import time
+from typing import Optional, Dict, Any, Union
+from pathlib import Path
+import logging
+from PIL import Image
+from .base import ModelWrapper
 
-# Add LTX-Video submodule to path
-LTXV_PATH = Path(__file__).parent.parent.parent / "submodules" / "LTX-Video"
-sys.path.insert(0, str(LTXV_PATH))
-
-try:
-    from ltx_video.inference import LTXVInference
-except ImportError:
-    print(f"import ltx_video.inference failed, please check if the module is installed")
-    LTXVInference = None
+logger = logging.getLogger(__name__)
 
 
 class LTXVideoService:
-    """
-    Service class for LTX-Video inference integration.
-    """
+    
+    def __init__(self, model: str = "Lightricks/LTX-Video"):
+        self.model_id = model
+        self.pipe = None
+        self.device = None
+        
+        self.model_constraints = {
+            "fps": 24,
+            "num_frames": 161,
+            "num_inference_steps": 50,
+            "width": 704,
+            "height": 480
+        }
+    
+    def _load_model(self):
+        if self.pipe is not None:
+            return
+        
+        logger.info(f"Loading LTX model: {self.model_id}")
+        import torch
+        from diffusers import LTXImageToVideoPipeline
+        
+        if torch.cuda.is_available():
+            self.device = "cuda"
+            torch_dtype = torch.bfloat16
+        else:
+            self.device = "cpu"
+            torch_dtype = torch.float32
+        
+        self.pipe = LTXImageToVideoPipeline.from_pretrained(
+            self.model_id,
+            torch_dtype=torch_dtype
+        )
+        self.pipe.to(self.device)
+        logger.info(f"LTX model loaded on {self.device}")
+    
+    def _prepare_image(self, image_path: Union[str, Path]) -> Image.Image:
+        from diffusers.utils import load_image
+        
+        image = load_image(str(image_path))
+        
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        
+        logger.info(f"Prepared image: {image.size}")
+        return image
+    
+    def generate_video(
+        self,
+        image_path: Union[str, Path],
+        text_prompt: str = "",
+        negative_prompt: Optional[str] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        num_frames: Optional[int] = None,
+        num_inference_steps: Optional[int] = None,
+        fps: Optional[int] = None,
+        output_path: Optional[Path] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        start_time = time.time()
+        
+        self._load_model()
+        
+        image = self._prepare_image(image_path)
+        
+        width = width or self.model_constraints["width"]
+        height = height or self.model_constraints["height"]
+        num_frames = num_frames or self.model_constraints["num_frames"]
+        num_inference_steps = num_inference_steps or self.model_constraints["num_inference_steps"]
+        fps = fps or self.model_constraints["fps"]
+        
+        if negative_prompt is None:
+            negative_prompt = "worst quality, inconsistent motion, blurry, jittery, distorted"
+        
+        logger.info(f"Generating video with prompt: {text_prompt[:80]}...")
+        logger.info(f"Dimensions: {width}x{height}, num_frames={num_frames}, steps={num_inference_steps}")
+        
+        output = self.pipe(
+            image=image,
+            prompt=text_prompt,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            num_frames=num_frames,
+            num_inference_steps=num_inference_steps,
+        )
+        frames = output.frames[0]
+        
+        video_path = None
+        if output_path:
+            from diffusers.utils import export_to_video
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            export_to_video(frames, str(output_path), fps=fps)
+            video_path = str(output_path)
+            logger.info(f"Video saved to: {video_path}")
+        
+        duration_taken = time.time() - start_time
+        
+        return {
+            "video_path": video_path,
+            "frames": frames,
+            "num_frames": num_frames,
+            "fps": fps,
+            "duration_seconds": duration_taken,
+            "model": self.model_id,
+            "status": "success" if video_path else "completed",
+            "metadata": {
+                "num_inference_steps": num_inference_steps,
+                "width": width,
+                "height": height,
+                "image_size": image.size
+            }
+        }
+
+
+class LTXVideoWrapper(ModelWrapper):
     
     def __init__(
         self,
-        model_id: str = "ltxv-13b-0.9.8-distilled",
+        model: str = "Lightricks/LTX-Video",
         output_dir: str = "./data/outputs",
         **kwargs
     ):
-        """
-        Initialize LTX-Video service.
-        
-        Args:
-            model_id: LTX-Video model variant to use
-            output_dir: Directory to save generated videos
-            **kwargs: Additional parameters
-        """
-        self.model_id = model_id
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True, parents=True)
-        self.kwargs = kwargs
-        
-        # Map model IDs to config files
-        self.config_mapping = {
-            "ltxv-13b-0.9.8-distilled": "configs/ltxv-13b-0.9.8-distilled.yaml",
-            "ltxv-13b-0.9.8-dev": "configs/ltxv-13b-0.9.8-dev.yaml", 
-            "ltxv-2b-0.9.8-distilled": "configs/ltxv-2b-0.9.8-distilled.yaml",
-            "ltxv-2b-0.9.6-distilled": "configs/ltxv-2b-0.9.6-distilled.yaml",
-        }
-        
-        self.config_path = LTXV_PATH / self.config_mapping.get(
-            model_id, "configs/ltxv-13b-0.9.8-distilled.yaml"
-        )
-        
-        # Check if LTX-Video is available
-        if LTXVInference is None:
-            raise ImportError(
-                f"LTX-Video not available. Please initialize submodule:\n"
-                f"cd {LTXV_PATH.parent} && git submodule update --init LTX-Video"
-            )
-
-    def _run_ltx_inference(
-        self,
-        image_path: Union[str, Path],
-        text_prompt: str,
-        height: int = 512,
-        width: int = 512, 
-        num_frames: int = 16,
-        seed: Optional[int] = None,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Run LTX-Video inference using subprocess to avoid dependency conflicts.
-        
-        Returns:
-            Dictionary with inference results and metadata
-        """
-        start_time = time.time()
-        
-        # Generate output filename
-        timestamp = int(time.time())
-        output_filename = f"ltxv_{self.model_id}_{timestamp}.mp4"
-        output_path = self.output_dir / output_filename
-        
-        # Prepare inference command
-        cmd = [
-            sys.executable,
-            str(LTXV_PATH / "inference.py"),
-            "--prompt", text_prompt,
-            "--conditioning_media_paths", str(image_path),
-            "--conditioning_start_frames", "0",
-            "--height", str(height),
-            "--width", str(width),
-            "--num_frames", str(num_frames),
-            "--pipeline_config", str(self.config_path),
-            "--output_path", str(output_path)
-        ]
-        
-        if seed is not None:
-            cmd.extend(["--seed", str(seed)])
-            
-        # Add any additional parameters
-        for key, value in kwargs.items():
-            if value is not None:
-                cmd.extend([f"--{key}", str(value)])
-        
-        try:
-            # Change to LTX-Video directory and run inference
-            result = subprocess.run(
-                cmd,
-                cwd=str(LTXV_PATH),
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
-            )
-            
-            success = result.returncode == 0
-            error_msg = result.stderr if result.returncode != 0 else None
-            
-        except subprocess.TimeoutExpired:
-            success = False
-            error_msg = "LTX-Video inference timed out"
-        except Exception as e:
-            success = False
-            error_msg = f"LTX-Video inference failed: {str(e)}"
-        
-        duration = time.time() - start_time
-        
-        return {
-            "success": success,
-            "video_path": str(output_path) if success and output_path.exists() else None,
-            "error": error_msg,
-            "duration_seconds": duration,
-            "generation_id": f"ltx_{int(time.time())}",
-            "model": self.model_id,
-            "status": "success" if success else "failed",
-            "metadata": {
-                "text_prompt": text_prompt,
-                "image_path": str(image_path),
-                "height": height,
-                "width": width,
-                "num_frames": num_frames,
-                "seed": seed,
-                "stdout": result.stdout if 'result' in locals() else None,
-                "stderr": result.stderr if 'result' in locals() else None,
-            }
-        }
-
-    def generate(
-        self,
-        image_path: Union[str, Path],
-        text_prompt: str,
-        duration: float = 8.0,
-        height: int = 512,
-        width: int = 512,
-        seed: Optional[int] = None,
-        output_filename: Optional[str] = None,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Generate video from image and text prompt.
-        
-        Args:
-            image_path: Path to input image
-            text_prompt: Text prompt for video generation
-            duration: Video duration in seconds (converted to num_frames)
-            height: Video height in pixels
-            width: Video width in pixels  
-            seed: Random seed for reproducibility
-            output_filename: Optional output filename (auto-generated if None)
-            **kwargs: Additional parameters passed to LTX-Video
-            
-        Returns:
-            Dictionary with generation results and metadata
-        """
-        # Convert duration to frames (assuming 8 FPS)
-        fps = kwargs.get('fps', 8)
-        num_frames = max(1, int(duration * fps))
-        
-        # Validate inputs
-        image_path = Path(image_path)
-        if not image_path.exists():
-            return {
-                "success": False,
-                "video_path": None,
-                "error": f"Input image not found: {image_path}",
-                "duration_seconds": 0,
-                "generation_id": f"ltx_error_{int(time.time())}",
-                "model": self.model_id,
-                "status": "failed",
-                "metadata": {"text_prompt": text_prompt, "image_path": str(image_path)},
-            }
-        
-        # Run inference
-        result = self._run_ltx_inference(
-            image_path=image_path,
-            text_prompt=text_prompt,
-            height=height,
-            width=width,
-            num_frames=num_frames,
-            seed=seed,
-            **kwargs
-        )
-        
-        # Handle custom output filename
-        if output_filename and result["success"] and result["video_path"]:
-            old_path = Path(result["video_path"])
-            new_path = self.output_dir / output_filename
-            if old_path.exists():
-                old_path.rename(new_path)
-                result["video_path"] = str(new_path)
-        
-        return result
-
-
-# Wrapper class to match VMEvalKit's interface pattern
-class LTXVideoWrapper(ModelWrapper):
-    """
-    Wrapper for LTXVideoService to match VMEvalKit's standard interface.
-    """
-    
-    def __init__(
-        self,
-        model: str,
-        output_dir: str = "./data/outputs", 
-        **kwargs
-    ):
-        """Initialize LTX-Video wrapper."""
         self.model = model
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
-        # Create LTXVideoService instance
-        self.ltx_service = LTXVideoService(model_id=model, output_dir=output_dir, **kwargs)
+        self.ltx_service = LTXVideoService(model=model)
     
     def generate(
         self,
         image_path: Union[str, Path],
-        text_prompt: str,
-        duration: float = 8.0,
+        text_prompt: str = "",
+        duration: float = 5.0,
         output_filename: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Generate video using LTX-Video (matches VMEvalKit interface).
+        start_time = time.time()
         
-        Args:
-            image_path: Path to input image
-            text_prompt: Text prompt for video generation
-            duration: Video duration in seconds
-            output_filename: Optional output filename
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dictionary with generation results
-        """
-        return self.ltx_service.generate(
-            image_path=image_path,
+        negative_prompt = kwargs.pop("negative_prompt", None)
+        width = kwargs.pop("width", None)
+        height = kwargs.pop("height", None)
+        num_frames = kwargs.pop("num_frames", None)
+        num_inference_steps = kwargs.pop("num_inference_steps", None)
+        fps = kwargs.pop("fps", None)
+        
+        if num_frames is None:
+            fps = fps or self.ltx_service.model_constraints["fps"]
+            num_frames = int(duration * fps)
+        
+        if not output_filename:
+            timestamp = int(time.time())
+            safe_model = self.model.replace("/", "-").replace("_", "-")
+            output_filename = f"ltx_{safe_model}_{timestamp}.mp4"
+        
+        output_path = self.output_dir / output_filename
+        
+        result = self.ltx_service.generate_video(
+            image_path=str(image_path),
             text_prompt=text_prompt,
-            duration=duration,
-            output_filename=output_filename,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            num_frames=num_frames,
+            num_inference_steps=num_inference_steps,
+            fps=fps,
+            output_path=output_path,
             **kwargs
         )
+        
+        duration_taken = time.time() - start_time
+        
+        return {
+            "success": bool(result.get("video_path")),
+            "video_path": result.get("video_path"),
+            "error": None,
+            "duration_seconds": duration_taken,
+            "generation_id": f"ltx_{int(time.time())}",
+            "model": self.model,
+            "status": "success" if result.get("video_path") else "failed",
+            "metadata": {
+                "prompt": text_prompt,
+                "image_path": str(image_path),
+                "num_frames": result.get("num_frames"),
+                "fps": result.get("fps"),
+                "ltx_result": result
+            }
+        }

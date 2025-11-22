@@ -1,19 +1,6 @@
-"""
-Video generation models for VMEvalKit.
-"""
+"""Lazy import to avoid loading all dependencies."""
 
-# Commercial API services
-from .luma_inference import LumaInference, LumaWrapper, generate_video as luma_generate
-from .veo_inference import VeoService, VeoWrapper
-from .wavespeed_inference import WaveSpeedService, Veo31Service, WaveSpeedModel, WaveSpeedWrapper, Veo31Wrapper, Veo31FastWrapper
-from .runway_inference import RunwayService, RunwayWrapper
-from .openai_inference import SoraService, OpenAIWrapper
-
-# Open-source models (submodules)
-from .ltx_inference import LTXVideoService, LTXVideoWrapper
-from .hunyuan_inference import HunyuanVideoService, HunyuanVideoWrapper
-from .videocrafter_inference import VideoCrafterService, VideoCrafterWrapper
-from .dynamicrafter_inference import DynamiCrafterService, DynamiCrafterWrapper
+import importlib
 
 __all__ = [
     # Commercial API services
@@ -27,5 +14,34 @@ __all__ = [
     "LTXVideoService", "LTXVideoWrapper",
     "HunyuanVideoService", "HunyuanVideoWrapper", 
     "VideoCrafterService", "VideoCrafterWrapper",
-    "DynamiCrafterService", "DynamiCrafterWrapper"
+    "DynamiCrafterService", "DynamiCrafterWrapper",
+    "MorphicService", "MorphicWrapper",
+    "SVDService", "SVDWrapper",
+    "WanService", "WanWrapper"
 ]
+
+# Module name mapping
+_MODULE_MAP = {
+    "luma_inference": ["LumaInference", "LumaWrapper", "luma_generate"],
+    "ltx_inference": ["LTXVideoService", "LTXVideoWrapper"],
+    "hunyuan_inference": ["HunyuanVideoService", "HunyuanVideoWrapper"],
+    "veo_inference": ["VeoService", "VeoWrapper"],
+    "wavespeed_inference": ["WaveSpeedService", "Veo31Service", "WaveSpeedModel", "WaveSpeedWrapper", "Veo31Wrapper", "Veo31FastWrapper"],
+    "runway_inference": ["RunwayService", "RunwayWrapper"],
+    "openai_inference": ["SoraService", "OpenAIWrapper"],
+    "videocrafter_inference": ["VideoCrafterService", "VideoCrafterWrapper"],
+    "dynamicrafter_inference": ["DynamiCrafterService", "DynamiCrafterWrapper"],
+    "morphic_inference": ["MorphicService", "MorphicWrapper"],
+    "svd_inference": ["SVDService", "SVDWrapper"],
+    "wan_inference": ["WanService", "WanWrapper"],
+}
+
+
+def __getattr__(name: str):
+    """Lazy import of modules to avoid loading all dependencies at once."""
+    for module_name, attrs in _MODULE_MAP.items():
+        if name in attrs:
+            module = importlib.import_module(f".{module_name}", package=__name__)
+            return getattr(module, name)
+    
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

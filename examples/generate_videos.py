@@ -7,7 +7,7 @@ Run on specific models, domains, or individual tasks with full control over the 
 
 Key Features:
 - Choose any available models from 40+ options across 11+ providers
-- Select specific domains (chess, maze, raven, rotation, sudoku) or individual task IDs
+- Select specific domains or individual task IDs (all domains from TASK_CATALOG are supported)
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
 - Structured output with automatic organization
@@ -25,10 +25,11 @@ Use --help for detailed usage examples and options.
 
 import sys
 import json
+import shutil
+import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-import traceback
 from PIL import Image
 
 # Add parent directory to path
@@ -36,6 +37,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 
 # ========================================
@@ -49,7 +51,7 @@ DEFAULT_TEST_MODELS = [
     "veo-3.1-720p",
     "runway-gen4-turbo",
     "openai-sora-2",
-    "wavespeed-wan-2.2-i2v-720p"
+    "wavespeed-wan-2.2-i2v-720p",
 ]
 
 # Questions directory path
@@ -58,14 +60,8 @@ QUESTIONS_DIR = Path("data/questions")
 # Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
-# Expected domains (for validation)
-EXPECTED_DOMAINS = ["chess", "maze", "raven", "rotation", "sudoku"]
-
-
-# ========================================
-# PROGRESS TRACKING REMOVED (deprecated)
-# ========================================
-
+# Expected domains (dynamically loaded from TASK_CATALOG)
+EXPECTED_DOMAINS = sorted(list(DOMAIN_REGISTRY.keys()))
 
 # ========================================
 # FOLDER-BASED TASK DISCOVERY
@@ -121,11 +117,7 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
                 continue
             
             # Load prompt directly from actual file
-            try:
-                prompt_text = prompt_file.read_text().strip()
-            except Exception as e:
-                print(f"      ⚠️  Skipping {task_id}: Cannot read prompt.txt - {e}")
-                continue
+            prompt_text = prompt_file.read_text().strip()
             
             # Create task dictionary from actual detected files
             task = {
@@ -139,17 +131,13 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
             # Load supplemental metadata from JSON files if they exist
             metadata_file = question_dir / "question_metadata.json"
             if metadata_file.exists():
-                try:
-                    with open(metadata_file, 'r') as f:
-                        supplemental_metadata = json.load(f)
-                    
-                    # Add supplemental data but don't override core fields
-                    for key, value in supplemental_metadata.items():
-                        if key not in task:  # Don't override our detected values
-                            task[key] = value
-                            
-                except Exception as e:
-                    print(f"      ⚠️  Warning: Could not load metadata for {task_id} - {e}")
+                with open(metadata_file, 'r') as f:
+                    supplemental_metadata = json.load(f)
+                
+                # Add supplemental data but don't override core fields
+                for key, value in supplemental_metadata.items():
+                    if key not in task:  # Don't override our detected values
+                        task[key] = value
             
             domain_tasks.append(task)
             
@@ -214,21 +202,18 @@ def _ensure_real_png(image_path: str) -> bool:
         return True
     except Exception:
         # Fallback: detect SVG text and convert
-        try:
+        with open(image_path, 'rb') as f:
+            head = f.read(1024)
+        # Heuristic: look for '<svg' in the head bytes
+        if b"<svg" in head.lower():
+            import cairosvg
             with open(image_path, 'rb') as f:
-                head = f.read(1024)
-            # Heuristic: look for '<svg' in the head bytes
-            if b"<svg" in head.lower():
-                import cairosvg
-                with open(image_path, 'rb') as f:
-                    svg_bytes = f.read()
-                cairosvg.svg2png(bytestring=svg_bytes, write_to=image_path)
-                # Validate conversion
-                Image.open(image_path).verify()
-                print(f"   🔧 Converted SVG→PNG in-place: {image_path}")
-                return True
-        except Exception as e:
-            print(f"   ⚠️  Image fix failed for {image_path}: {e}")
+                svg_bytes = f.read()
+            cairosvg.svg2png(bytestring=svg_bytes, write_to=image_path)
+            # Validate conversion
+            Image.open(image_path).verify()
+            print(f"   🔧 Converted SVG→PNG in-place: {image_path}")
+            return True
     return False
 
 
@@ -257,8 +242,7 @@ def run_single_inference(
     task_id = task["id"]
     image_path = task["first_image_path"]
     prompt = task["prompt"]
-    
-    # Create a unique run_id for this inference
+
     run_id = f"{model_name}_{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     print(f"\n  🎬 Generating: {task_id} with {model_name}")
@@ -266,62 +250,44 @@ def run_single_inference(
     print(f"     Prompt: {prompt[:80]}...")
     
     start_time = datetime.now()
+
+    if not Path(image_path).exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
+    # Validate image is a real PNG (auto-fix if it's actually SVG)
+    if not _ensure_real_png(image_path):
+        raise ValueError(f"Input image invalid or corrupt: {image_path}")
     
-    try:
-        # Check if image exists
-        if not Path(image_path).exists():
-            raise FileNotFoundError(f"Image not found: {image_path}")
-        # Validate image is a real PNG (auto-fix if it's actually SVG)
-        if not _ensure_real_png(image_path):
-            raise ValueError(f"Input image invalid or corrupt: {image_path}")
-        
-        # Use InferenceRunner for structured output
-        if runner is None:
-            runner = InferenceRunner(output_dir=str(output_dir))
-        
-        # Run inference with complete question data for structured output
-        result = runner.run(
-            model_name=model_name,
-            image_path=image_path,
-            text_prompt=prompt,
-            run_id=run_id,
-            question_data=task,  # Pass full task data for structured output
-            **kwargs  # Clean! No API key filtering needed
-        )
-        
-        # Add metadata
-        result.update({
-            "task_id": task_id,
-            "category": category,
-            "model_name": model_name,
-            "model_family": get_model_family(model_name),
-            "start_time": start_time.isoformat(),
-            "end_time": datetime.now().isoformat(),
-            "success": result.get("status") != "failed"
-        })
-        
-        if result.get("status") != "failed":
-            print(f"     ✅ Success! Structured output saved to: {result.get('inference_dir', 'N/A')}")
-        else:
-            print(f"     ❌ Failed: {result.get('error', 'Unknown error')}")
-        
-        return result
-        
-    except Exception as e:
-        error_msg = f"Failed: {str(e)}"
-        print(f"     ❌ {error_msg}")
-        
-        return {
-            "task_id": task_id,
-            "category": category,
-            "model_name": model_name,
-            "model_family": get_model_family(model_name),
-            "start_time": start_time.isoformat(),
-            "end_time": datetime.now().isoformat(),
-            "success": False,
-            "error": error_msg,
-            "traceback": traceback.format_exc()
-        }
+    # Use InferenceRunner for structured output
+    if runner is None:
+        runner = InferenceRunner(output_dir=str(output_dir))
+    
+    # Run inference with complete question data for structured output
+    result = runner.run(
+        model_name=model_name,
+        image_path=image_path,
+        text_prompt=prompt,
+        run_id=run_id,
+        question_data=task,  # Pass full task data for structured output
+        **kwargs  # Clean! No API key filtering needed
+    )
+    
+    # Add metadata
+    result.update({
+        "task_id": task_id,
+        "category": category,
+        "model_name": model_name,
+        "model_family": get_model_family(model_name),
+        "start_time": start_time.isoformat(),
+        "end_time": datetime.now().isoformat(),
+        "success": result.get("status") != "failed"
+    })
+    
+    if result.get("status") != "failed":
+        print(f"     ✅ Success! Structured output saved to: {result.get('inference_dir', 'N/A')}")
+    else:
+        print(f"     ❌ Failed: {result.get('error', 'Unknown error')}")
+    
+    return result
 
 
 def run_pilot_experiment(
@@ -493,11 +459,6 @@ def run_pilot_experiment(
     }
 
 
-# ========================================
-# RESULTS MANAGEMENT - JSON GENERATION REMOVED
-# ========================================
-
-
 def format_duration(seconds: float) -> str:
     """Format duration in human-readable format."""
     hours = int(seconds // 3600)
@@ -505,10 +466,6 @@ def format_duration(seconds: float) -> str:
     secs = int(seconds % 60)
     return f"{hours}h {minutes}m {secs}s"
 
-
-# ========================================
-# MAIN EXECUTION
-# ========================================
 
 def main():
     """Main execution function with resume support."""
@@ -547,9 +504,9 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=["chess", "maze", "raven", "rotation", "sudoku", "tetris"],
+        choices=sorted(list(DOMAIN_REGISTRY.keys())),
         default=None,
-        help="Specific task domain(s) to run. If not specified, runs all domains."
+        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(DOMAIN_REGISTRY.keys())))}. If not specified, runs all domains."
     )
     
     parser.add_argument(
@@ -570,6 +527,20 @@ Examples:
     
     parser.add_argument("--list-models", action="store_true", help="List all available models and exit")
     
+    parser.add_argument(
+        "--override",
+        dest="override",
+        action="store_true",
+        help="Delete data/outputs/pilot_experiment directory before running (override existing outputs)"
+    )
+    
+    parser.add_argument(
+        "--gpu",
+        type=int,
+        default=None,
+        help="GPU device ID to use (e.g., --gpu 1 for GPU 1). Sets CUDA_VISIBLE_DEVICES environment variable."
+    )
+    
     # Legacy parameter for compatibility
     parser.add_argument(
         "--only-model",
@@ -579,6 +550,11 @@ Examples:
     )
     
     args = parser.parse_args()
+    
+    # Handle --gpu: Set CUDA_VISIBLE_DEVICES environment variable
+    if args.gpu is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        print(f"🎮 Using GPU {args.gpu} (CUDA_VISIBLE_DEVICES={args.gpu})")
     
     # Handle --list-models
     if args.list_models:
@@ -598,6 +574,15 @@ Examples:
         
         print(f"\nTotal: {len(AVAILABLE_MODELS)} models across {len(families)} families")
         sys.exit(0)
+    
+    # Handle --override flag: delete output directory
+    if args.override:
+        if OUTPUT_DIR.exists():
+            print(f"🗑️  Override mode: Deleting {OUTPUT_DIR}...")
+            shutil.rmtree(OUTPUT_DIR)
+            print(f"   ✅ Deleted {OUTPUT_DIR}")
+        else:
+            print(f"   ℹ️  Output directory does not exist: {OUTPUT_DIR}")
     
     print("🔍 Discovering human-approved tasks from folder structure...")
     
@@ -708,9 +693,6 @@ Examples:
         skip_existing=True,
     )
     
-    # Results saving removed - outputs are in video directories
-    
-    # Print final summary
     print(f"\n{'=' * 80}")
     print("🎉 VIDEO GENERATION COMPLETE!")
     print(f"{'=' * 80}")
@@ -745,19 +727,8 @@ Examples:
     
     print(f"\n📁 All outputs saved to: {OUTPUT_DIR}")
     
-    # Resume functionality removed
-    
     print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Experiment interrupted by user")
-        sys.exit(0)
-    except Exception as e:
-        print(f"\n\n❌ Experiment failed with error:")
-        print(f"   {str(e)}")
-        traceback.print_exc()
-        sys.exit(1)
+    main()

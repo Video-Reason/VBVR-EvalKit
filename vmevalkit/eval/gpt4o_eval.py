@@ -18,7 +18,6 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Task-specific evaluation guidance
 TASK_GUIDANCE = {
     "chess_task": "Check if the final board position matches the expected position after the correct move.",
     "maze_task": "Verify that the final frame shows a complete path from start to end that matches the expected solution.",
@@ -35,12 +34,11 @@ class GPT4OEvaluator:
                  experiment_name: str = "pilot_experiment",
                  api_key: Optional[str] = None,
                  model: str = "gpt-4o",
-                 temperature: float = 0.1):
+                 temperature: float = 0.0):
         self.output_dir = Path(output_dir)
         self.experiment_name = experiment_name
         self.experiment_dir = Path("data/outputs") / experiment_name
         
-        # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -89,7 +87,6 @@ class GPT4OEvaluator:
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
     
     async def call_gpt4o(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Call GPT-4O API."""
         response = await self.client.post(
             "https://api.openai.com/v1/chat/completions",
             json={"model": self.model, "messages": messages, "temperature": self.temperature, "max_tokens": 1000}
@@ -101,18 +98,19 @@ class GPT4OEvaluator:
     def create_prompt(self, task_type: str) -> str:
         """Create evaluation prompt."""
         return f"""You are evaluating video generation models.
-Compare the final frame of the generated video with the expected ground truth final frame.
+                Compare the final frame of the generated video with the expected ground truth final frame.
 
-Rate solution correctness on a 1-5 scale:
-1: Completely wrong - no understanding of task
-2: Mostly incorrect - minimal progress toward solution
-3: Partially correct - about half the expected solution
-4: Mostly correct - close to expected result with minor errors
-5: Perfect - matches expected result
+                Rate solution correctness on a 1-5 scale:
+                1: Completely wrong - no understanding of task
+                2: Mostly incorrect - minimal progress toward solution
+                3: Partially correct - about half the expected solution
+                4: Mostly correct - close to expected result with minor errors
+                5: Perfect - matches expected result
 
-{TASK_GUIDANCE.get(task_type, '')}
+                {TASK_GUIDANCE.get(task_type, '')}
 
-Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief explanation>"}}"""
+                Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief explanation>"}}
+                """
     
     async def evaluate_single_async(self, model_name: str, task_type: str, task_id: str,
                                    video_path: str) -> Dict[str, Any]:
@@ -283,7 +281,6 @@ Respond in JSON: {{"solution_correctness_score": <1-5>, "explanation": "<brief e
     
     def _save_results(self, model_name: str, results: Dict[str, Any]):
         """Save evaluation results (legacy method - now individual saves are preferred)."""
-        output_base = self.output_dir / self.experiment_name / model_name
         
         for task_type, task_results in results["evaluations"].items():
             for task_id, eval_result in task_results.items():

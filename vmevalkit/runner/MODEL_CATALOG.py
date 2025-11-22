@@ -306,28 +306,20 @@ OPENAI_SORA_MODELS = {
 
 # LTX-Video Models (Lightricks)
 LTX_VIDEO_MODELS = {
+    "ltx-video": {
+        "wrapper_module": "vmevalkit.models.ltx_inference",
+        "wrapper_class": "LTXVideoWrapper",
+        "service_class": "LTXVideoService",
+        "model": "Lightricks/LTX-Video",
+        "description": "LTX-Video - High-quality image-to-video generation (704x480, 24fps)",
+        "family": "LTX-Video"
+    },
     "ltx-video-13b-distilled": {
         "wrapper_module": "vmevalkit.models.ltx_inference",
         "wrapper_class": "LTXVideoWrapper",
         "service_class": "LTXVideoService",
-        "model": "ltxv-13b-0.9.8-distilled",
-        "description": "LTX-Video 13B Distilled - Real-time video generation, high quality",
-        "family": "LTX-Video"
-    },
-    "ltx-video-13b-dev": {
-        "wrapper_module": "vmevalkit.models.ltx_inference",
-        "wrapper_class": "LTXVideoWrapper",
-        "service_class": "LTXVideoService",
-        "model": "ltxv-13b-0.9.8-dev",
-        "description": "LTX-Video 13B Dev - Development version with latest features",
-        "family": "LTX-Video"
-    },
-    "ltx-video-2b-distilled": {
-        "wrapper_module": "vmevalkit.models.ltx_inference",
-        "wrapper_class": "LTXVideoWrapper",
-        "service_class": "LTXVideoService",
-        "model": "ltxv-2b-0.9.8-distilled",
-        "description": "LTX-Video 2B Distilled - Smaller, faster model",
+        "model": "Lightricks/LTX-Video-0.9.8-13B-distilled",
+        "description": "LTX-Video 0.9.8 13B Distilled - Distilled version with 13B parameters",
         "family": "LTX-Video"
     }
 }
@@ -384,6 +376,103 @@ DYNAMICRAFTER_MODELS = {
     }
 }
 
+# Morphic Frames-to-Video Models
+MORPHIC_MODELS = {
+    "morphic-frames-to-video": {
+        "wrapper_module": "vmevalkit.models.morphic_inference",
+        "wrapper_class": "MorphicWrapper",
+        "service_class": "MorphicService",
+        "model": "morphic-frames-to-video",
+        "description": "Morphic Frames to Video - High-quality interpolation using Wan2.2",
+        "family": "Morphic",
+        "args": {
+            "size": "1280*720",
+            "frame_num": 81,
+            "nproc_per_node": 8
+        }
+    }
+}
+
+# Stable Video Diffusion Models (Stability AI)
+SVD_MODELS = {
+    "svd": {
+        "wrapper_module": "vmevalkit.models.svd_inference",
+        "wrapper_class": "SVDWrapper",
+        "service_class": "SVDService",
+        "model": "stabilityai/stable-video-diffusion-img2vid-xt",
+        "description": "Stable Video Diffusion XT - High-quality image-to-video generation",
+        "family": "Stable Video Diffusion"
+    },
+}
+
+# WAN Models (Wan-AI, local diffusers implementation)
+WAN_MODELS = {
+    "wan": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
+        "description": "WAN 2.1 FLF2V 14B 720P - First-Last Frame to Video generation",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.1-flf2v-720p": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
+        "description": "WAN 2.1 FLF2V 14B 720P - First-Last Frame to Video generation",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.2-i2v-a14b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+        "description": "WAN 2.2 I2V A14B - Image to Video generation with 14B parameters",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.1-i2v-480p": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-I2V-14B-480P-Diffusers",
+        "description": "WAN 2.1 I2V 14B 480P - Image to Video generation at 480p resolution",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.1-i2v-720p": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-I2V-14B-720P-Diffusers",
+        "description": "WAN 2.1 I2V 14B 720P - Image to Video generation at 720p resolution",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.2-ti2v-5b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+        "description": "WAN 2.2 TI2V 5B - Text + Image to Video generation with 5B parameters",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.1-vace-14b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-VACE-14B-diffusers",
+        "description": "WAN 2.1 VACE 14B - Video generation with 14B parameters",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.1-vace-1.3b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.1-VACE-1.3B-diffusers",
+        "description": "WAN 2.1 VACE 1.3B - Lightweight video generation with 1.3B parameters",
+        "family": "WAN (Wan-AI)"
+    }
+}
+
 # ========================================
 # COMBINED REGISTRIES
 # ========================================
@@ -400,7 +489,10 @@ AVAILABLE_MODELS = {
     **LTX_VIDEO_MODELS,
     **HUNYUAN_VIDEO_MODELS,
     **VIDEOCRAFTER_MODELS,
-    **DYNAMICRAFTER_MODELS
+    **DYNAMICRAFTER_MODELS,
+    **MORPHIC_MODELS,
+    **SVD_MODELS,
+    **WAN_MODELS
 }
 
 # Model families metadata for easier management
@@ -415,7 +507,10 @@ MODEL_FAMILIES = {
     "LTX-Video": LTX_VIDEO_MODELS,
     "HunyuanVideo": HUNYUAN_VIDEO_MODELS,
     "VideoCrafter": VIDEOCRAFTER_MODELS,
-    "DynamiCrafter": DYNAMICRAFTER_MODELS
+    "DynamiCrafter": DYNAMICRAFTER_MODELS,
+    "Morphic": MORPHIC_MODELS,
+    "Stable Video Diffusion": SVD_MODELS,
+    "WAN (Wan-AI)": WAN_MODELS
 }
 
 # ========================================

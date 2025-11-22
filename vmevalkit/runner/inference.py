@@ -5,12 +5,10 @@ Unified interface for 37+ text+image→video models across 9 major providers.
 Uses dynamic loading from MODEL_CATALOG for clean separation of concerns.
 """
 
-import os
-import asyncio
 import shutil
 import importlib
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, List, Type
+from typing import Dict, Any, Optional, Union, Type
 from datetime import datetime
 import json
 
@@ -92,6 +90,10 @@ def run_inference(
     
     wrapper = wrapper_class(**init_kwargs)
     
+    # Add question_data to kwargs so models can access it (e.g., for final_image_path)
+    if question_data:
+        kwargs['question_data'] = question_data
+    
     # Run inference
     result = wrapper.generate(image_path, text_prompt, **kwargs)
     
@@ -167,56 +169,31 @@ class InferenceRunner:
         inference_dir = task_base_dir / run_id
         inference_dir.mkdir(parents=True, exist_ok=True)
         
-        try:
-            # Run inference with dynamic loading
-            result = run_inference(
-                model_name=model_name,
-                image_path=image_path,
-                text_prompt=text_prompt,
-                output_dir=str(task_base_dir),
-                question_data=question_data,
-                inference_id=run_id,
-                **kwargs
-            )
-            
-            # Add metadata
-            result["run_id"] = run_id
-            result["timestamp"] = start_time.isoformat()
-            
-            # Create question folder and copy images
-            self._setup_question_folder(inference_dir, image_path, text_prompt, question_data)
-            
-            # Save metadata
-            self._save_metadata(inference_dir, result, question_data)
-            
-            print(f"\n✅ Inference complete! Output saved to: {inference_dir}")
-            print(f"   - Video: {inference_dir}/video/")
-            print(f"   - Question data: {inference_dir}/question/")
-            print(f"   - Metadata: {inference_dir}/metadata.json")
-            
-            return result
-            
-        except Exception as e:
-            # Handle failures
-            error_result = {
-                "run_id": run_id,
-                "status": "failed",
-                "error": str(e),
-                "model": model_name,
-                "timestamp": start_time.isoformat(),
-                "inference_dir": str(inference_dir)
-            }
-            
-            # Save error metadata
-            self._save_metadata(inference_dir, error_result, question_data)
-            
-            # Clean up folder if no video was generated
-            self._cleanup_failed_folder(inference_dir)
-            
-            print(f"\n❌ Inference failed: {e}")
-            print(f"   Folder cleaned up: {inference_dir}")
-            
-            return error_result
+        # Run inference with dynamic loading
+        result = run_inference(
+            model_name=model_name,
+            image_path=image_path,
+            text_prompt=text_prompt,
+            output_dir=str(task_base_dir),
+            question_data=question_data,
+            inference_id=run_id,
+            **kwargs
+        )
+        
+        # Add metadata
+        result["run_id"] = run_id
+        result["timestamp"] = start_time.isoformat()
+        
+        # Create question folder and copy images
+        self._setup_question_folder(inference_dir, image_path, text_prompt, question_data)
+        self._save_metadata(inference_dir, result, question_data)
+        
+        print(f"\n✅ Inference complete! Output saved to: {inference_dir}")
+        print(f"   - Video: {inference_dir}/video/")
+        print(f"   - Question data: {inference_dir}/question/")
+        print(f"   - Metadata: {inference_dir}/metadata.json")
+        
+        return result
     
     def _setup_question_folder(self, inference_dir: Path, first_image: Union[str, Path], 
                                prompt: str, question_data: Optional[Dict[str, Any]]):
@@ -231,18 +208,16 @@ class InferenceRunner:
             shutil.copy2(first_image_path, dest_first)
         
         # Copy final image if available
-        if question_data and 'final_image_path' in question_data:
+        if question_data and 'final_image_path' in question_data and question_data['final_image_path'] is not None:
             final_image_path = Path(question_data['final_image_path'])
             if final_image_path.exists():
                 dest_final = question_dir / f"final_frame{final_image_path.suffix}"
                 shutil.copy2(final_image_path, dest_final)
         
-        # Save prompt to text file
         prompt_file = question_dir / "prompt.txt"
         with open(prompt_file, 'w') as f:
             f.write(prompt)
         
-        # Save question metadata if available
         if question_data:
             question_metadata_file = question_dir / "question_metadata.json"
             with open(question_metadata_file, 'w') as f:

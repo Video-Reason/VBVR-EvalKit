@@ -6,8 +6,9 @@ reasoning capabilities.
 
 from .human_eval import HumanEvaluator
 from .gpt4o_eval import GPT4OEvaluator
-
+from .internvl import InternVLEvaluator
 __all__ = [
     'HumanEvaluator',
     'GPT4OEvaluator',
+    'InternVLEvaluator',
 ]

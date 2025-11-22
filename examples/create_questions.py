@@ -8,10 +8,6 @@ or create comprehensive datasets across all domains.
 
 Key Features:
 - Generate questions for specific domains (chess, maze, raven, rotation, sudoku)
-- Control number of questions per domain with flexible quantities
-- Read and analyze existing question datasets
-- Support for different random seeds for reproducible generation
-- Automatic organization in per-question folder structure
 
 Output Structure:
 - Each question gets its own folder: data/questions/{domain}_task/{question_id}/
@@ -25,7 +21,6 @@ import sys
 import argparse
 from pathlib import Path
 
-# Add the project root to Python path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -33,8 +28,9 @@ from vmevalkit.runner.dataset import (
     create_vmeval_dataset_direct, 
     read_dataset_from_folders, 
     print_dataset_summary,
-    DOMAIN_REGISTRY
+    download_hf_domain_to_folders
 )
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 def main():
     """Flexible VMEvalKit question creation with customizable options."""
@@ -43,24 +39,33 @@ def main():
         description="VMEvalKit Question Creation - Flexible task generation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Generate 50 questions per domain (default)
-  python create_questions.py
-  
-  # Generate specific number per domain
-  python create_questions.py --pairs-per-domain 100
-  
-  # Generate for specific domains only
-  python create_questions.py --task chess maze --pairs-per-domain 25
-  
-  # Generate small test set
-  python create_questions.py --task chess --pairs-per-domain 5
-  
-  # Just read and analyze existing questions
-  python create_questions.py --read-only
-  
-  # Use different random seed
-  python create_questions.py --random-seed 123 --pairs-per-domain 10
+            Examples:
+            # Download entire VideoThinkBench dataset (all 4 subsets, ~4k tasks)
+            python create_questions.py --task videothinkbench
+            
+            # Generate 50 questions per domain (default) for original tasks
+            python create_questions.py --task chess maze raven --pairs-per-domain 50
+            
+            # Mix VideoThinkBench and generated tasks
+            python create_questions.py --task videothinkbench chess sudoku --pairs-per-domain 25
+            
+            # Download specific VideoThinkBench subsets
+            python create_questions.py --task arc_agi_2 visual_puzzles text_centric_tasks
+            
+            # Generate for all original domains
+            python create_questions.py --task chess maze raven rotation sudoku object_subtraction --pairs-per-domain 50
+            
+            # Generate with non-deterministic random (no fixed seed)
+            python create_questions.py --task chess maze --pairs-per-domain 50 --no-seed
+            
+            # Generate with custom random seed
+            python create_questions.py --task chess maze --pairs-per-domain 50 --random-seed 123
+            
+            # List all available domains
+            python create_questions.py --list-domains
+            
+            # Just read and analyze existing questions
+            python create_questions.py --read-only
         """
     )
     
@@ -76,6 +81,12 @@ Examples:
         type=int, 
         default=42, 
         help="Random seed for reproducible generation (default: 42)"
+    )
+    
+    parser.add_argument(
+        "--no-seed", 
+        action="store_true", 
+        help="Use non-deterministic random generation (unset seed, each run produces different results)"
     )
     
     parser.add_argument(
@@ -106,18 +117,17 @@ Examples:
     
     args = parser.parse_args()
     
-    # Handle --list-domains
     if args.list_domains:
         print("🧠 Available Task Domains:")
         print("=" * 60)
         for domain_key, domain_info in DOMAIN_REGISTRY.items():
-            print(f"{domain_info.get('emoji', '🔹')} {domain_key:10} - {domain_info['description']}")
+            hf_info = " (HuggingFace)" if domain_info.get('hf', False) else ""
+            print(f"{domain_info.get('emoji', '🔹')} {domain_key:15} - {domain_info['description']}{hf_info}")
         print(f"\nTotal: {len(DOMAIN_REGISTRY)} reasoning domains available")
         print("\nUse --task to select specific domains, or run without --task for all domains.")
-        sys.exit(0)
+        return
 
     if args.read_only:
-        # Just read existing questions from folders
         print("=" * 70)
         print("📂 Reading existing questions from folder structure...")
         print(f"   Reading from: {args.output_dir}")
@@ -126,39 +136,72 @@ Examples:
         print("=" * 70)
         return
 
-    # Show generation plan
+    output_path = Path(args.output_dir)
     selected_domains = args.task if args.task else list(DOMAIN_REGISTRY.keys())
-    total_questions = len(selected_domains) * args.pairs_per_domain
     
-    print("=" * 70)
-    print("🚀 VMEvalKit Question Generation Plan")
-    print("=" * 70)
-    print(f"📁 Output directory: {args.output_dir}")
-    print(f"🎯 Selected domains: {', '.join(selected_domains)} ({len(selected_domains)} domains)")
-    print(f"📊 Questions per domain: {args.pairs_per_domain}")
-    print(f"🔢 Total questions to generate: {total_questions}")
-    print(f"🎲 Random seed: {args.random_seed}")
-    print()
+    # Determine random seed: None if --no-seed is set, otherwise use --random-seed value
+    random_seed = None if args.no_seed else args.random_seed
+    
+    # Expand meta-tasks (like 'videothinkbench') into their constituent subsets
+    expanded_domains = []
+    for domain in selected_domains:
+        domain_config = DOMAIN_REGISTRY.get(domain, {})
+        if domain_config.get('hf_meta', False):
+            # This is a meta-task that contains multiple subsets
+            subsets = domain_config.get('hf_subsets', [])
+            expanded_domains.extend(subsets)
+            print(f"📦 Expanding '{domain}' meta-task into subsets: {', '.join(subsets)}")
+        else:
+            expanded_domains.append(domain)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    selected_domains = [d for d in expanded_domains if not (d in seen or seen.add(d))]
+    
+    hf_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is True and not DOMAIN_REGISTRY.get(d, {}).get('hf_meta', False)]
+    regular_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is not True]
+    
+    if hf_domains:
+        for domain in hf_domains:
+            download_hf_domain_to_folders(domain, output_path)
+    
+    if regular_domains:
+        total_questions = len(regular_domains) * args.pairs_per_domain
+        
+        print("=" * 70)
+        print("🚀 VMEvalKit Question Generation Plan")
+        print("=" * 70)
+        print(f"📁 Output directory: {args.output_dir}")
+        print(f"🎯 Selected domains: {', '.join(regular_domains)} ({len(regular_domains)} domains)")
+        print(f"📊 Questions per domain: {args.pairs_per_domain}")
+        print(f"🔢 Total questions to generate: {total_questions}")
+        if random_seed is not None:
+            print(f"🎲 Random seed: {random_seed}")
+        else:
+            print(f"🎲 Random seed: None (non-deterministic)")
+        print()
 
-    # Generate questions directly to folders
-    dataset, questions_dir = create_vmeval_dataset_direct(
-        pairs_per_domain=args.pairs_per_domain, 
-        random_seed=args.random_seed,
-        selected_tasks=args.task
-    )
+        dataset, questions_dir = create_vmeval_dataset_direct(
+            pairs_per_domain=args.pairs_per_domain, 
+            random_seed=random_seed,
+            selected_tasks=regular_domains
+        )
+        
+        print_dataset_summary(dataset)
     
-    # Print comprehensive summary
-    print_dataset_summary(dataset)
+    print("=" * 70)
+    print("📂 Reading all questions from folder structure...")
+    print("=" * 70)
+    final_dataset = read_dataset_from_folders(output_path)
+    print_dataset_summary(final_dataset)
     
-    print(f"💾 Master dataset JSON saved: {questions_dir}/vmeval_dataset.json")
-    print(f"📁 Questions generated in: {questions_dir}")
-    print(f"🔗 Per-question folders: {questions_dir}/<domain>_task/<question_id>/")
+    print(f"📁 Questions saved in: {output_path}")
+    print(f"🔗 Per-question folders: {output_path}/<domain>_task/<question_id>/")
     print()
     print("🎉 VMEvalKit Questions ready for video generation!")
     print("🚀 Next steps:")
     print(f"   • Generate videos: python examples/generate_videos.py")
     print(f"   • Score videos: python examples/score_videos.py human")
-    print(f"   • Run inference: python -m vmevalkit.runner.inference")
     print("=" * 70)
 
 if __name__ == "__main__":

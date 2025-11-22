@@ -65,6 +65,11 @@ sphinx-rtd-theme>=2.0.0
 # AWS
 boto3>=1.34.0
 
+# HuggingFace (optional - for dataset sharing)
+huggingface_hub>=0.24.0
+datasets>=2.18.0  # For structured dataset upload
+pyarrow>=14.0.2  # Required by datasets
+
 # Web framework and dashboard
 Flask>=3.0.0
 Werkzeug>=3.0.1
@@ -77,5 +82,6 @@ gunicorn>=21.2.0  # Production WSGI server
 Flask-CORS>=4.0.0  # CORS support
 Flask-Talisman>=1.1.0  # Security headers
 
-ipython>=8.0.0,<9.0.0  # Python 3.10 compatible
+ipython>=9.6.0
 zanj>=0.5.1
+transformers>=4.55.2

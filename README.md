@@ -3,8 +3,12 @@
 
 <div align="center">
 
-<a href="https://grow-ai-like-a-child.com/video-reason/">🔍 Preliminary results</a> 
-[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://github.com/hokindeng/VMEvalKit/blob/features/clocks/paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) [![Hugging Face Collection](https://img.shields.io/badge/Models-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)  [![WeChat](https://img.shields.io/badge/WeChat--Group-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+
+[![results](https://img.shields.io/badge/Result-A42C2?style=for-the-badge&logo=googledisplayandvideo360&logoColor=white)](https://grow-ai-like-a-child.com/video-reason/)
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://github.com/hokindeng/VMEvalKit/blob/features/clocks/paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) 
+[![Hugging Face](https://img.shields.io/badge/hf-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)
+[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+
 
 </div>
 

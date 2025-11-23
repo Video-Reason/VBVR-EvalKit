@@ -226,7 +226,6 @@ python -m vmevalkit.runner.score human \
 python -m vmevalkit.runner.score gpt4o \
   --experiment pilot_experiment \
   --output-dir data/scorings \
-  --temperature 0.1
 ```
 
 ### Environment Variables
@@ -238,66 +237,6 @@ export OPENAI_API_KEY="your-api-key"
 export VMEVAL_DATA_DIR="/path/to/data"
 export VMEVAL_OUTPUT_DIR="/path/to/scorings"
 ```
-
-## Custom Scorers
-
-To create a custom scorer, follow the pattern of existing scorers:
-
-```python
-from pathlib import Path
-from datetime import datetime
-import json
-
-class MyScorer:
-    def __init__(self, output_dir="data/scorings/my-eval", 
-                 experiment_name="pilot_experiment"):
-        self.output_dir = Path(output_dir)
-        self.experiment_name = experiment_name
-        self.experiment_dir = Path("data/outputs") / experiment_name
-    
-    def _has_scoring(self, model_name, task_type, task_id):
-        """Check if task already scored (for resume capability)."""
-        eval_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
-        eval_file = eval_path / "MyScorer.json"
-        return eval_file.exists()
-    
-    def score_single(self, model_name, task_type, task_id, video_path):
-        # Your scoring logic here
-        return {
-            "solution_correctness_score": 5,  # 1-5 scale
-            "explanation": "The solution perfectly solves the task",
-            "status": "completed"
-        }
-    
-    def _save_result(self, model_name, task_type, task_id, eval_result):
-        """Save scoring result in standard format."""
-        output_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        with open(output_path / "MyScorer.json", 'w') as f:
-            json.dump({
-                "metadata": {
-                    "scorer": "MyScorer",
-                    "timestamp": datetime.now().isoformat(),
-                    "model_name": model_name,
-                    "task_type": task_type,
-                    "task_id": task_id
-                },
-                "result": eval_result
-            }, f, indent=2)
-    
-    def score_model(self, model_name):
-        """Evaluate all tasks for a model with resume capability."""
-        # Iterate through tasks, skip if already scored
-        # Save results using _save_result method
-        pass
-```
-
-Note: Scorers are standalone classes - no base class required. Ensure your scorer:
-1. Saves results in the standard JSON format
-2. Implements resume capability via `_has_scoring()` check
-3. Uses consistent directory structure
-4. Includes proper metadata
 
 ## API Reference
 
@@ -326,7 +265,6 @@ Note: Scorers are standalone classes - no base class required. Ensure your score
 - `experiment_name`: Name of experiment to score (default: "pilot_experiment")
 - `api_key`: OpenAI API key (defaults to OPENAI_API_KEY env var)
 - `model`: GPT model to use (default: "gpt-4o")
-- `temperature`: Temperature for responses (default: 0.1)
 
 **Methods:**
 - `extract_final_frame(video_path)`: Extract the final frame from video

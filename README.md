@@ -1,11 +1,23 @@
 # VMEvalKit 🎥🧠
 
+
+<div align="center">
+
+
+[![results](https://img.shields.io/badge/Result-A42C2?style=for-the-badge&logo=googledisplayandvideo360&logoColor=white)](https://grow-ai-like-a-child.com/video-reason/)
+[![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](https://github.com/hokindeng/VMEvalKit/blob/features/clocks/paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) 
+[![Hugging Face](https://img.shields.io/badge/hf-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)
+[![WeChat](https://img.shields.io/badge/WeChat-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+
+
+</div>
+
+
 A framework to score reasoning capabilities in video generation models at scale, through cognitive tasks. We **make it very convenient** to [**add models**](docs/ADDING_MODELS.md), [**add tasks**](docs/ADDING_TASKS.md), [**run inferences**](docs/INFERENCE.md), [**run scoring**](docs/SCORING.md), [**manage datasets**](docs/DATA_MANAGEMENT.md) and [**display results**](https://grow-ai-like-a-child.com/video-reason/). It's **permissively open-source**, and we welcome everyone to [**join**](https://join.slack.com/t/growingailikeachild/shared_invite/zt-309yqd0sl-W8xzOkdBPha1Jh5rnee78A) us and **build in public together**! 🚀 
 
 
 <p align="center">
-    <a href="asset/leaderboard.html">🏆 Leaderboard (Under Construction)</a> •
-    <a href="https://grow-ai-like-a-child.com/video-reason/">🔍 Preliminary results</a> 
+    
 </p>
 
 ![VMEvalKit Framework](paper/video-models-start-to-solve/assets/draft_1.jpg)
@@ -15,45 +27,12 @@ A framework to score reasoning capabilities in video generation models at scale,
 
 VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
 
-### Commercial APIs (32 models)
+For commercial APIs, we support Luma Dream Machine, Google Veo, Google Veo 3.1, WaveSpeed WAN 2.1, WaveSpeed WAN 2.2, Runway ML, OpenAI Sora. For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, Stable Video Diffusion, Morphic, LTX-Video, and so on. See [here](docs/models/README.md) for details.
 
-| Provider | Models | Key Features | 
-|----------|---------|-------------|
-| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | 
-| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | 
-| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | 
-| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | 
-| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | 
-| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | 
-| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | 
-
-### Open-Source Models
-
-| Provider | Models | Key Features | Hardware Requirements |
-|----------|---------|-------------|----------------------|
-| **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
-| **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
-| **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
-| **Stable Video Diffusion** | 1 | Video generation | GPU with 16GB+ VRAM |
-| **Morphic** | 1 | Video generation | GPU with 16GB+ VRAM |
-| **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
 
 ## 📊 Supported Datasets
 
-VMEvalKit provides access to **3 external benchmark datasets** and **6 local task generation engines**:
-
-### External Benchmarks (HuggingFace)
-
-| Dataset | Tasks | Domains | Key Features |
-|---------|-------|---------|--------------|
-| **VideoThinkBench** | ~4,000 | 4 subsets | Vision-centric (ARC-AGI, Eyeballing, Visual Puzzles) + Text-centric reasoning |
-| **MME-CoF** | 59 | 16 domains | Video Chain-of-Frame reasoning across cognitive domains |
-
-**VideoThinkBench Subsets:**
-- `arc_agi_2` - Abstract reasoning (1,000 tasks)
-- `eyeballing_puzzles` - Visual estimation (1,050 tasks)  
-- `visual_puzzles` - Pattern recognition (496 tasks)
-- `text_centric_tasks` - Math & multimodal reasoning (1,453 tasks)
+VMEvalKit provides access to **9 local task generation engines(quickly increasing)** and other external benchmark datasets (HuggingFace) [here](docs/tasks/README.md).
 
 ### Local Task Generation Engines
 
@@ -65,8 +44,7 @@ VMEvalKit provides access to **3 external benchmark datasets** and **6 local tas
 | **Rotation** | 3D mental rotation | Procedural 3D object generation |
 | **Sudoku** | Logical constraint satisfaction | Sudoku puzzle generator |
 | **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
-
-All tasks follow the unified **First Frame → Final Frame** format with text prompts, enabling consistent evaluation across diverse reasoning domains.
+| **Clock** | Time-based reasoning | Clock time increment |
 
 ### Basic Idea
 
@@ -198,6 +176,10 @@ Sudoku Solving
 
 Every VMEvalKit dataset consists of **Task Pairs** - the basic unit for video reasoning scoring:
 
+We have two types of tasks:
+
+### Final image
+
 Each Task Pair consists of three core components:
 - 📸 **Initial state image** (`first_frame.png`): shows the starting point or problem to be solved
 - 🎯 **Final state image** (`final_frame.png`): illustrates the goal state or solution  
@@ -206,6 +188,15 @@ Each Task Pair consists of three core components:
 There is also an accompanying `question_metadata.json` file with rich metadata. Each task pair is organized in its own folder (`data/questions/{domain}_task/{question_id}/`) containing all four files. 
 
 ![Task Pair Structure](paper/video-models-start-to-solve/assets/question_set.jpg)
+
+### Final text answer
+
+Each Task Pair consists of three core components:
+- 📸 **Initial state image** (`first_frame.png`): shows the starting point or problem to be solved
+- 📝 **Text answer** (`goal.txt`): provides the text answer to the question
+- 📝 **Text prompt** (`prompt.txt`): provides natural language instructions for the video model
+
+With our VMEvalKit, you can easily create tasks with final text answer by simply adding a `goal.txt` file to the task folder, so you could adapt your VQA datasets to video reasoning tasks.
 
 ## Inference Architecture
 
@@ -283,23 +274,17 @@ python examples/create_questions.py --task chess maze --pairs-per-domain 10
 # Generate videos with selected models  
 python examples/generate_videos.py --model luma-ray-2 veo-3.0-generate --task chess maze
 
-# Score results
-python examples/score_videos.py human
+# Score results with gpt4o
 python examples/score_videos.py gpt4o
-
-# Using runner modules directly
+# Score results manually
 python -m vmevalkit.runner.score human \
   --experiment pilot_experiment \
   --annotator "John Doe" \
   --port 7860 --share
-
-python -m vmevalkit.runner.score gpt4o \
-  --experiment pilot_experiment \
-  --output-dir data/scorings \
-  --temperature 0.1 
+  --output-dir data/scorings \ 
 ```
 
-Use as Python Modules
+You could also use Web interface directly:
 
 ```python
 from vmevalkit.eval import HumanScorer

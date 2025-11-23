@@ -53,7 +53,7 @@ Remove objects defined by **explicit visual attributes** (color or shape only).
 **Rule Structure:**
 ```python
 {
-  "level": "L1",
+  "level": "type1",
   "rule_type": "color",  # or "shape"
   "remove_color": "red",  # or "remove_shape": "cube"
   "target_object_ids": [0, 1]  # Explicit object IDs to remove
@@ -112,7 +112,7 @@ Each task consists of:
     "first_image_path": "path/to/first_frame.png",
     "final_image_path": "path/to/final_frame.png",
     "task_category": "ObjectSubtraction",
-    "level": "L1",
+    "level": "type1",
     "object_subtraction_data": {
         "objects": [...],  # All objects with id, color, shape, x, y, size, area
         "rule": {...},     # Rule definition
@@ -157,7 +157,7 @@ Each task consists of:
 - **Shape Consistency Outlier**: Removes the object with different shape (majority has same shape but different colors)
 - **Color Consistency Outlier**: Removes the object with different color (majority has same color but different shapes)
 - **Object Size**: All objects have uniform size (30 pixels)
-- **Unified Prompt**: All L4 tasks use the same prompt regardless of outlier type
+- **Unified Prompt**: All type4 tasks use the same prompt regardless of outlier type
 
 ### Image Rendering
 
@@ -177,13 +177,13 @@ Each task consists of:
 from vmevalkit.tasks.object_subtraction_task import create_dataset
 
 # Generate 50 tasks (Type 1 only)
-dataset = create_dataset(num_samples=50, levels=["L1"])
+dataset = create_dataset(num_samples=50, levels=["type1"])
 
 # Generate tasks for multiple types
-dataset = create_dataset(num_samples=100, levels=["L1", "L2", "L3", "L4"])
+dataset = create_dataset(num_samples=100, levels=["type1", "type2", "type3", "type4"])
 
 # Generate tasks for all types with deterministic seed
-dataset = create_dataset(num_samples=100, levels=["L1", "L2", "L3", "L4"], random_seed=42)
+dataset = create_dataset(num_samples=100, levels=["type1", "type2", "type3", "type4"], random_seed=42)
 ```
 
 ### Command Line

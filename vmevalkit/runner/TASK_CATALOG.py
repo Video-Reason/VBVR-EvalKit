@@ -52,6 +52,13 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'clock': {
+        'name': 'Clock',
+        'description': 'Temporal reasoning and time calculation',
+        'module': 'vmevalkit.tasks.clock_task.clock_reasoning',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'arc_agi_2': {
         'name': 'ARC AGI 2',
         'description': 'ARC AGI reasoning and problem solving',
@@ -107,6 +114,16 @@ DOMAIN_REGISTRY = {
         'module': 'vmevalkit.tasks.perspective_taking_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'vpct': {
+        'name': 'VPCT',
+        'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
+        'module': 'vmevalkit.tasks.external.vpct_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs'],
+        'hf': True,
+        'hf_dataset': 'camelCase12/vpct-1',
+        'hf_special_format': True  # Indicates file-based format, not standard dataset format
     }
 }
 

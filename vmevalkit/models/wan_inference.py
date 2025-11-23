@@ -43,7 +43,7 @@ class WanService:
         load_kwargs = {
             "low_cpu_mem_usage": True,
             "torch_dtype": encoder_dtype,
-            "dtype": torch.bfloat16
+            "torch_dtype": torch.bfloat16
         }
         
         self.image_encoder = CLIPVisionModel.from_pretrained(
@@ -100,7 +100,8 @@ class WanService:
         text_prompt: str = "",
         guidance_scale: Optional[float] = None,
         fps: Optional[int] = None,
-        output_path: Optional[Path] = None
+        output_path: Optional[Path] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         start_time = time.time()
         self._load_model()

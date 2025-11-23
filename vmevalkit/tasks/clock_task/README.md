@@ -22,19 +22,8 @@ Use the `create_questions.py` script to generate clock reasoning tasks:
 # Generate 50 clock tasks (default)
 python examples/create_questions.py --task clock
 
-# Generate custom number of tasks
-python examples/create_questions.py --task clock --pairs-per-domain 100
-
-# Generate with specific random seed for reproducibility
-python examples/create_questions.py --task clock --pairs-per-domain 50 --random-seed 42
-
-# Generate with non-deterministic random (different each run)
-python examples/create_questions.py --task clock --pairs-per-domain 50 --no-seed
-
-# Generate clock tasks along with other tasks
-python examples/create_questions.py --task clock sudoku maze --pairs-per-domain 50
+python examples/generate_videos.py --model svd --task clock
 ```
-
 
 
 ## 🎯 Task Description

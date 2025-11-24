@@ -73,7 +73,8 @@ class SVDService:
         motion_bucket_id: Optional[int] = None,
         decode_chunk_size: Optional[int] = None,
         fps: Optional[int] = None,
-        output_path: Optional[Path] = None
+        output_path: Optional[Path] = None,
+        **kwargs
     ) -> Dict[str, Any]:
         start_time = time.time()
         

@@ -55,6 +55,12 @@ def main():
             # Generate for all original domains
             python create_questions.py --task chess maze raven rotation sudoku object_subtraction --pairs-per-domain 50
             
+            # Generate with non-deterministic random (no fixed seed)
+            python create_questions.py --task chess maze --pairs-per-domain 50 --no-seed
+            
+            # Generate with custom random seed
+            python create_questions.py --task chess maze --pairs-per-domain 50 --random-seed 123
+            
             # List all available domains
             python create_questions.py --list-domains
             
@@ -75,6 +81,12 @@ def main():
         type=int, 
         default=42, 
         help="Random seed for reproducible generation (default: 42)"
+    )
+    
+    parser.add_argument(
+        "--no-seed", 
+        action="store_true", 
+        help="Use non-deterministic random generation (unset seed, each run produces different results)"
     )
     
     parser.add_argument(
@@ -127,6 +139,9 @@ def main():
     output_path = Path(args.output_dir)
     selected_domains = args.task if args.task else list(DOMAIN_REGISTRY.keys())
     
+    # Determine random seed: None if --no-seed is set, otherwise use --random-seed value
+    random_seed = None if args.no_seed else args.random_seed
+    
     # Expand meta-tasks (like 'videothinkbench') into their constituent subsets
     expanded_domains = []
     for domain in selected_domains:
@@ -160,12 +175,15 @@ def main():
         print(f"🎯 Selected domains: {', '.join(regular_domains)} ({len(regular_domains)} domains)")
         print(f"📊 Questions per domain: {args.pairs_per_domain}")
         print(f"🔢 Total questions to generate: {total_questions}")
-        print(f"🎲 Random seed: {args.random_seed}")
+        if random_seed is not None:
+            print(f"🎲 Random seed: {random_seed}")
+        else:
+            print(f"🎲 Random seed: None (non-deterministic)")
         print()
 
         dataset, questions_dir = create_vmeval_dataset_direct(
             pairs_per_domain=args.pairs_per_domain, 
-            random_seed=args.random_seed,
+            random_seed=random_seed,
             selected_tasks=regular_domains
         )
         

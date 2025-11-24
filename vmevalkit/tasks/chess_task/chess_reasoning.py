@@ -10,7 +10,6 @@ Author: VMEvalKit Team
 
 import sys
 import os
-import json
 import random
 from typing import List, Dict, Any, Optional, Set
 from datetime import datetime
@@ -22,10 +21,7 @@ if chess_path not in sys.path:
 
 import chess
 import chess.svg
-import io
 from PIL import Image, ImageDraw, ImageFont
-
-# Import prompts from centralized location
 from .PROMPTS import PROMPTS
 
 
@@ -315,22 +311,18 @@ class SelfContainedMateGenerator:
 
 def generate_chess_board_png(fen: str, output_path: str, board_size: int = 400) -> bool:
     """Generate PNG representation of chess board (matching maze format)."""
+    board = chess.Board(fen)
+    svg_content = chess.svg.board(board=board, size=board_size)
+    
+    # Prefer high-fidelity SVG→PNG when available
     try:
-        board = chess.Board(fen)
-        svg_content = chess.svg.board(board=board, size=board_size)
-        
-        # Prefer high-fidelity SVG→PNG when available
-        try:
-            import cairosvg  # type: ignore
-            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=output_path)
-            return True
-        except Exception:
-            # Fallback: pure-PIL rasterizer (no native deps). Draw simple board with glyph pieces.
-            _render_board_png_with_pil(board, output_path, board_size)
-            return True
-    except Exception as e:
-        print(f"❌ Error generating board for {fen}: {e}")
-        return False
+        import cairosvg  # type: ignore
+        cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=output_path)
+        return True
+    except Exception:
+        # Fallback: pure-PIL rasterizer (no native deps). Draw simple board with glyph pieces.
+        _render_board_png_with_pil(board, output_path, board_size)
+        return True
 
 
 def _render_board_png_with_pil(board: chess.Board, output_path: str, board_size: int = 400) -> None:

@@ -133,15 +133,6 @@ def verify_data_folder(data_dir: Path = None) -> Tuple[bool, List[str], List[str
     if not evaluations_dir.exists():
         warnings.append("Missing evaluations/ directory (created during evaluation)")
     
-    # 4. Verify data_logging/ directory (optional)
-    logging_dir = data_dir / "data_logging"
-    if not logging_dir.exists():
-        warnings.append("Missing data_logging/ directory (created during version tracking)")
-    else:
-        version_log = logging_dir / "version_log.json"
-        if not version_log.exists():
-            warnings.append("Missing version_log.json in data_logging/")
-    
     # Determine if valid (no critical errors)
     is_valid = len(errors) == 0
     

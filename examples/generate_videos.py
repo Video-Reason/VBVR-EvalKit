@@ -7,7 +7,7 @@ Run on specific models, domains, or individual tasks with full control over the 
 
 Key Features:
 - Choose any available models from 40+ options across 11+ providers
-- Select specific domains (chess, maze, raven, rotation, sudoku) or individual task IDs
+- Select specific domains or individual task IDs (all domains from TASK_CATALOG are supported)
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
 - Structured output with automatic organization
@@ -26,6 +26,7 @@ Use --help for detailed usage examples and options.
 import sys
 import json
 import shutil
+import os
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -36,6 +37,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
+from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
 
 
 # ========================================
@@ -58,8 +60,8 @@ QUESTIONS_DIR = Path("data/questions")
 # Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
-# Expected domains (for validation)
-EXPECTED_DOMAINS = ["chess", "maze", "raven", "rotation", "sudoku"]
+# Expected domains (dynamically loaded from TASK_CATALOG)
+EXPECTED_DOMAINS = sorted(list(DOMAIN_REGISTRY.keys()))
 
 # ========================================
 # FOLDER-BASED TASK DISCOVERY
@@ -502,9 +504,9 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=["chess", "maze", "raven", "rotation", "sudoku"],
+        choices=sorted(list(DOMAIN_REGISTRY.keys())),
         default=None,
-        help="Specific task domain(s) to run. If not specified, runs all domains."
+        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(DOMAIN_REGISTRY.keys())))}. If not specified, runs all domains."
     )
     
     parser.add_argument(
@@ -532,6 +534,13 @@ Examples:
         help="Delete data/outputs/pilot_experiment directory before running (override existing outputs)"
     )
     
+    parser.add_argument(
+        "--gpu",
+        type=int,
+        default=None,
+        help="GPU device ID to use (e.g., --gpu 1 for GPU 1). Sets CUDA_VISIBLE_DEVICES environment variable."
+    )
+    
     # Legacy parameter for compatibility
     parser.add_argument(
         "--only-model",
@@ -541,6 +550,11 @@ Examples:
     )
     
     args = parser.parse_args()
+    
+    # Handle --gpu: Set CUDA_VISIBLE_DEVICES environment variable
+    if args.gpu is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        print(f"🎮 Using GPU {args.gpu} (CUDA_VISIBLE_DEVICES={args.gpu})")
     
     # Handle --list-models
     if args.list_models:

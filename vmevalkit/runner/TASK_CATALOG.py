@@ -52,6 +52,13 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'clock': {
+        'name': 'Clock',
+        'description': 'Temporal reasoning and time calculation',
+        'module': 'vmevalkit.tasks.clock_task.clock_reasoning',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'arc_agi_2': {
         'name': 'ARC AGI 2',
         'description': 'ARC AGI reasoning and problem solving',
@@ -87,6 +94,13 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'object_rearr': {
+        'name': 'Object Rearrangement',
+        'description': 'Spatial reasoning and object manipulation with spatial relations',
+        'module': 'vmevalkit.tasks.object_rearr_task.object_rearr',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'mme_cof': {
         'name': 'MME-CoF',
         'description': 'Video Chain-of-Frame reasoning evaluation across 16 cognitive domains (59 tasks)',
@@ -98,6 +112,23 @@ DOMAIN_REGISTRY = {
         'name': 'Perspective Taking',
         'description': 'Spatial reasoning and viewpoint transformation from agent perspective',
         'module': 'vmevalkit.tasks.perspective_taking_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'vpct': {
+        'name': 'VPCT',
+        'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
+        'module': 'vmevalkit.tasks.external.vpct_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs'],
+        'hf': True,
+        'hf_dataset': 'camelCase12/vpct-1',
+        'hf_special_format': True  # Indicates file-based format, not standard dataset format
+    },
+    'mirror_clock': {
+        'name': 'Mirror Clock',
+        'description': 'Spatial reasoning and mirror transformation using analog clock reflections',
+        'module': 'vmevalkit.tasks.mirror_clock_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }

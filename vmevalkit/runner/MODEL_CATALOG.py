@@ -336,6 +336,56 @@ HUNYUAN_VIDEO_MODELS = {
     }
 }
 
+# SGLang Models (Experimental - supports Hunyuan, Wan-series, FastWan)
+# Note: SGLang currently has known issues (see https://github.com/sgl-project/sglang/issues/12850)
+# and requires Docker. Implementation is experimental until bugs are fixed.
+SGLANG_MODELS = {
+    "sglang-hunyuan-video-i2v": {
+        "wrapper_module": "vmevalkit.models.sglang_inference",
+        "wrapper_class": "SGLangWrapper",
+        "service_class": "SGLangService",
+        "model": "hunyuan-video-i2v",
+        "description": "HunyuanVideo-I2V via SGLang (Experimental - requires Docker, has known bugs)",
+        "family": "SGLang",
+        "args": {
+            "use_docker": True
+        }
+    },
+    "sglang-wan-2.1": {
+        "wrapper_module": "vmevalkit.models.sglang_inference",
+        "wrapper_class": "SGLangWrapper",
+        "service_class": "SGLangService",
+        "model": "wan-2.1",
+        "description": "WAN 2.1 via SGLang (Experimental - requires Docker, has known bugs)",
+        "family": "SGLang",
+        "args": {
+            "use_docker": True
+        }
+    },
+    "sglang-wan-2.2": {
+        "wrapper_module": "vmevalkit.models.sglang_inference",
+        "wrapper_class": "SGLangWrapper",
+        "service_class": "SGLangService",
+        "model": "wan-2.2",
+        "description": "WAN 2.2 via SGLang (Experimental - requires Docker, has known bugs)",
+        "family": "SGLang",
+        "args": {
+            "use_docker": True
+        }
+    },
+    "sglang-fastwan": {
+        "wrapper_module": "vmevalkit.models.sglang_inference",
+        "wrapper_class": "SGLangWrapper",
+        "service_class": "SGLangService",
+        "model": "fastwan",
+        "description": "FastWan via SGLang (Experimental - requires Docker, has known bugs)",
+        "family": "SGLang",
+        "args": {
+            "use_docker": True
+        }
+    }
+}
+
 # VideoCrafter Models (AILab-CVC)
 VIDEOCRAFTER_MODELS = {
     "videocrafter2-512": {
@@ -492,7 +542,8 @@ AVAILABLE_MODELS = {
     **DYNAMICRAFTER_MODELS,
     **MORPHIC_MODELS,
     **SVD_MODELS,
-    **WAN_MODELS
+    **WAN_MODELS,
+    **SGLANG_MODELS
 }
 
 # Model families metadata for easier management
@@ -510,7 +561,8 @@ MODEL_FAMILIES = {
     "DynamiCrafter": DYNAMICRAFTER_MODELS,
     "Morphic": MORPHIC_MODELS,
     "Stable Video Diffusion": SVD_MODELS,
-    "WAN (Wan-AI)": WAN_MODELS
+    "WAN (Wan-AI)": WAN_MODELS,
+    "SGLang": SGLANG_MODELS
 }
 
 # ========================================

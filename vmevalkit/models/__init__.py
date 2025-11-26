@@ -17,7 +17,8 @@ __all__ = [
     "DynamiCrafterService", "DynamiCrafterWrapper",
     "MorphicService", "MorphicWrapper",
     "SVDService", "SVDWrapper",
-    "WanService", "WanWrapper"
+    "WanService", "WanWrapper",
+    "SGLangService", "SGLangWrapper"
 ]
 
 # Module name mapping
@@ -34,6 +35,7 @@ _MODULE_MAP = {
     "morphic_inference": ["MorphicService", "MorphicWrapper"],
     "svd_inference": ["SVDService", "SVDWrapper"],
     "wan_inference": ["WanService", "WanWrapper"],
+    "sglang_inference": ["SGLangService", "SGLangWrapper"],
 }
 
 

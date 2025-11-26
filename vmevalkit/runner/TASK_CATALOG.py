@@ -131,6 +131,13 @@ DOMAIN_REGISTRY = {
         'hf': True,
         'hf_dataset': 'camelCase12/vpct-1',
         'hf_special_format': True  # Indicates file-based format, not standard dataset format
+    },
+    'mirror_clock': {
+        'name': 'Mirror Clock',
+        'description': 'Spatial reasoning and mirror transformation using analog clock reflections',
+        'module': 'vmevalkit.tasks.mirror_clock_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

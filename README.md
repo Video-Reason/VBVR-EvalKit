@@ -457,3 +457,17 @@ This paper implements our experimental framework and demonstrates that leading v
 ## License
 
 Apache 2.0
+
+
+## Citation
+
+If you find VMEvalKit useful in your research, please cite:
+
+```bibtex
+@misc{VMEvalKit,
+  author       = {VMEvalKit Team},
+  title        = {VMEvalKit: A framework for evaluating reasoning abilities in foundational video models},
+  year         = {2025},
+  howpublished = {\url{https://github.com/Video-Reason/VMEvalKit}}
+}
+```

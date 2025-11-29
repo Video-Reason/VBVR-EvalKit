@@ -194,16 +194,9 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
     print(f"Generating {num_samples} {domain_config['name']} Tasks...")
     
     import importlib
-    import inspect
     module = importlib.import_module(domain_config['module'])
     create_func = getattr(module, domain_config['create_function'])
-    
-    # Check if create_func accepts random_seed parameter
-    sig = inspect.signature(create_func)
-    if 'random_seed' in sig.parameters:
-        dataset = create_func(num_samples=num_samples, random_seed=random_seed)
-    else:
-        dataset = create_func(num_samples=num_samples)
+    dataset = create_func(num_samples=num_samples)
     
     if domain_config['process_dataset']:
         pairs = domain_config['process_dataset'](dataset, num_samples)

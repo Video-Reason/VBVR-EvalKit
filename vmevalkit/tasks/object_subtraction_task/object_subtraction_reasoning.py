@@ -11,6 +11,7 @@ Author: VMEvalKit Team
 
 import json
 import random
+import hashlib
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
@@ -1474,15 +1475,13 @@ class ObjectSubtractionGenerator:
         return task_pair
 
 
-def create_dataset(num_samples: int = 50, levels: List[str] = ["type1", "type2", "type3", "type4"], 
-                   random_seed: int = 42) -> Dict[str, Any]:
+def create_dataset(num_samples: int = 50, levels: List[str] = ["type1", "type2", "type3", "type4"]) -> Dict[str, Any]:
     """
     Create object subtraction dataset - main entry point matching other tasks.
     
     Args:
         num_samples: Number of tasks to generate
         levels: List of task types to generate ("type1", "type2", "type3", "type4")
-        random_seed: Random seed for reproducible generation (default: 42)
         
     Returns:
         Dataset dictionary in standard format
@@ -1509,8 +1508,10 @@ def create_dataset(num_samples: int = 50, levels: List[str] = ["type1", "type2",
             # Map level to type number: type1->type1, type2->type2, type3->type3, type4->type4
             type_name = level.lower().replace('l', 'type')
             task_id = f"object_subtraction_{type_name}_{i:04d}"
-            # Use random_seed as base, then add level and index offsets for deterministic but unique seeds
-            seed = random_seed + level_idx * 10000 + i  # Deterministic seed based on random_seed
+            # Generate deterministic seed based on task ID hash for reproducibility
+            # This ensures deterministic generation while not requiring a random_seed parameter
+            task_hash = int(hashlib.md5(task_id.encode()).hexdigest()[:8], 16)
+            seed = task_hash + level_idx * 10000 + i
             
             try:
                 task_pair = generator.generate_single_task(task_id, level=level, seed=seed)

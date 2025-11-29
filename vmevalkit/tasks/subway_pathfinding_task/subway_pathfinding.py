@@ -102,8 +102,10 @@ def convert_fig_to_pil(fig):
     fig.canvas.draw()
     width, height = fig.canvas.get_width_height()
 
-    buf = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(height, width, 3)
-    image = Image.fromarray(buf)
+    # Use buffer_rgba() for matplotlib 3.8+ compatibility
+    buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(height, width, 4)
+    # Convert RGBA to RGB by dropping alpha channel
+    image = Image.fromarray(buf[:, :, :3])
 
     return image
 

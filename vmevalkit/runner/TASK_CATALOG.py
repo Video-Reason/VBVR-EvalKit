@@ -98,6 +98,9 @@ DOMAIN_REGISTRY = {
         'name': 'Shape Sorter',
         'description': '2D shape matching under a fixed top-down camera',
         'module': 'vmevalkit.tasks.shape_sorter_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'object_rearr': {
         'name': 'Object Rearrangement',
         'description': 'Spatial reasoning and object manipulation with spatial relations',
@@ -132,6 +135,7 @@ DOMAIN_REGISTRY = {
         'module': 'vmevalkit.tasks.edit_distance_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
@@ -146,6 +150,44 @@ DOMAIN_REGISTRY = {
         'name': 'Mirror Clock',
         'description': 'Spatial reasoning and mirror transformation using analog clock reflections',
         'module': 'vmevalkit.tasks.mirror_clock_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    # ========================================
+    # TIN'S TASKS - From simple_task_video_reasoning
+    # ========================================
+    'counting_circles': {
+        'name': 'Counting Circles',
+        'description': 'Visual counting of circles in Olympic-like arrangements (Tin\'s task)',
+        'module': 'vmevalkit.tasks.counting_circles_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'counting_pentagons': {
+        'name': 'Counting Pentagons',
+        'description': 'Visual counting of pentagons in arranged patterns (Tin\'s task)',
+        'module': 'vmevalkit.tasks.counting_pentagons_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'counting_squares': {
+        'name': 'Counting Nested Squares',
+        'description': 'Count all squares including nested ones (Tin\'s task)',
+        'module': 'vmevalkit.tasks.counting_squares_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'letter_counting': {
+        'name': 'Letter Counting',
+        'description': 'Count letter occurrences in words (Tin\'s task)',
+        'module': 'vmevalkit.tasks.letter_counting_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'subway_pathfinding': {
+        'name': 'Subway Pathfinding',
+        'description': 'Navigate through subway networks from source to destination (Tin\'s task)',
+        'module': 'vmevalkit.tasks.subway_pathfinding_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }

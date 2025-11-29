@@ -1,15 +1,8 @@
 """
 Task Catalog for VMEvalKit - Registry of all available reasoning tasks.
-
-Pure registry with no imports or logic - just task definitions organized by type.
-Uses string module paths for flexible dynamic loading.
 """
 
-# ========================================
-# TASK REGISTRY
-# ========================================
-
-DOMAIN_REGISTRY = {
+TASK_REGISTRY = {
     'videothinkbench': {
         'name': 'VideoThinkBench',
         'description': 'Complete VideoThinkBench dataset with all reasoning tasks (~4.1k tasks)',

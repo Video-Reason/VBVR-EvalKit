@@ -1,0 +1,12 @@
+
+
+models:
+  - model: svd
+  - model: wan
+
+datasets:
+  - task: maze_dataset
+    pairs_per_domain: 5
+  - task: chess_dataset
+    pairs_per_domain: 5
+

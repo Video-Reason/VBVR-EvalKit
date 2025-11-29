@@ -287,17 +287,9 @@ The `metadata.json` file contains comprehensive inference information:
 Generate dataset and run experiments:
 
 ```bash
-cd /Users/access/VMEvalKit
 source venv/bin/activate
 
-# Generate dataset (if needed)
-python -m vmevalkit.runner.create_dataset --pairs-per-domain 15
-
-# Run experiment (1 task per domain for testing)
-python examples/experiment_2025-10-14.py
-
-# Run all tasks
-python examples/experiment_2025-10-14.py --all-tasks
+python run.py
 ```
 
 ### Automatic Resume
@@ -309,19 +301,6 @@ The experiment script includes automatic resume capability:
 - ✅ Automatic skip of completed tasks
 - 🎯 Selective model execution
 - 📁 Directory-based completion tracking
-
-**Usage:**
-
-```bash
-# Run all tasks (automatically skips completed ones)
-python examples/experiment_2025-10-14.py --all-tasks
-
-# Run specific models only
-python examples/experiment_2025-10-14.py --all-tasks --only-model veo-3.0-generate
-
-# Run multiple specific models
-python examples/experiment_2025-10-14.py --all-tasks --only-model veo-3.0-generate luma-ray-2
-```
 
 **Command Options:**
 
@@ -338,64 +317,6 @@ python examples/experiment_2025-10-14.py --all-tasks --only-model veo-3.0-genera
 
 ## 💻 Python API
 
-### InferenceRunner Class
-
-The main orchestration class for video generation:
-
-```python
-from vmevalkit.runner.inference import InferenceRunner
-
-# Initialize runner
-runner = InferenceRunner(
-    output_dir="data/outputs"  # Base directory for all outputs
-)
-
-# Note: The runner creates a structured folder hierarchy:
-# output_dir/
-# ├── {domain}_task/
-# │   └── {task_id}/
-# │       └── {model}_{task}_{timestamp}/
-# │           ├── video/
-# │           ├── question/
-# │           └── metadata.json
-```
-
-### Running Single Inference
-
-```python
-# Basic usage
-result = runner.run(
-    model_name="luma-ray-2",
-    image_path="path/to/image.png",
-    text_prompt="Your prompt here"
-)
-
-# With complete task metadata (recommended)
-result = runner.run(
-    model_name="luma-ray-2",
-    image_path="data/questions/maze_task/maze_0000/first_frame.png",
-    text_prompt="Navigate through the maze",
-    run_id="custom_run_id",  # Optional: custom ID instead of auto-generated
-    question_data={           # Optional: preserves full task context
-        "id": "maze_0000",
-        "domain": "maze",
-        "difficulty": "medium",
-        "final_image_path": "path/to/final_frame.png",
-        # Any additional metadata
-    }
-)
-
-# Result dictionary contains:
-print(result.keys())
-# - run_id: Unique identifier for this run
-# - inference_dir: Path to output folder
-# - video_path: Path to generated video (if successful)
-# - status: "success" or "failed"
-# - error: Error message (if failed)
-# - timestamp: ISO format timestamp
-# - model: Model name used
-# - duration_seconds: Generation time
-```
 
 ### Batch Processing
 
@@ -429,25 +350,6 @@ successful = sum(1 for r in results if r.get("status") != "failed")
 print(f"Completed {successful}/{len(tasks)} tasks successfully")
 ```
 
-### Direct Model Invocation
-
-For lower-level control, use the `run_inference` function:
-
-```python
-from vmevalkit.runner.inference import run_inference
-
-result = run_inference(
-    model_name="runway-gen4-turbo",
-    image_path="image.png",
-    text_prompt="Animate this scene",
-    output_dir="custom_output",
-    question_data={"custom": "metadata"},
-    # Model-specific kwargs passed through
-    duration=10,  # Runway supports 5s or 10s
-    seed=42
-)
-
-## Model-Specific Configuration
 
 ### API Keys
 
@@ -467,163 +369,7 @@ S3_BUCKET=vmevalkit
 AWS_DEFAULT_REGION=us-east-2
 ```
 
-### Model-Specific Parameters
 
-Models accept parameters via **kwargs** passed directly to the generate method:
-
-```python
-# Luma models - supports duration and aspect ratio
-result = runner.run(
-    model_name="luma-ray-2",
-    image_path="image.png",
-    text_prompt="prompt",
-    duration=8,           # Video duration (seconds)
-    aspect_ratio="16:9",  # or "1:1", "9:16"
-    enhance_prompt=True,  # AI prompt enhancement
-    loop=False           # Loop video
-)
-
-# Runway models - supports 5s or 10s duration
-result = runner.run(
-    model_name="runway-gen4-turbo",
-    image_path="image.png",
-    text_prompt="prompt",
-    duration=10,  # 5 or 10 seconds only
-    seed=42      # For reproducibility
-)
-
-# Open-source models - resolution and frame settings
-result = runner.run(
-    model_name="ltx-video-13b-distilled",
-    image_path="image.png", 
-    text_prompt="prompt",
-    height=512,
-    width=512,
-    num_frames=16,  # Number of frames to generate
-    seed=42
-)
-
-# Morphic - frames-to-video interpolation (requires final_image_path in question_data)
-result = runner.run(
-    model_name="morphic-frames-to-video",
-    image_path="first_frame.png",
-    text_prompt="prompt",
-    question_data={
-        "id": "task_001",
-        "final_image_path": "final_frame.png"  # Required for Morphic
-    },
-    size="1280*720",      # Video size
-    frame_num=81,         # Number of frames
-    nproc_per_node=8      # Number of GPUs
-)
-```
-
-## 📋 Model Catalog Management
-
-### Listing Available Models
-
-```python
-from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
-
-# List all available models
-print(f"Total models: {len(AVAILABLE_MODELS)}")
-for model_name in sorted(AVAILABLE_MODELS.keys()):
-    config = AVAILABLE_MODELS[model_name]
-    print(f"  {model_name}: {config['description']}")
-
-# List models by family
-for family_name, models in MODEL_FAMILIES.items():
-    print(f"\n{family_name} ({len(models)} models):")
-    for model_name in models:
-        print(f"  - {model_name}")
-
-# Get model configuration
-model_config = AVAILABLE_MODELS["luma-ray-2"]
-print(f"Module: {model_config['wrapper_module']}")
-print(f"Class: {model_config['wrapper_class']}")
-print(f"Family: {model_config['family']}")
-```
-
-### Model Selection Helper
-
-```python
-def find_models_by_capability(capability):
-    """Find models matching a capability."""
-    matching = []
-    
-    for name, config in AVAILABLE_MODELS.items():
-        desc = config.get("description", "").lower()
-        if capability.lower() in desc:
-            matching.append((name, config["family"]))
-    
-    return matching
-
-# Find all 720p capable models
-high_res_models = find_models_by_capability("720p")
-print(f"Models with 720p support: {len(high_res_models)}")
-for model, family in high_res_models:
-    print(f"  {model} ({family})")
-```
-
-## 🔧 Error Handling & Recovery
-
-### Error Handling Architecture
-
-VMEvalKit implements **multi-level error handling**:
-
-1. **Model Level** - Individual wrappers handle API-specific errors
-2. **Runner Level** - InferenceRunner catches and logs failures
-3. **Experiment Level** - Batch scripts skip failed tasks
-
-### Retry Logic
-
-Some models implement automatic retry (e.g., Luma):
-```python
-# In LumaInference - uses tenacity library
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10)
-)
-def _create_generation(self, image_url, text_prompt):
-    # API call with automatic retry on failure
-```
-
-### Resume Capability
-
-The system uses **directory-based tracking** for resume:
-
-```python
-# Check if task already completed
-task_folder = output_dir / domain_task / task_id
-existing_runs = list(task_folder.glob(f"{model_name}_{task_id}_*"))
-
-if existing_runs:
-    print(f"Skipping completed task: {task_id}")
-    continue  # Skip to next task
-
-# To retry a failed task:
-# 1. Delete its output directory
-import shutil
-shutil.rmtree("data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250101_120000")
-# 2. Re-run the experiment
-```
-
-### Error Information
-
-Failed inferences create a metadata.json with error details:
-```json
-{
-  "inference": {
-    "status": "failed",
-    "error": "API rate limit exceeded",
-    "timestamp": "2025-01-01T12:00:00Z",
-    "model": "luma-ray-2"
-  },
-  "paths": {
-    "inference_dir": "data/outputs/maze_task/maze_0000/luma-ray-2_maze_0000_20250101_120000"
-  }
-}
-```
 
 ### Common Error Types
 
@@ -636,17 +382,6 @@ Failed inferences create a metadata.json with error details:
 | SVG conversion | Some tasks use SVG | Auto-converts to PNG with cairosvg |
 
 ## 💡 Tips and Best Practices
-
-### Performance Optimization
-
-| Tip | Description | Impact |
-|-----|-------------|--------|
-| **Start Small** | Test with 1 task per domain first | Saves API costs, validates setup |
-| **Use --only-model** | Test specific models during development | Faster iteration |
-| **Batch by Model** | Process all tasks for one model before switching | Better rate limit management |
-| **Monitor Costs** | Track API usage for commercial models | Budget control |
-| **Leverage Resume** | Don't restart from scratch after failures | Time savings |
-
 ### Quality Assurance
 
 ```python
@@ -793,21 +528,6 @@ class CustomRunner(InferenceRunner):
             json.dump({"custom": "data"}, f)
 ```
 
-### Hooks and Callbacks
-
-```python
-# Process results after each inference
-def process_result(result):
-    if result["status"] == "success":
-        # Your custom logic here
-        print(f"Video duration: {result.get('duration_seconds')}")
-
-# Use in batch processing
-for task in tasks:
-    result = runner.run(...)
-    process_result(result)
-```
-
 ## 📖 Related Documentation
 
 | Guide | Description |
@@ -819,25 +539,6 @@ for task in tasks:
 | [ADDING_TASKS.md](ADDING_TASKS.md) | Creating new reasoning tasks |
 
 ## 📋 Quick Reference
-
-### Essential Commands
-
-```bash
-# Generate dataset
-python -m vmevalkit.runner.create_dataset --pairs-per-domain 15
-
-# Run quick test (1 task per domain)
-python examples/experiment_2025-10-14.py
-
-# Run full experiment
-python examples/experiment_2025-10-14.py --all-tasks
-
-# Run specific models only
-python examples/experiment_2025-10-14.py --all-tasks --only-model luma-ray-2 veo-3.0-generate
-
-# List available models
-python -c "from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS; print(list(AVAILABLE_MODELS.keys()))"
-```
 
 ### Key File Locations
 
@@ -856,37 +557,6 @@ VMEvalKit/
     └── experiment_2025-10-14.py    # Main experiment script
 ```
 
-### API Quick Reference
-
-```python
-# Initialize
-from vmevalkit.runner.inference import InferenceRunner
-runner = InferenceRunner(output_dir="data/outputs")
-
-# Run inference
-result = runner.run(
-    model_name="model-name",         # Required: from MODEL_CATALOG
-    image_path="path/to/image.png",  # Required: input image
-    text_prompt="prompt text",        # Required: instructions
-    run_id="custom_id",              # Optional: custom run ID
-    question_data={...},             # Optional: task metadata
-    **kwargs                         # Model-specific parameters
-)
-
-# Check result
-if result["status"] == "success":
-    print(f"Video: {result['video_path']}")
-else:
-    print(f"Error: {result['error']}")
-```
-
-### Model Naming Convention
-
-| Pattern | Example | Meaning |
-|---------|---------|---------|
-| `provider-model-variant` | `luma-ray-2` | Provider + model + version |
-| `provider-model-resolution` | `veo-3.1-720p` | With resolution variant |
-| `provider-family-version-feature` | `wavespeed-wan-2.2-i2v-720p-lora` | Full specification |
 
 ### Environment Variables
 
@@ -912,14 +582,3 @@ MORPHIC_WAN2_CKPT_DIR=./Wan2.2-I2V-A14B
 MORPHIC_LORA_WEIGHTS_PATH=./morphic-frames-lora-weights/lora_interpolation_high_noise_final.safetensors
 MORPHIC_NPROC_PER_NODE=8
 ```
-
-### Success Metrics
-
-- ✅ **Successful inference**: Video file exists in output directory
-- 📁 **Resume detection**: Directory exists = task completed
-- ❌ **Failed inference**: metadata.json contains error details
-- ⏭️ **Skipped task**: Existing output directory found
-
----
-
-*VMEvalKit Inference Module - Version 1.0*

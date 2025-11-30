@@ -7,7 +7,7 @@ The Object Subtraction Task evaluates video generation models' ability to demons
 This task introduces a scalable, cognitively layered reasoning benchmark where models must:
 - Understand selective removal instructions
 - Remove specific objects based on explicit or abstract rules
-- Keep non-target objects in their exact positions
+- Keep non-target objects unchanged (do not do anything to other objects)
 - Generate physically plausible transitions
 
 ## Task Description
@@ -17,7 +17,7 @@ This task introduces a scalable, cognitively layered reasoning benchmark where m
 Models must:
 1. **Parse Instructions**: Understand which objects to remove based on the prompt
 2. **Selective Removal**: Remove only the specified objects
-3. **Spatial Invariance**: Keep all other objects in their exact positions
+3. **Spatial Invariance**: Do not do anything to other objects (keep them unchanged)
 4. **Generate Transition**: Create smooth video showing objects being removed
 
 ### Visual Format
@@ -28,16 +28,23 @@ Models must:
 - **Colors**: Red, green, blue, yellow, orange, purple
 - **Shapes**: Cube (square), sphere (circle), pyramid (triangle), cone (trapezoid)
 
-## Cognitive Levels
+## Task Types
 
-### Level 1: Explicit Specificity ✅ (Implemented)
+The Object Subtraction Task is organized into four reasoning types:
+
+1. **Type 1: Attribute Matching** - Remove by explicit visual attributes
+2. **Type 2: Enumerated Selection** - Remove explicitly listed objects
+3. **Type 3: Spatial Relational** - Remove by spatial relations
+4. **Type 4: Conceptual Abstraction** - Remove by conceptual properties
+
+### Type 1: Attribute Matching 
 
 **Task Type:**  
-Remove objects defined by **explicit visual attributes** (e.g., color, shape).
+Remove objects defined by **explicit visual attributes** (color or shape only).
 
 **Prompt Examples:**
-- "Remove all red objects from the scene. Keep all other objects in their exact positions."
-- "Move all blue objects out of view. Do not move any other objects."
+- "Remove all {color} objects from the scene. Do not do anything to other objects." (colors: red, green, blue, yellow, orange, purple)
+- "Remove all {shape} objects from the scene. Do not do anything to other objects." (shapes: cube, sphere, pyramid, cone)
 
 **Example Scene:**
 - **First Frame**: White background with 5-7 colored shapes (red cubes, green spheres, blue pyramids)
@@ -46,41 +53,52 @@ Remove objects defined by **explicit visual attributes** (e.g., color, shape).
 **Rule Structure:**
 ```python
 {
-  "level": "L1",
+  "level": "type1",
   "rule_type": "color",  # or "shape"
   "remove_color": "red",  # or "remove_shape": "cube"
   "target_object_ids": [0, 1]  # Explicit object IDs to remove
 }
 ```
 
+**Object Size:**  
+All objects have uniform size (30 pixels) to focus on color and shape attributes only.
+
 **Cognitive Focus:**  
 Visual recognition · Simple selection · Static invariance
 
-### Level 2: Enumerated Selection (Planned)
+### Type 2: Enumerated Selection 
 
 **Task Type:**  
 Remove multiple **explicitly listed** objects by color and shape.
 
-**Prompt Example:**
-- "Remove the red cube, the green sphere, and the blue pyramid from the scene. Keep all other objects fixed in their positions."
+**Prompt Examples:**
+- "Remove the red cube, the green sphere, and the blue pyramid from the scene. Do not do anything to other objects."
+- "Remove the orange pyramid and the red cone from the scene. Do not do anything to other objects."
 
-### Level 3: Relational Reference (Planned)
+### Type 3: Spatial Relational 
 
 **Task Type:**  
-Remove objects using **spatial or numeric relations** instead of explicit labels.
+Remove objects using **spatial relations** (edge-based positions) instead of explicit labels.
 
 **Prompt Examples:**
-- "Remove the three objects on the left side of the screen."
-- "Remove the two objects farthest from the center."
+- "Remove the leftmost object. Do not do anything to other objects."
+- "Remove the {N} leftmost objects. Do not do anything to other objects."
+- "Remove the rightmost object. Do not do anything to other objects."
+- "Remove the {N} rightmost objects. Do not do anything to other objects."
+- "Remove the topmost object. Do not do anything to other objects."
+- "Remove the {N} topmost objects. Do not do anything to other objects."
+- "Remove the bottommost object. Do not do anything to other objects."
+- "Remove the {N} bottommost objects. Do not do anything to other objects."
 
-### Level 4: Conceptual Abstraction (Planned)
+### Type 4: Conceptual Abstraction 
 
 **Task Type:**  
-Remove objects based on **semantic or conceptual properties** (size, similarity, exception).
+Remove objects based on **semantic or conceptual properties** (outlier detection).
 
 **Prompt Examples:**
-- "Remove all large objects and keep only the small ones."
-- "Remove the object that looks different from the others."
+- "Remove the object that looks different from the others. Do not do anything to other objects."
+
+**Note:** All Type 4 tasks use the same unified prompt, regardless of the specific type of outlier (combination, shape consistency, or color consistency). This makes the task more abstract - the model needs to figure out what makes the object different.
 
 ## Data Structure
 
@@ -89,12 +107,12 @@ Remove objects based on **semantic or conceptual properties** (size, similarity,
 Each task consists of:
 ```python
 {
-    "id": "object_subtraction_l1_0001",
+    "id": "object_subtraction_type1_0001",
     "prompt": "Remove all red objects...",
     "first_image_path": "path/to/first_frame.png",
     "final_image_path": "path/to/final_frame.png",
     "task_category": "ObjectSubtraction",
-    "level": "L1",
+    "level": "type1",
     "object_subtraction_data": {
         "objects": [...],  # All objects with id, color, shape, x, y, size, area
         "rule": {...},     # Rule definition
@@ -116,12 +134,30 @@ Each task consists of:
 - **Collision Detection**: Ensures objects don't overlap
 - **Grid Fallback**: If random placement fails, uses grid-based layout
 - **Deterministic**: Uses seeds for reproducibility
+- **Uniform Size**: All objects across all types have uniform size (30 pixels) to focus on other attributes (color, shape, position, conceptual properties)
 
-### Rule Generation (Level 1)
+### Rule Generation
 
+**Type 1:**
 - **Color-based**: Selects a color and finds all objects with that color
 - **Shape-based**: Selects a shape and finds all objects with that shape
 - **Uniqueness**: Each rule explicitly lists `target_object_ids` for unambiguous removal
+- **Object Size**: All objects have uniform size (30 pixels) to focus on color and shape attributes
+
+**Type 2:**
+- **Enumerated Selection**: Removes 1-3 explicitly listed objects by color and shape combination
+- **Object Size**: All objects have uniform size (30 pixels)
+
+**Type 3:**
+- **Spatial Relations**: Removes objects based on edge-based spatial positions (leftmost, rightmost, topmost, bottommost only)
+- **Object Size**: All objects have uniform size (30 pixels)
+
+**Type 4:**
+- **Combination Outlier Detection**: Removes the object that looks different from others (based on color+shape combination majority)
+- **Shape Consistency Outlier**: Removes the object with different shape (majority has same shape but different colors)
+- **Color Consistency Outlier**: Removes the object with different color (majority has same color but different shapes)
+- **Object Size**: All objects have uniform size (30 pixels)
+- **Unified Prompt**: All type4 tasks use the same prompt regardless of outlier type
 
 ### Image Rendering
 
@@ -140,11 +176,11 @@ Each task consists of:
 ```python
 from vmevalkit.tasks.object_subtraction_task import create_dataset
 
-# Generate 50 tasks (Level 1 only)
-dataset = create_dataset(num_samples=50, levels=["L1"])
+# Generate 50 tasks (Type 1 only)
+dataset = create_dataset(num_samples=50, levels=["type1"])
 
-# Generate tasks for multiple levels (when implemented)
-dataset = create_dataset(num_samples=100, levels=["L1", "L2"])
+# Generate tasks for multiple types
+dataset = create_dataset(num_samples=100, levels=["type1", "type2", "type3", "type4"])
 ```
 
 ### Command Line
@@ -168,11 +204,11 @@ python examples/create_questions.py --task object_subtraction --pairs-per-domain
 
 ### Domain Registry
 
-Registered in `vmevalkit/utils/constant.py`:
+Registered in `vmevalkit/runner/TASK_CATALOG.py`:
 ```python
 'object_subtraction': {
     'name': 'Object Subtraction',
-    'description': 'Selective object removal with multi-level cognitive reasoning',
+    'description': 'Selective object removal with multiple reasoning types',
     'module': 'vmevalkit.tasks.object_subtraction_task',
     'create_function': 'create_dataset',
     'process_dataset': lambda dataset, num_samples: dataset['pairs']
@@ -190,11 +226,31 @@ data/questions/object_subtraction_task/{task_id}/
 └── question_metadata.json
 ```
 
+**Task ID Format:**
+
+Task IDs use numbered types (type1-type4) that correspond to different cognitive reasoning types:
+
+- **Type 1** (Attribute Matching): `object_subtraction_type1_0001`, `object_subtraction_type1_0002`, ...
+  - **Task Description**: Remove objects by explicit visual attributes (color or shape)
+  - **Examples**: "Remove all red objects from the scene." or "Remove all cube objects from the scene."
+  
+- **Type 2** (Enumerated Selection): `object_subtraction_type2_0001`, `object_subtraction_type2_0002`, ...
+  - **Task Description**: Remove multiple explicitly listed objects by color and shape combination
+  - **Examples**: "Remove the red cube, the green sphere, and the blue pyramid from the scene."
+  
+- **Type 3** (Spatial Relational): `object_subtraction_type3_0001`, `object_subtraction_type3_0002`, ...
+  - **Task Description**: Remove objects using spatial relations (edge-based positions)
+  - **Examples**: "Remove the leftmost object." or "Remove the 2 rightmost objects."
+  
+- **Type 4** (Conceptual Abstraction): `object_subtraction_type4_0001`, `object_subtraction_type4_0002`, ...
+  - **Task Description**: Remove objects based on semantic or conceptual properties (outlier detection)
+  - **Examples**: "Remove the object that looks different from the others."
+
 ## Future Extensions
 
-- [ ] Implement Level 2 (Enumerated Selection)
-- [ ] Implement Level 3 (Relational Reference)
-- [ ] Implement Level 4 (Conceptual Abstraction)
+- [x] Implement Type 2 (Enumerated Selection)
+- [x] Implement Type 3 (Spatial Relational)
+- [x] Implement Type 4 (Conceptual Abstraction)
 - [ ] Add evaluation metrics
 - [ ] Support for more object types and colors
 - [ ] Configurable canvas sizes
@@ -203,4 +259,6 @@ data/questions/object_subtraction_task/{task_id}/
 ## References
 
 - [GitHub Issue #54](https://github.com/hokindeng/VMEvalKit/issues/54) - Original task proposal
+
+
 

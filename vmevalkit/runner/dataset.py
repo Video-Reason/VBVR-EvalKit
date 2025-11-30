@@ -196,7 +196,6 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
     import importlib
     module = importlib.import_module(domain_config['module'])
     create_func = getattr(module, domain_config['create_function'])
-    
     dataset = create_func(num_samples=num_samples)
     
     if domain_config['process_dataset']:

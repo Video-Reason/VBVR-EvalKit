@@ -23,7 +23,8 @@ TASK_GUIDANCE = {
     "maze_task": "Verify that the final frame shows a complete path from start to end that matches the expected solution.",
     "rotation_task": "Check if the final rotation angle and position match the expected result.",
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
-    "sudoku_task": "Check if the numbers placed in the final frame match the expected solution."
+    "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
+    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete."
 }
 
 

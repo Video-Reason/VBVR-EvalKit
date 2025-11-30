@@ -37,14 +37,14 @@ The Object Subtraction Task is organized into four reasoning types:
 3. **Type 3: Spatial Relational** - Remove by spatial relations
 4. **Type 4: Conceptual Abstraction** - Remove by conceptual properties
 
-### Type 1: Attribute Matching ✅ (Implemented)
+### Type 1: Attribute Matching 
 
 **Task Type:**  
 Remove objects defined by **explicit visual attributes** (color or shape only).
 
 **Prompt Examples:**
-- "Remove all {color} objects from the scene. Do not do anything to other objects." (颜色: red, green, blue, yellow, orange, purple)
-- "Remove all {shape} objects from the scene. Do not do anything to other objects." (形状: cube, sphere, pyramid, cone)
+- "Remove all {color} objects from the scene. Do not do anything to other objects." (colors: red, green, blue, yellow, orange, purple)
+- "Remove all {shape} objects from the scene. Do not do anything to other objects." (shapes: cube, sphere, pyramid, cone)
 
 **Example Scene:**
 - **First Frame**: White background with 5-7 colored shapes (red cubes, green spheres, blue pyramids)
@@ -66,7 +66,7 @@ All objects have uniform size (30 pixels) to focus on color and shape attributes
 **Cognitive Focus:**  
 Visual recognition · Simple selection · Static invariance
 
-### Type 2: Enumerated Selection ✅ (Implemented)
+### Type 2: Enumerated Selection 
 
 **Task Type:**  
 Remove multiple **explicitly listed** objects by color and shape.
@@ -75,7 +75,7 @@ Remove multiple **explicitly listed** objects by color and shape.
 - "Remove the red cube, the green sphere, and the blue pyramid from the scene. Do not do anything to other objects."
 - "Remove the orange pyramid and the red cone from the scene. Do not do anything to other objects."
 
-### Type 3: Spatial Relational ✅ (Implemented)
+### Type 3: Spatial Relational 
 
 **Task Type:**  
 Remove objects using **spatial relations** (edge-based positions) instead of explicit labels.
@@ -90,7 +90,7 @@ Remove objects using **spatial relations** (edge-based positions) instead of exp
 - "Remove the bottommost object. Do not do anything to other objects."
 - "Remove the {N} bottommost objects. Do not do anything to other objects."
 
-### Type 4: Conceptual Abstraction ✅ (Implemented)
+### Type 4: Conceptual Abstraction 
 
 **Task Type:**  
 Remove objects based on **semantic or conceptual properties** (outlier detection).
@@ -181,9 +181,6 @@ dataset = create_dataset(num_samples=50, levels=["type1"])
 
 # Generate tasks for multiple types
 dataset = create_dataset(num_samples=100, levels=["type1", "type2", "type3", "type4"])
-
-# Generate tasks for all types with deterministic seed
-dataset = create_dataset(num_samples=100, levels=["type1", "type2", "type3", "type4"], random_seed=42)
 ```
 
 ### Command Line

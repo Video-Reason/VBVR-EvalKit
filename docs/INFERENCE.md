@@ -37,39 +37,6 @@ data/questions/
 
 Models receive the initial state + prompt and must generate videos demonstrating the reasoning process to reach the final state.
 
-## 🎬 Supported Models
-
-VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
-
-### Commercial APIs (32 models)
-
-| Provider | Models | Key Features | API Required |
-|----------|---------|-------------|--------------|
-| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | `LUMA_API_KEY` |
-| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | GCP credentials |
-| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | `WAVESPEED_API_KEY` |
-| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | `WAVESPEED_API_KEY` |
-| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | `WAVESPEED_API_KEY` |
-| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | `RUNWAY_API_SECRET` |
-| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | `OPENAI_API_KEY` |
-
-### Open-Source Models (9 models)
-
-| Provider | Models | Key Features | Hardware Requirements |
-|----------|---------|-------------|----------------------|
-| **LTX-Video** | 3 | 2B/13B variants, real-time generation | GPU with 16GB+ VRAM |
-| **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
-| **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
-| **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
-| **Morphic** | 1 | Frames-to-video interpolation using Wan2.2 | 8 GPUs (distributed), requires Wan2.2 weights |
-
-**✨ Key Capabilities:**
-- All models support **image + text → video** generation
-- Unified interface through `ModelWrapper` base class
-- Dynamic loading - models initialized only when needed
-- Automatic retry logic for API failures
-- S3 upload support for models requiring image URLs
-
 ## 🏗️ Architecture
 
 ### System Design
@@ -115,60 +82,6 @@ VMEvalKit uses a **three-layer modular architecture** that cleanly supports both
 - **MODEL_CATALOG** lists both API-based (closed-source) and open-source models in one place. Each model specifies its provider, class paths, and type (`"api"` or `"open_source"`).
 - **Dynamic loading** means only the requested model's code is ever imported—no slow startup for unused models.
 - **Wrappers** for APIs and open-source models both inherit from `ModelWrapper` (or equivalent) and expose a common `.generate()` interface. API wrappers talk to services handling REST calls (with retry logic, S3 upload, etc), while open-source wrappers call local PyTorch/Tensorflow code.
-- This organization makes it trivial to:
-  - Add a new commercial model (just code wrapper/service, update catalog)
-  - Integrate new open-source models (add wrapper, point catalog)
-  - Avoid any circular dependencies or bloat at startup
-
-
-### Component Breakdown
-
-**1. MODEL_CATALOG.py** - Pure Registry
-```python
-# No imports of model implementations!
-AVAILABLE_MODELS = {
-    "luma-ray-2": {
-        "wrapper_module": "vmevalkit.models.luma_inference",
-        "wrapper_class": "LumaWrapper",
-        "service_class": "LumaInference",
-        "model": "ray-2",
-        "family": "Luma Dream Machine"
-    },
-    # ... 39 more models
-}
-```
-
-**2. Dynamic Loading System**
-```python
-def _load_model_wrapper(model_name: str) -> Type[ModelWrapper]:
-    config = AVAILABLE_MODELS[model_name]
-    # Dynamic import at runtime
-    module = importlib.import_module(config["wrapper_module"])
-    wrapper_class = getattr(module, config["wrapper_class"])
-    return wrapper_class
-```
-
-**3. Wrapper/Service Pattern**
-- **Service**: Handles API calls and model-specific logic
-- **Wrapper**: Adapts service to unified VMEvalKit interface
-```python
-class LumaWrapper(ModelWrapper):  # Unified interface
-    def __init__(self, model: str, output_dir: str, **kwargs):
-        self.luma_service = LumaInference(model, **kwargs)  # Specific implementation
-    
-    def generate(self, image_path, text_prompt, **kwargs):
-        return self.luma_service.generate(...)  # Delegates to service
-```
-
-### Key Advantages
-
-| Feature | Benefit |
-|---------|---------|
-| **No Circular Dependencies** | MODEL_CATALOG has no imports of model code |
-| **Lazy Loading** | Models loaded only when actually used |
-| **Easy Extension** | Add models by updating catalog + adding implementation |
-| **Consistent Interface** | All models expose same `generate()` method |
-| **Separation of Concerns** | Registry, orchestration, and implementation are isolated |
 
 ## 📂 Structured Output System
 
@@ -247,15 +160,7 @@ The `metadata.json` file contains comprehensive inference information:
 }
 ```
 
-### Benefits of This Structure
 
-| Aspect | Benefit |
-|--------|---------|
-| **Reproducibility** | All inputs and outputs preserved together |
-| **Batch Analysis** | Easy to process results programmatically |
-| **Resume Capability** | Directory presence indicates completion |
-| **Version Control** | Each run has unique timestamp |
-| **Evaluation Ready** | Structured for downstream evaluation pipelines |
 
 ## Running Experiments
 
@@ -269,28 +174,6 @@ source venv/bin/activate
 python run.py
 ```
 
-### Automatic Resume
-
-The experiment script includes automatic resume capability:
-
-**Features:**
-- 🔄 Sequential execution: one model at a time, one task at a time
-- ✅ Automatic skip of completed tasks
-- 🎯 Selective model execution
-- 📁 Directory-based completion tracking
-
-**Command Options:**
-
-| Option | Description |
-|--------|-------------|
-| `--all-tasks` | Run all tasks instead of 1 per domain |
-| `--only-model [MODEL ...]` | Run only specified models (others skipped) |
-
-**How It Works:**
-- Automatically detects existing output directories
-- Skips tasks that already have successful inference results
-- To retry failed tasks: manually delete their output directories
-- No separate checkpoint files - uses directory presence for tracking
 
 ## 💻 Python API
 
@@ -480,15 +363,6 @@ result = run_inference(
 
 ## 🔌 Extending the System
 
-### Adding Custom Models
-
-See [ADDING_MODELS.md](ADDING_MODELS.md) for the complete guide. Quick overview:
-
-1. Add entry to MODEL_CATALOG.py
-2. Create wrapper class inheriting from ModelWrapper
-3. Implement generate() method
-4. No changes needed in core files!
-
 ### Custom Output Processing
 
 ```python
@@ -503,59 +377,4 @@ class CustomRunner(InferenceRunner):
         custom_file = inference_dir / "custom_analysis.json"
         with open(custom_file, 'w') as f:
             json.dump({"custom": "data"}, f)
-```
-
-## 📖 Related Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [ADDING_MODELS.md](ADDING_MODELS.md) | Complete guide to adding new video models |
-| [EVALUATION.md](EVALUATION.md) | Human and AI evaluation pipelines |
-| [WEB_DASHBOARD.md](WEB_DASHBOARD.md) | Interactive results visualization |
-| [DATA_MANAGEMENT.md](DATA_MANAGEMENT.md) | Dataset organization and versioning |
-| [ADDING_TASKS.md](ADDING_TASKS.md) | Creating new reasoning tasks |
-
-## 📋 Quick Reference
-
-### Key File Locations
-
-```
-VMEvalKit/
-├── .env                              # API keys configuration
-├── vmevalkit/
-│   ├── runner/
-│   │   ├── MODEL_CATALOG.py        # All model definitions
-│   │   └── inference.py            # InferenceRunner class
-│   └── models/                      # Model implementations
-├── data/
-│   ├── questions/                  # Input task pairs
-│   └── outputs/                    # Generated videos
-└── examples/
-    └── experiment_2025-10-14.py    # Main experiment script
-```
-
-
-### Environment Variables
-
-```bash
-# Commercial APIs
-LUMA_API_KEY=xxx
-WAVESPEED_API_KEY=xxx
-RUNWAY_API_SECRET=xxx
-OPENAI_API_KEY=xxx
-
-# Google Cloud (for Veo)
-GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
-GCP_PROJECT_ID=your-project-id
-
-# AWS S3 (optional)
-AWS_ACCESS_KEY_ID=xxx
-AWS_SECRET_ACCESS_KEY=xxx
-S3_BUCKET=vmevalkit
-AWS_DEFAULT_REGION=us-east-2
-
-# Morphic Frames-to-Video (open-source)
-MORPHIC_WAN2_CKPT_DIR=./Wan2.2-I2V-A14B
-MORPHIC_LORA_WEIGHTS_PATH=./morphic-frames-lora-weights/lora_interpolation_high_noise_final.safetensors
-MORPHIC_NPROC_PER_NODE=8
 ```

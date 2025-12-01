@@ -303,10 +303,8 @@ open data/questions/your_task_task/your_task_0000/first_frame.png
 | Issue | Solution |
 |-------|----------|
 | `ModuleNotFoundError` | Add to `DOMAIN_REGISTRY` in `TASK_CATALOG.py` |
-| Images not generated | `pip install matplotlib` |
 | Wrong format | Always use PNG, not JPEG |
 | Import errors | Check `__init__.py` exports `create_dataset` |
-| Images too large | Use `figsize=(6,6), dpi=150` |
 | Temp files accumulating | Use `tempfile.mkdtemp()` |
 
 ## 📚 Advanced Patterns

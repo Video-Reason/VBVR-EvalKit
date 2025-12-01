@@ -1,15 +1,20 @@
 
+## 🎬 Supported Models
+
+VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
+
+
 ### Commercial APIs (32 models)
 
-| Provider | Models | Key Features | 
-|----------|---------|-------------|
-| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | 
-| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | 
-| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | 
-| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | 
-| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | 
-| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | 
-| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | 
+| Provider | Models | Key Features | API Required |
+|----------|---------|-------------|--------------|
+| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | `LUMA_API_KEY` |
+| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | GCP credentials |
+| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | `WAVESPEED_API_KEY` |
+| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | `WAVESPEED_API_KEY` |
+| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | `WAVESPEED_API_KEY` |
+| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | `RUNWAY_API_SECRET` |
+| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | `OPENAI_API_KEY` |
 
 ### Open-Source Models
 
@@ -25,3 +30,5 @@
 
 For commercial APIs, we support Luma Dream Machine, Google Veo, Google Veo 3.1, WaveSpeed WAN 2.1, WaveSpeed WAN 2.2, Runway ML, OpenAI Sora.
 For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, Stable Video Diffusion, Morphic, LTX-Video.
+
+

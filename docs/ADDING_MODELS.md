@@ -2,6 +2,17 @@
 
 VMEvalKit uses a **clean modular architecture** with dynamic loading, designed for scalability and easy model integration. This guide provides comprehensive instructions for integrating new video generation models.
 
+
+### Adding Custom Models
+
+See [ADDING_MODELS.md](ADDING_MODELS.md) for the complete guide. Quick overview:
+
+1. Add entry to MODEL_CATALOG.py
+2. Create wrapper class inheriting from ModelWrapper
+3. Implement generate() method
+4. No changes needed in core files!
+
+
 ## 🏗️ Architecture Overview
 
 ### Core System Design
@@ -135,10 +146,7 @@ class ModelWrapper(ABC):
 
 ### Technical Requirements
 ✅ **Handle authentication properly**: Use environment variables for API keys  
-✅ **Validate inputs**: Check image exists before processing  
-✅ **Handle errors gracefully**: Return proper error dictionary, don't raise exceptions  
 ✅ **Support async operations**: Use asyncio.run() for async services  
-✅ **Save videos locally**: Always save to self.output_dir
 
 ## 🎯 Implementation Guide
 

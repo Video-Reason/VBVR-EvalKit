@@ -1,27 +1,25 @@
 """
 2D Dice Opposite Face Reasoning Task
 
-This task evaluates spatial reasoning and logical deduction by asking models
-to determine the opposite face of a standard dice using the rule that
-opposite faces always sum to 7.
+Evaluates video generation models' visual reasoning ability through dice
+opposite face problems with varying complexity based on number of dice.
 
-Uses 2D rendered dice faces for visual clarity and accessibility.
-
-Task Types:
-- Easy: Direct opposite face question (show 1 face)
-- Medium: Inference from multiple visible faces
-- Hard: Complex spatial reasoning with constraints
+Difficulty Levels:
+- Easy (1 dice): Direct opposite face question
+- Medium (2 dice): Visual selection + opposite face
+- Hard (3 dice): Multi-dice comparison + opposite face
+- Expert (4 dice): Complex selection + opposite face
 """
 
 import random
+import tempfile
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass
+from itertools import product
 import json
 
-from PIL import Image, ImageDraw
-
-from .PROMPTS import PROMPTS, DEFAULT_PROMPT_INDEX
+from PIL import Image, ImageDraw, ImageFont
 
 
 @dataclass
@@ -36,16 +34,14 @@ class DiceTaskPair:
 
 
 class DiceRenderer:
-    """Render 2D dice faces showing dot patterns"""
+    """Render 2D dice faces - single or multiple"""
 
-    def __init__(self, face_size=300):
+    def __init__(self, face_size: int = 200, padding: int = 20):
         self.face_size = face_size
+        self.padding = padding
 
-    def _get_dot_positions(self, number: int):
-        """
-        Get dot positions for dice face (1-6)
-        Returns positions in a 3x3 grid: -1, 0, 1
-        """
+    def _get_dot_positions(self, number: int) -> List[Tuple[int, int]]:
+        """Get dot positions for dice face (1-6) in 3x3 grid"""
         patterns = {
             1: [(0, 0)],
             2: [(-1, -1), (1, 1)],
@@ -56,212 +52,399 @@ class DiceRenderer:
         }
         return patterns.get(number, [])
 
-    def _draw_dot(self, draw, x, y, radius=12, color='#000000'):
-        """Draw a single dot"""
-        draw.ellipse([x - radius, y - radius, x + radius, y + radius],
-                     fill=color, outline=color)
+    def _draw_rounded_rect(self, draw: ImageDraw, bbox: List[int],
+                           radius: int, fill: str, outline: str, width: int):
+        """Draw rounded rectangle (compatible with older Pillow)"""
+        x1, y1, x2, y2 = bbox
 
-    def draw_dice_face(self, number: int) -> Image.Image:
-        """
-        Draw a single dice face showing the number
+        # Try new method first, fall back to manual drawing
+        try:
+            draw.rounded_rectangle(bbox, radius=radius, fill=fill,
+                                  outline=outline, width=width)
+        except AttributeError:
+            # Manual rounded rectangle for older Pillow
+            draw.rectangle([x1 + radius, y1, x2 - radius, y2], fill=fill)
+            draw.rectangle([x1, y1 + radius, x2, y2 - radius], fill=fill)
+            draw.pieslice([x1, y1, x1 + 2*radius, y1 + 2*radius], 180, 270, fill=fill)
+            draw.pieslice([x2 - 2*radius, y1, x2, y1 + 2*radius], 270, 360, fill=fill)
+            draw.pieslice([x1, y2 - 2*radius, x1 + 2*radius, y2], 90, 180, fill=fill)
+            draw.pieslice([x2 - 2*radius, y2 - 2*radius, x2, y2], 0, 90, fill=fill)
+            # Draw outline
+            draw.arc([x1, y1, x1 + 2*radius, y1 + 2*radius], 180, 270, fill=outline, width=width)
+            draw.arc([x2 - 2*radius, y1, x2, y1 + 2*radius], 270, 360, fill=outline, width=width)
+            draw.arc([x1, y2 - 2*radius, x1 + 2*radius, y2], 90, 180, fill=outline, width=width)
+            draw.arc([x2 - 2*radius, y2 - 2*radius, x2, y2], 0, 90, fill=outline, width=width)
+            draw.line([x1 + radius, y1, x2 - radius, y1], fill=outline, width=width)
+            draw.line([x1 + radius, y2, x2 - radius, y2], fill=outline, width=width)
+            draw.line([x1, y1 + radius, x1, y2 - radius], fill=outline, width=width)
+            draw.line([x2, y1 + radius, x2, y2 - radius], fill=outline, width=width)
 
-        Args:
-            number: Number to show (1-6)
+    def _draw_single_dice(self, draw: ImageDraw, x: int, y: int,
+                          number: int, label: Optional[str] = None):
+        """Draw a single dice face at position (x, y)"""
+        size = self.face_size
+        margin = 15
 
-        Returns:
-            PIL Image of the dice face
-        """
-        # Create image
-        img = Image.new('RGB', (self.face_size, self.face_size), color='white')
-        draw = ImageDraw.Draw(img)
-
-        # Draw rounded rectangle for dice face
-        margin = 30
-        radius = 20
-        draw.rounded_rectangle(
-            [margin, margin, self.face_size - margin, self.face_size - margin],
-            radius=radius,
+        # Draw rounded rectangle
+        self._draw_rounded_rect(
+            draw,
+            [x + margin, y + margin, x + size - margin, y + size - margin],
+            radius=15,
             fill='#FFFFFF',
             outline='#333333',
-            width=4
+            width=3
         )
 
-        # Calculate center and spacing
-        center = self.face_size // 2
-        spacing = self.face_size // 4
+        # Draw dots
+        center_x = x + size // 2
+        center_y = y + size // 2
+        spacing = size // 4
+        dot_radius = size // 18
 
-        # Get and draw dot pattern
-        dot_positions = self._get_dot_positions(number)
-        for row, col in dot_positions:
-            dot_x = center + col * spacing
-            dot_y = center + row * spacing
-            self._draw_dot(draw, dot_x, dot_y, radius=14)
+        for row, col in self._get_dot_positions(number):
+            dot_x = center_x + col * spacing
+            dot_y = center_y + row * spacing
+            draw.ellipse(
+                [dot_x - dot_radius, dot_y - dot_radius,
+                 dot_x + dot_radius, dot_y + dot_radius],
+                fill='#000000'
+            )
+
+        # Draw label if provided
+        if label:
+            label_y = y + size - 8
+            draw.text((x + size // 2, label_y), label,
+                     fill='#666666', anchor='mm')
+
+    def draw_dice_face(self, number: int) -> Image.Image:
+        """Draw a single dice face"""
+        img = Image.new('RGB', (self.face_size, self.face_size), color='#F5F5F5')
+        draw = ImageDraw.Draw(img)
+        self._draw_single_dice(draw, 0, 0, number)
+        return img
+
+    def draw_multiple_dice(self, numbers: List[int],
+                           labels: Optional[List[str]] = None) -> Image.Image:
+        """
+        Draw multiple dice faces horizontally
+
+        Args:
+            numbers: List of dice values (1-6)
+            labels: Optional labels for each dice (A, B, C, ...)
+
+        Returns:
+            PIL Image with all dice
+        """
+        n = len(numbers)
+        if n == 1:
+            return self.draw_dice_face(numbers[0])
+
+        # Calculate image dimensions
+        width = n * self.face_size + (n - 1) * self.padding
+        height = self.face_size + 30  # Extra space for labels
+
+        img = Image.new('RGB', (width, height), color='#F5F5F5')
+        draw = ImageDraw.Draw(img)
+
+        # Default labels
+        if labels is None:
+            labels = [chr(65 + i) for i in range(n)]  # A, B, C, D...
+
+        # Draw each dice
+        for i, (num, label) in enumerate(zip(numbers, labels)):
+            x = i * (self.face_size + self.padding)
+            self._draw_single_dice(draw, x, 0, num, label)
 
         return img
 
 
-class DiceReasoningGenerator:
-    """Generate dice opposite face reasoning tasks"""
+class MultiDiceReasoningGenerator:
+    """Generate multi-dice reasoning tasks with varying difficulty"""
 
-    # Standard dice rule: opposite faces sum to 7
-    OPPOSITE_MAP = {
-        1: 6, 2: 5, 3: 4,
-        4: 3, 5: 2, 6: 1
+    OPPOSITE_MAP = {1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 6: 1}
+
+    # Difficulty configuration
+    DIFFICULTY_CONFIG = {
+        'easy': {'num_dice': 1, 'prompts': 'EASY_PROMPTS'},
+        'medium': {'num_dice': 2, 'prompts': 'MEDIUM_PROMPTS'},
+        'hard': {'num_dice': 3, 'prompts': 'HARD_PROMPTS'},
+        'expert': {'num_dice': 4, 'prompts': 'EXPERT_PROMPTS'}
     }
 
     def __init__(self, seed: Optional[int] = None):
-        """Initialize generator with optional random seed"""
         if seed is not None:
             random.seed(seed)
-        self.dice_renderer = DiceRenderer()
+        self.renderer = DiceRenderer()
 
-    def get_opposite_face(self, face: int) -> int:
-        """Get the opposite face using the rule: sum = 7"""
-        return self.OPPOSITE_MAP.get(face, 7 - face)
+    def get_opposite(self, face: int) -> int:
+        """Get opposite face (sum = 7)"""
+        return self.OPPOSITE_MAP[face]
 
-    def generate_task_config(self, difficulty: str) -> Dict[str, Any]:
+    def generate_dice_values(self, num_dice: int,
+                             constraint: Optional[str] = None) -> List[int]:
         """
-        Generate task configuration based on difficulty
+        Generate dice values with optional constraints
 
         Args:
-            difficulty: 'easy', 'medium', or 'hard'
-
-        Returns:
-            Dictionary with task configuration
+            num_dice: Number of dice to generate
+            constraint: Optional constraint like 'unique', 'has_even', 'has_odd'
         """
-        if difficulty == "easy":
-            # Easy: Show one face, ask for opposite
-            shown_face = random.randint(1, 6)
-            opposite_face = self.get_opposite_face(shown_face)
+        if constraint == 'unique' and num_dice <= 6:
+            return random.sample(range(1, 7), num_dice)
+        elif constraint == 'has_even':
+            values = [random.choice([2, 4, 6])]  # Ensure at least one even
+            values.extend([random.randint(1, 6) for _ in range(num_dice - 1)])
+            random.shuffle(values)
+            return values
+        elif constraint == 'has_odd':
+            values = [random.choice([1, 3, 5])]  # Ensure at least one odd
+            values.extend([random.randint(1, 6) for _ in range(num_dice - 1)])
+            random.shuffle(values)
+            return values
+        else:
+            return [random.randint(1, 6) for _ in range(num_dice)]
 
-            return {
-                'type': 'direct_opposite',
-                'shown_face': shown_face,
-                'answer_face': opposite_face,
-                'question_type': 'opposite'
-            }
+    def generate_easy_task(self) -> Dict[str, Any]:
+        """Generate 1-dice task"""
+        shown = random.randint(1, 6)
+        answer = self.get_opposite(shown)
 
-        elif difficulty == "medium":
-            # Medium: Show one face, ask about opposite with reasoning
-            shown_face = random.randint(1, 6)
-            opposite_face = self.get_opposite_face(shown_face)
+        prompts = [
+            "What number is on the opposite face of this dice?",
+            "Show the face opposite to this one.",
+            "This dice shows {shown}. What's on the opposite side?",
+            "Find the opposite face of this dice.",
+        ]
+        prompt = random.choice(prompts).format(shown=shown)
 
-            return {
-                'type': 'opposite_with_rule',
-                'shown_face': shown_face,
-                'answer_face': opposite_face,
-                'question_type': 'opposite_rule',
-                'rule': 'opposite faces sum to 7'
-            }
+        return {
+            'dice_values': [shown],
+            'answer': answer,
+            'prompt': prompt,
+            'reasoning_type': 'direct_opposite'
+        }
 
-        else:  # hard
-            # Hard: Given opposite is X, what is shown face?
-            answer_face = random.randint(1, 6)
-            shown_face = self.get_opposite_face(answer_face)
+    def generate_medium_task(self) -> Dict[str, Any]:
+        """Generate 2-dice task with selection"""
+        dice = self.generate_dice_values(2)
 
-            return {
-                'type': 'reverse_reasoning',
-                'shown_face': shown_face,
-                'answer_face': answer_face,
-                'question_type': 'reverse',
-                'constraint': f'opposite face is {shown_face}'
-            }
+        # Different question types
+        task_types = [
+            ('larger', max(dice), "Show the opposite of the larger dice."),
+            ('smaller', min(dice), "Show the opposite of the smaller dice."),
+            ('dice_a', dice[0], "Show the opposite of dice A."),
+            ('dice_b', dice[1], "Show the opposite of dice B."),
+        ]
+
+        # Add even/odd if applicable
+        evens = [d for d in dice if d % 2 == 0]
+        odds = [d for d in dice if d % 2 == 1]
+
+        if len(evens) == 1:
+            task_types.append(('even', evens[0],
+                "Show the opposite of the dice with an even number."))
+        if len(odds) == 1:
+            task_types.append(('odd', odds[0],
+                "Show the opposite of the dice with an odd number."))
+
+        task_type, target, prompt = random.choice(task_types)
+        answer = self.get_opposite(target)
+
+        return {
+            'dice_values': dice,
+            'answer': answer,
+            'prompt': prompt,
+            'reasoning_type': task_type,
+            'target_dice': target
+        }
+
+    def generate_hard_task(self) -> Dict[str, Any]:
+        """Generate 3-dice task with complex selection"""
+        dice = self.generate_dice_values(3, constraint='unique')
+        sorted_dice = sorted(dice)
+
+        task_types = [
+            ('largest', sorted_dice[2], "Show the opposite of the largest dice."),
+            ('smallest', sorted_dice[0], "Show the opposite of the smallest dice."),
+            ('middle', sorted_dice[1], "Show the opposite of the middle-valued dice."),
+            ('dice_a', dice[0], "Show the opposite of dice A."),
+            ('dice_b', dice[1], "Show the opposite of dice B."),
+            ('dice_c', dice[2], "Show the opposite of dice C."),
+        ]
+
+        # Add second largest/smallest
+        task_types.append(('second_largest', sorted_dice[1],
+            "Show the opposite of the second largest dice."))
+        task_types.append(('second_smallest', sorted_dice[1],
+            "Show the opposite of the second smallest dice."))
+
+        task_type, target, prompt = random.choice(task_types)
+        answer = self.get_opposite(target)
+
+        return {
+            'dice_values': dice,
+            'answer': answer,
+            'prompt': prompt,
+            'reasoning_type': task_type,
+            'target_dice': target
+        }
+
+    def generate_expert_task(self) -> Dict[str, Any]:
+        """Generate 4-dice task with complex reasoning"""
+        dice = self.generate_dice_values(4, constraint='unique')
+        sorted_dice = sorted(dice)
+
+        task_types = [
+            ('largest', sorted_dice[3], "Show the opposite of the largest dice."),
+            ('smallest', sorted_dice[0], "Show the opposite of the smallest dice."),
+            ('second_largest', sorted_dice[2], "Show the opposite of the second largest dice."),
+            ('second_smallest', sorted_dice[1], "Show the opposite of the second smallest dice."),
+            ('dice_a', dice[0], "Show the opposite of dice A."),
+            ('dice_b', dice[1], "Show the opposite of dice B."),
+            ('dice_c', dice[2], "Show the opposite of dice C."),
+            ('dice_d', dice[3], "Show the opposite of dice D."),
+        ]
+
+        # Add sum-based selection if possible
+        for i, d in enumerate(dice):
+            label = chr(65 + i)
+            if d == sum(dice) - d:  # Check if any dice equals sum of others (rare)
+                pass
+
+        task_type, target, prompt = random.choice(task_types)
+        answer = self.get_opposite(target)
+
+        return {
+            'dice_values': dice,
+            'answer': answer,
+            'prompt': prompt,
+            'reasoning_type': task_type,
+            'target_dice': target
+        }
+
+    def generate_task(self, difficulty: str) -> Dict[str, Any]:
+        """Generate a task based on difficulty"""
+        generators = {
+            'easy': self.generate_easy_task,
+            'medium': self.generate_medium_task,
+            'hard': self.generate_hard_task,
+            'expert': self.generate_expert_task
+        }
+        return generators.get(difficulty, self.generate_easy_task)()
 
 
 class DiceTaskGenerator:
-    """Main task generator following mirror_clock pattern"""
+    """Main task generator with multi-dice support"""
 
-    def __init__(self, data_root: str = "data/questions"):
-        self.data_root = Path(data_root)
-        self.task_dir = self.data_root / "dice_2d_task"
-        self.dice_generator = DiceReasoningGenerator()
-        self.prompts = PROMPTS
-
-    def generate_single_task(self,
-                            task_id: str,
-                            shown_face: Optional[int] = None,
-                            difficulty: Optional[str] = None) -> DiceTaskPair:
+    def __init__(self, temp_dir: Optional[str] = None):
         """
-        Generate a single dice reasoning task
+        Initialize generator with optional temp directory.
 
         Args:
-            task_id: Unique task identifier
-            shown_face: Face to show (None for random)
-            difficulty: Task difficulty (None for random)
-
-        Returns:
-            DiceTaskPair object
+            temp_dir: Directory for temp files. If None, creates a temp directory.
         """
-        # Determine difficulty
+        if temp_dir is None:
+            self.temp_dir = Path(tempfile.mkdtemp(prefix="dice_task_"))
+        else:
+            self.temp_dir = Path(temp_dir)
+            self.temp_dir.mkdir(parents=True, exist_ok=True)
+
+        self.reasoning_generator = MultiDiceReasoningGenerator()
+        self.renderer = DiceRenderer()
+
+    def generate_single_task(self, task_id: str,
+                            difficulty: Optional[str] = None) -> DiceTaskPair:
+        """Generate a single dice reasoning task"""
         if difficulty is None:
-            difficulty = random.choice(["easy", "medium", "hard"])
+            difficulty = random.choice(['easy', 'medium', 'hard', 'expert'])
 
         # Generate task configuration
-        if shown_face is not None:
-            # Use provided face
-            opposite_face = self.dice_generator.get_opposite_face(shown_face)
-            config = {
-                'type': 'direct_opposite',
-                'shown_face': shown_face,
-                'answer_face': opposite_face,
-                'question_type': 'opposite'
-            }
+        config = self.reasoning_generator.generate_task(difficulty)
+
+        # Generate first frame (input dice)
+        if len(config['dice_values']) == 1:
+            first_img = self.renderer.draw_dice_face(config['dice_values'][0])
         else:
-            config = self.dice_generator.generate_task_config(difficulty)
+            first_img = self.renderer.draw_multiple_dice(config['dice_values'])
 
-        # Create task directory
-        task_path = self.task_dir / task_id
-        task_path.mkdir(parents=True, exist_ok=True)
+        # Generate final frame (answer)
+        answer_img = self.renderer.draw_dice_face(config['answer'])
 
-        # Generate images
-        shown_img = self.dice_generator.dice_renderer.draw_dice_face(config['shown_face'])
-        answer_img = self.dice_generator.dice_renderer.draw_dice_face(config['answer_face'])
-
-        # Save images
-        first_frame_path = task_path / "first_frame.png"
-        final_frame_path = task_path / "final_frame.png"
-        shown_img.save(first_frame_path)
+        # Save images to temp directory
+        first_frame_path = self.temp_dir / f"{task_id}_first.png"
+        final_frame_path = self.temp_dir / f"{task_id}_final.png"
+        first_img.save(first_frame_path)
         answer_img.save(final_frame_path)
-
-        # Generate prompt using template with placeholder
-        prompt_template = random.choice(self.prompts)
-        prompt = prompt_template.format(
-            shown_number=config['shown_face']
-        )
-
-        # Save prompt
-        prompt_path = task_path / "prompt.txt"
-        prompt_path.write_text(prompt, encoding='utf-8')
 
         # Build metadata
         task_metadata = {
-            'shown_face': config['shown_face'],
-            'answer_face': config['answer_face'],
+            'dice_values': config['dice_values'],
+            'num_dice': len(config['dice_values']),
+            'answer': config['answer'],
             'difficulty': difficulty,
-            'task_type': config['type'],
+            'reasoning_type': config['reasoning_type'],
+            'target_dice': config.get('target_dice'),
             'rule': 'opposite_faces_sum_to_7'
         }
 
-        # Save metadata
-        metadata_path = task_path / "question_metadata.json"
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump(task_metadata, f, indent=2, ensure_ascii=False)
-
-        # Create task pair
         return DiceTaskPair(
             id=task_id,
             first_frame_path=str(first_frame_path),
             final_frame_path=str(final_frame_path),
-            prompt=prompt,
+            prompt=config['prompt'],
             dice_data=task_metadata,
             difficulty=difficulty
         )
 
 
+def calculate_unique_combinations() -> Dict[str, int]:
+    """
+    Calculate the number of unique task combinations per difficulty
+
+    Returns:
+        Dictionary with unique counts per difficulty
+    """
+    counts = {}
+
+    # Easy: 1 dice × 4 prompts = 6 × 4 = 24
+    counts['easy'] = {
+        'dice_combinations': 6,  # 1-6
+        'prompt_variations': 4,
+        'total': 6 * 4
+    }
+
+    # Medium: 2 dice × prompt types
+    # 6×6 = 36 combinations, ~6 prompt types (larger, smaller, A, B, even, odd)
+    counts['medium'] = {
+        'dice_combinations': 6 * 6,  # 36
+        'prompt_variations': 6,
+        'total': 36 * 6  # 216
+    }
+
+    # Hard: 3 unique dice × prompt types
+    # C(6,3) = 20 combinations × 3! arrangements = 120, ~8 prompt types
+    counts['hard'] = {
+        'dice_combinations': 6 * 5 * 4,  # P(6,3) = 120
+        'prompt_variations': 8,
+        'total': 120 * 8  # 960
+    }
+
+    # Expert: 4 unique dice × prompt types
+    # P(6,4) = 360 arrangements, ~8 prompt types
+    counts['expert'] = {
+        'dice_combinations': 6 * 5 * 4 * 3,  # P(6,4) = 360
+        'prompt_variations': 8,
+        'total': 360 * 8  # 2880
+    }
+
+    counts['grand_total'] = sum(d['total'] for d in counts.values() if isinstance(d, dict))
+
+    return counts
+
+
 def create_dataset(num_samples: int = 50,
                    balanced: bool = True,
-                   seed: Optional[int] = None,
-                   data_root: str = "data/questions") -> Dict[str, Any]:
+                   seed: Optional[int] = None) -> Dict[str, Any]:
     """
     Create a dataset of dice reasoning tasks
 
@@ -269,7 +452,6 @@ def create_dataset(num_samples: int = 50,
         num_samples: Number of tasks to generate
         balanced: Whether to balance difficulty distribution
         seed: Random seed for reproducibility
-        data_root: Root directory for data storage
 
     Returns:
         Dictionary containing task pairs and metadata
@@ -277,53 +459,50 @@ def create_dataset(num_samples: int = 50,
     if seed is not None:
         random.seed(seed)
 
-    generator = DiceTaskGenerator(data_root)
+    generator = DiceTaskGenerator()
+    difficulties = ['easy', 'medium', 'hard', 'expert']
 
     # Determine difficulty distribution
     if balanced:
-        difficulties = []
-        samples_per_difficulty = num_samples // 3
-        remainder = num_samples % 3
+        diff_list = []
+        samples_per_diff = num_samples // 4
+        remainder = num_samples % 4
 
-        difficulties.extend(['easy'] * samples_per_difficulty)
-        difficulties.extend(['medium'] * samples_per_difficulty)
-        difficulties.extend(['hard'] * samples_per_difficulty)
+        for diff in difficulties:
+            diff_list.extend([diff] * samples_per_diff)
 
-        # Add remainder
         for i in range(remainder):
-            difficulties.append(['easy', 'medium', 'hard'][i])
+            diff_list.append(difficulties[i])
 
-        random.shuffle(difficulties)
+        random.shuffle(diff_list)
     else:
-        difficulties = [random.choice(['easy', 'medium', 'hard'])
-                       for _ in range(num_samples)]
+        diff_list = [random.choice(difficulties) for _ in range(num_samples)]
 
     # Generate tasks
     tasks = []
-    for i, diff in enumerate(difficulties):
+    for i, diff in enumerate(diff_list):
         task_id = f"dice_{i:04d}"
         task = generator.generate_single_task(task_id, difficulty=diff)
         tasks.append({
             'id': task.id,
-            'first_frame': task.first_frame_path,
-            'final_frame': task.final_frame_path,
+            'first_image_path': task.first_frame_path,
+            'final_image_path': task.final_frame_path,
             'prompt': task.prompt,
             'dice_data': task.dice_data,
             'difficulty': task.difficulty
         })
 
-    # Create dataset dictionary
+    # Calculate unique combinations
+    unique_counts = calculate_unique_combinations()
+
     dataset = {
         'pairs': tasks,
         'generation_info': {
             'num_samples': num_samples,
             'balanced': balanced,
             'seed': seed,
-            'difficulty_distribution': {
-                'easy': difficulties.count('easy'),
-                'medium': difficulties.count('medium'),
-                'hard': difficulties.count('hard')
-            }
+            'difficulty_distribution': {d: diff_list.count(d) for d in difficulties},
+            'unique_combinations': unique_counts
         }
     }
 
@@ -331,44 +510,37 @@ def create_dataset(num_samples: int = 50,
 
 
 def create_single_task(task_id: str = "dice_0000",
-                      shown_face: Optional[int] = None,
-                      difficulty: Optional[str] = None,
-                      data_root: str = "data/questions") -> DiceTaskPair:
-    """
-    Create a single dice task (convenience function)
-
-    Args:
-        task_id: Task identifier
-        shown_face: Face to show (1-6, None for random)
-        difficulty: Difficulty level (None for random)
-        data_root: Data root directory
-
-    Returns:
-        DiceTaskPair object
-    """
-    generator = DiceTaskGenerator(data_root)
-    return generator.generate_single_task(task_id, shown_face, difficulty)
+                      difficulty: Optional[str] = None) -> DiceTaskPair:
+    """Create a single dice task"""
+    generator = DiceTaskGenerator()
+    return generator.generate_single_task(task_id, difficulty)
 
 
 if __name__ == "__main__":
-    # Test code
-    print("Testing Dice Reasoning Task Generator...")
+    print("=" * 60)
+    print("2D Dice Reasoning Task Generator")
+    print("=" * 60)
 
-    # Test single task
-    task = create_single_task("test_dice_001", shown_face=3, difficulty="easy")
-    print(f"✅ Created task: {task.id}")
-    print(f"   Shown face: {task.dice_data['shown_face']}")
-    print(f"   Answer face: {task.dice_data['answer_face']}")
-    print(f"   Difficulty: {task.difficulty}")
-    print(f"   Prompt: {task.prompt}")
+    # Calculate and display unique combinations
+    print("\n📊 Unique Combinations per Difficulty:")
+    counts = calculate_unique_combinations()
+    for diff in ['easy', 'medium', 'hard', 'expert']:
+        info = counts[diff]
+        print(f"  {diff.upper():8} | {info['dice_combinations']:4} dice × {info['prompt_variations']} prompts = {info['total']:5} unique")
+    print(f"  {'TOTAL':8} | {counts['grand_total']:>20} unique combinations")
 
-    # Test dataset generation
-    dataset = create_dataset(num_samples=30, balanced=True, seed=42)
-    print(f"\n✅ Created dataset with {len(dataset['pairs'])} tasks")
-    print(f"   Generation info: {dataset['generation_info']}")
+    # Test each difficulty
+    print("\n🎲 Sample Tasks:")
+    for diff in ['easy', 'medium', 'hard', 'expert']:
+        task = create_single_task(f"test_{diff}", difficulty=diff)
+        data = task.dice_data
+        print(f"\n  [{diff.upper()}] {task.id}")
+        print(f"    Dice: {data['dice_values']} ({data['num_dice']} dice)")
+        print(f"    Answer: {data['answer']}")
+        print(f"    Prompt: {task.prompt}")
 
-    # Show sample tasks
-    print("\nSample tasks:")
-    for i, pair in enumerate(dataset['pairs'][:5]):
-        data = pair['dice_data']
-        print(f"  {i+1}. Shown={data['shown_face']}, Answer={data['answer_face']}, Difficulty={data['difficulty']}")
+    # Test dataset
+    print("\n📦 Dataset Generation Test:")
+    dataset = create_dataset(num_samples=40, balanced=True, seed=42)
+    print(f"  Generated {len(dataset['pairs'])} tasks")
+    print(f"  Distribution: {dataset['generation_info']['difficulty_distribution']}")

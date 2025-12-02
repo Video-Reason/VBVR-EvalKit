@@ -110,8 +110,8 @@ class ObjectGenerator:
             placed = False
             
             for attempt in range(max_attempts):
-                # Random size
-                size = self.rng.randint(self.min_size, self.max_size)
+                # Fixed size for all objects
+                size = 30  # Fixed size for consistency
                 
                 # Position: ensure objects are in area where occluder can pass over them
                 if ensure_occluder_path:
@@ -181,7 +181,7 @@ class ObjectGenerator:
                 x = cell_w * (col + 1)
                 y = cell_h * (row + 1)
                 
-                size = self.rng.randint(self.min_size, self.max_size)
+                size = 30  # Fixed size for consistency
                 color = self.rng.choice(self.COLORS)
                 shape = self.rng.choice(self.SHAPES)
                 
@@ -483,6 +483,15 @@ class ObjectPermanenceGenerator:
             vowels = ['a', 'e', 'i', 'o', 'u']
             return "an" if word[0].lower() in vowels else "a"
         
+        # Helper function to convert number to word
+        def number_to_word(n: int) -> str:
+            """Convert number to word (1-10)."""
+            words = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
+            if 1 <= n <= 10:
+                return words[n - 1]
+            else:
+                return str(n)
+        
         # Build object descriptions
         object_descriptions = []
         for obj in objects:
@@ -490,28 +499,30 @@ class ObjectPermanenceGenerator:
             object_descriptions.append(f"{article} {obj['color']} {obj['shape']}")
         
         # Format objects description based on count
+        objects_count_description = number_to_word(num_objects)
+        
         if num_objects == 1:
-            # Single object: "There is one object in the scene: a red cube"
-            obj = objects[0]
-            objects_count_intro = "There is one object"
-            objects_description = object_descriptions[0]  # "a red cube" (lowercase)
+            # Single object: "a red cube"
+            object_word = "object"
+            objects_description = object_descriptions[0]
             objects_reference = "object"
             objects_pronoun = "it"
         elif num_objects == 2:
-            # Two objects: "There are two objects in the scene: a red cube and a blue sphere"
-            objects_count_intro = "There are two objects"
+            # Two objects: "a red cube and a blue sphere"
+            object_word = "objects"
             objects_description = f"{object_descriptions[0]} and {object_descriptions[1]}"
             objects_reference = "objects"
             objects_pronoun = "them"
         else:
-            # Multiple objects (3+): "There are three objects in the scene: a red cube, a blue sphere, and a green pyramid"
-            objects_count_intro = f"There are {num_objects} objects"
+            # Multiple objects (3+): "a red cube, a blue sphere, and a green pyramid"
+            object_word = "objects"
             objects_description = ", ".join(object_descriptions[:-1]) + f", and {object_descriptions[-1]}"
             objects_reference = "objects"
             objects_pronoun = "them"
         
         return template.format(
-            objects_count_intro=objects_count_intro,
+            objects_count_description=objects_count_description,
+            object_word=object_word,
             objects_description=objects_description,
             objects_reference=objects_reference,
             objects_pronoun=objects_pronoun

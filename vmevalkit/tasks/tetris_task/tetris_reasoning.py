@@ -756,13 +756,148 @@ class TetrisMediumTaskGenerator:
         }
         return dataset_dict
 
-#TODO: Implement hard task generator
 class TetrisHardTaskGenerator:
+    """
+    Hard difficulty Tetris task generator.
+    - 10x10 map (same as medium)
+    - Initial state must NOT have any clearable lines (guarantee_clear=False)
+    - Spawns a new block at the top
+    - Simulates block drop AND line clearing
+    """
     def __init__(self):
-        pass
+        self.map_width = 10
+        self.num_rows = 3  # Same as medium: 3 bottom rows pre-filled
+        self.fill_ratio = 0.8
+        self.tetris_map = TetrisMap(width=self.map_width, height=self.map_width)
+        
+    def generate_single_task(self, task_id: str) -> TetrisTaskPair:
+        """Generate a single hard task pair (10x10 map, with new block falling from top).
+        
+        Initial state: bottom rows filled but NO complete lines (guarantee_clear=False)
+        A new block is spawned at top and will drop down.
+        Final state: after block lands and lines are cleared.
+        """
+        # Fill bottom rows but guarantee NO complete lines initially
+        _smart_fill_bottom_rows(
+            self.tetris_map,
+            self.num_rows,
+            self.fill_ratio,
+            guarantee_clear=False,  # Force no initial clearable lines
+        )
+        
+        # Verify no lines are clearable in initial state
+        initial_lines = []
+        for i in range(self.tetris_map.height):
+            if all(self.tetris_map.grid[i][j] != 0 for j in range(self.tetris_map.width)):
+                initial_lines.append(i)
+        if initial_lines:
+            print(f"  Warning: Initial state has {len(initial_lines)} full line(s), regenerating...")
+            # Clear and retry
+            self.tetris_map.grid = [[0 for _ in range(self.map_width)] for _ in range(self.map_width)]
+            _smart_fill_bottom_rows(self.tetris_map, self.num_rows, self.fill_ratio, guarantee_clear=False)
+        
+        # Capture initial state (bottom 3 rows)
+        bottom_rows_initial = []
+        temp_dir = tempfile.mkdtemp()
+        start_row = self.tetris_map.height - self.num_rows
+        for r in range(start_row, self.tetris_map.height):
+            bottom_rows_initial.append([cell for cell in self.tetris_map.grid[r]])
+        
+        # Spawn a new block at the top
+        spawn_success = self.tetris_map.spawn_new_block()
+        if not spawn_success:
+            print(f"  Warning: Failed to spawn block (game over state), using fallback block")
+            # Fallback: manually create a simple block
+            fallback_shape = TetrisShape.I
+            self.tetris_map.current_block = TetrisBlock(fallback_shape, x=0, y=self.map_width // 2 - 1)
+        
+        # Record the spawned block info
+        new_block_info = {
+            "shape": self.tetris_map.current_block.shape.value,
+            "initial_x": self.tetris_map.current_block.x,
+            "initial_y": self.tetris_map.current_block.y,
+            "rotation": self.tetris_map.current_block.rotation
+        }
+        
+        # Render first frame (with block at top)
+        first_temp_path = os.path.join(temp_dir, f"{task_id}_first.png")
+        self.tetris_map.render_to_image(first_temp_path)
+        
+        # Simulate block drop (hard drop to bottom)
+        self.tetris_map.hard_drop()
+        
+        # After hard_drop, current_block is None (already placed and cleared)
+        # Now check and clear any complete lines
+        lines_cleared = self.tetris_map.clear_lines()
+        
+        # Capture final state (bottom 3 rows)
+        bottom_rows_final = []
+        actual_rows = min(self.num_rows, self.tetris_map.height)
+        start_row_final = self.tetris_map.height - actual_rows
+        for r in range(start_row_final, self.tetris_map.height):
+            bottom_rows_final.append([cell for cell in self.tetris_map.grid[r]])
+        
+        # Render final frame (after drop and clear)
+        final_temp_path = os.path.join(temp_dir, f"{task_id}_final.png")
+        self.tetris_map.render_to_image(final_temp_path)
+        
+        # Generate prompt
+        prompt = PROMPTS[0].format(difficulty="hard", n=self.map_width)
+        
+        # Create task pair
+        task_pair = TetrisTaskPair(
+            id=task_id,
+            task_category="Tetris",
+            prompt=prompt,
+            first_image_path=first_temp_path,
+            final_image_path=final_temp_path,
+            difficulty="hard",
+            initial_state_bottom3=bottom_rows_initial,
+            final_state_bottom3=bottom_rows_final,
+            new_block=new_block_info,  # Include new block info for hard difficulty
+            map_size=[self.tetris_map.width, self.tetris_map.height],
+            created_at=datetime.now().isoformat()
+        )
+        
+        print(f"  ✅ Hard task generated: block {new_block_info['shape']} dropped, {lines_cleared} lines cleared")
+        return task_pair
     
     def generate_dataset(self, num_samples: int = 10) -> Dict[str, Any]:
-        return {}
+        """Generate a dataset of hard Tetris tasks."""
+        tasks = []
+        for sample_idx in range(num_samples):
+            task_id = f"tetris_hard_{sample_idx:04d}"
+            
+            # Reset the map for each task
+            self.tetris_map = TetrisMap(width=self.map_width, height=self.map_width)
+            
+            task = self.generate_single_task(task_id)
+            tasks.append(task)
+        
+        # Convert tasks to dictionaries
+        task_dicts = []
+        for task in tasks:
+            task_dict = {
+                'id': task.id,
+                'prompt': task.prompt,
+                'task_category': task.task_category,
+                'first_image_path': task.first_image_path,
+                'final_image_path': task.final_image_path,
+                'initial_state_bottom3': task.initial_state_bottom3,
+                'final_state_bottom3': task.final_state_bottom3,
+                'new_block': task.new_block,  # Include new block info
+                'map_size': task.map_size,
+                'difficulty': task.difficulty,
+                'created_at': task.created_at
+            }
+            task_dicts.append(task_dict)
+        
+        dataset_dict = {
+            'name': 'Tetris Hard Dataset',
+            'description': 'A dataset of hard Tetris tasks (10x10 map, new block falling from top, simulate drop + clear) generated by TetrisHardTaskGenerator for video model reasoning evaluation.',
+            'pairs': task_dicts
+        }
+        return dataset_dict
     
 
 class TetrisTaskGenerator:
@@ -780,8 +915,18 @@ class TetrisTaskGenerator:
     def generate_dataset(self, num_samples: int = 10) -> Dict[str, Any]:
         return self.generator.generate_dataset(num_samples)
 
-def create_dataset(num_samples: int = 10) -> Dict[str, Any]:
-    generator = TetrisTaskGenerator(difficulty="medium")
+def create_dataset(num_samples: int = 10, difficulty: str = "easy") -> Dict[str, Any]:
+    """
+    Create a Tetris dataset with specified difficulty level.
+    
+    Args:
+        num_samples: Number of tasks to generate
+        difficulty: Difficulty level - "easy" (5x5), "medium" (10x10), or "hard" (10x10 with block drop)
+    
+    Returns:
+        Dataset dictionary with task pairs
+    """
+    generator = TetrisTaskGenerator(difficulty="hard")
     return generator.generate_dataset(num_samples)
 
 

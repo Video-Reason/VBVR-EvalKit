@@ -18,10 +18,10 @@ Unified prompt template that adapts to any number of objects (1, 2, 3, 4, etc.)
 PROMPTS = [
     "The scene contains several stable 2D objects on a flat plane:\n\n"
     "(1) {objects_description}\n\n"
-    "(2) A long thin gray rectangle positioned on the left side of the scene.\n\n"
-    "Move the long thin gray rectangle horizontally to the right at a steady speed.\n\n"
-    "As it moves, the rectangle will pass in front of {objects_reference} on the 2D plane and temporarily occlude {objects_pronoun}, without any physical interaction.\n\n"
-    "Continue moving the long thin gray rectangle to the right until it has fully exited the scene.\n\n"
+    "(2) A tall narrow vertical gray rectangle positioned on the left side of the scene.\n\n"
+    "Move the tall narrow vertical gray rectangle horizontally to the right at a steady speed, keeping it in its vertical orientation throughout the entire movement.\n\n"
+    "As it moves, the tall narrow vertical gray rectangle will pass in front of {objects_reference} on the 2D plane and occlude {objects_pronoun}, without any physical interaction.\n\n"
+    "Continue moving the tall narrow vertical gray rectangle to the right until it has fully exited the scene.\n\n"
     "The camera view remains fixed for the entire sequence."
 ]
 

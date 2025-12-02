@@ -222,3 +222,4 @@ deprecated/
 data/questions/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
+envs/

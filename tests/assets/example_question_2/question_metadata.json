@@ -1,0 +1,29 @@
+{
+  "id": "mirror_clock_0001",
+  "prompt": "The image shows a horizontally flipped clock. After 2 hours passes on the original clock, what will be the new time?",
+  "first_image_path": "mirror_clock_task/mirror_clock_0001/first_frame.png",
+  "final_image_path": "mirror_clock_task/mirror_clock_0001/final_frame.png",
+  "domain": "mirror_clock",
+  "task_category": "Spatial Reasoning",
+  "difficulty": "easy",
+  "mirror_clock_data": {
+    "original_time": {
+      "hours": 12,
+      "minutes": 0,
+      "formatted": "12:00"
+    },
+    "time_delta": {
+      "hours": 2,
+      "minutes": 0,
+      "formatted": "2 hours"
+    },
+    "future_time": {
+      "hours": 14,
+      "minutes": 0,
+      "formatted": "2:00"
+    },
+    "difficulty": "easy",
+    "task_type": "mirror_with_future_prediction"
+  },
+  "created_at": "2025-11-23T21:56:50.565155Z"
+}

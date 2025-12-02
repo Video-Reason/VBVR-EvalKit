@@ -84,8 +84,7 @@ import cv2
 
 # Add VideoCrafter modules to path
 from lvdm.models.samplers.ddim import DDIMSampler
-from lvdm.models.utils import instantiate_from_config
-from utils.utils import *
+from utils.utils import instantiate_from_config
 
 def load_model(config_path, ckpt_path):
     """Load VideoCrafter model."""

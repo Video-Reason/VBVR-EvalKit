@@ -64,7 +64,7 @@ class ObjectGenerator:
     
     def __init__(self, canvas_size: Tuple[int, int] = (256, 256), 
                  min_size: int = 20, max_size: int = 40,
-                 min_spacing: int = 25):
+                 min_spacing: int = 40):
         """
         Initialize object generator.
         
@@ -106,7 +106,7 @@ class ObjectGenerator:
         
         for i in range(num_objects):
             # Try to place object (with collision detection)
-            max_attempts = 100
+            max_attempts = 200  # Increased attempts for better placement
             placed = False
             
             for attempt in range(max_attempts):
@@ -115,7 +115,7 @@ class ObjectGenerator:
                 
                 # Position: ensure objects are in area where occluder can pass over them
                 if ensure_occluder_path:
-                    # Objects should be in middle-right area, ensuring they don't overlap with occluder
+                    # Objects should be in center area, ensuring they don't overlap with occluder
                     # Occluder is on left side with width 50, starting at x=1 (with edge_margin)
                     # Occluder right edge is at: 1 + 50 = 51
                     # Objects must have sufficient distance from occluder right edge
@@ -123,10 +123,17 @@ class ObjectGenerator:
                     occluder_width = 50
                     occluder_x_start = 1  # With edge_margin
                     occluder_right_edge = occluder_x_start + occluder_width  # Right edge at x=51
-                    min_distance_from_occluder = 40  # Minimum distance from occluder right edge (increased for better spacing)
+                    min_distance_from_occluder = 40  # Minimum distance from occluder right edge
                     x_min = max(margin, occluder_right_edge + min_distance_from_occluder)  # Ensure no overlap and sufficient distance
-                    x_max = min(canvas_w - margin, 3 * canvas_w // 4)
-                    x = self.rng.randint(x_min, x_max)
+                    # Keep objects in center area (not too far right)
+                    # Use center 60% of available width (from x_min to canvas_w), avoiding edges
+                    center_start = x_min
+                    center_end = canvas_w - margin
+                    center_width = center_end - center_start
+                    # Focus on center 60% of this range (20% margin on each side)
+                    x_min_center = center_start + int(center_width * 0.2)  # Start at 20% of available range
+                    x_max_center = center_start + int(center_width * 0.8)  # End at 80% of available range
+                    x = self.rng.randint(x_min_center, x_max_center)
                     # Keep objects in middle vertical region (avoid too high or too low)
                     # Use middle 60% of canvas height (20% margin on top and bottom)
                     vertical_margin_ratio = 0.2  # 20% margin on top and bottom
@@ -186,20 +193,40 @@ class ObjectGenerator:
                 occluder_width = 50
                 occluder_x_start = 1  # With edge_margin
                 occluder_right_edge = occluder_x_start + occluder_width
-                min_distance_from_occluder = 30  # Minimum distance from occluder right edge (increased for better spacing)
+                min_distance_from_occluder = 40  # Minimum distance from occluder right edge (increased for better spacing)
                 safe_x_start = occluder_right_edge + min_distance_from_occluder
                 
                 grid_size = int(np.ceil(np.sqrt(num_objects)))
-                # Adjust grid to start after occluder
-                available_width = canvas_w - safe_x_start
-                cell_w = available_width // (grid_size + 1)
+                # Adjust grid to start after occluder, keep objects in center area
+                available_width_total = canvas_w - safe_x_start - margin  # Leave margin on right
+                # Use center 60% of available width (20% margin on each side)
+                center_start_offset = int(available_width_total * 0.2)  # Start at 20% of available width
+                center_width = int(available_width_total * 0.6)  # Use 60% of available width
+                # Ensure grid cells are large enough for spacing (size=30, min_spacing=40)
+                # Minimum distance between object centers = size + min_spacing = 70 pixels
+                min_cell_size = size + self.min_spacing  # At least 70 pixels
+                # Calculate cell size to ensure spacing - use fewer cells if needed
+                # For grid_size objects, we need at least (grid_size-1) * min_cell_size space
+                required_width = (grid_size - 1) * min_cell_size if grid_size > 1 else min_cell_size
+                if center_width < required_width:
+                    # Not enough space, use minimum spacing
+                    cell_w = min_cell_size
+                else:
+                    # Distribute available space with proper spacing
+                    cell_w = max(min_cell_size, center_width // (grid_size + 1))
                 # Keep objects in middle vertical region (avoid too high or too low)
                 vertical_margin_ratio = 0.2  # 20% margin on top and bottom
                 available_height = int(canvas_h * (1 - 2 * vertical_margin_ratio))
-                cell_h = available_height // (grid_size + 1)
+                required_height = (grid_size - 1) * min_cell_size if grid_size > 1 else min_cell_size
+                if available_height < required_height:
+                    cell_h = min_cell_size
+                else:
+                    cell_h = max(min_cell_size, available_height // (grid_size + 1))
                 row = i // grid_size
                 col = i % grid_size
-                x = safe_x_start + cell_w * (col + 1)
+                x = safe_x_start + center_start_offset + cell_w * (col + 1)
+                # Ensure x doesn't exceed center area
+                x = min(x, safe_x_start + center_start_offset + center_width - margin)
                 y_base = int(canvas_h * vertical_margin_ratio)
                 y = y_base + cell_h * (row + 1)
                 
@@ -216,16 +243,108 @@ class ObjectGenerator:
                 else:  # trapezoid
                     area = int(size * size * 0.75)  # Approximate trapezoid area
                 
-                obj = {
-                    "id": i,
-                    "color": color,
-                    "shape": shape,
-                    "x": x,
-                    "y": y,
-                    "size": size,
-                    "area": area
-                }
-                objects.append(obj)
+                # Verify spacing with existing objects (even in grid fallback)
+                collision = False
+                for existing_obj in objects:
+                    dx = x - existing_obj["x"]
+                    dy = y - existing_obj["y"]
+                    distance = np.sqrt(dx*dx + dy*dy)
+                    min_distance = (size + existing_obj["size"]) // 2 + self.min_spacing
+                    if distance < min_distance:
+                        collision = True
+                        break
+                
+                if not collision:
+                    obj = {
+                        "id": i,
+                        "color": color,
+                        "shape": shape,
+                        "x": x,
+                        "y": y,
+                        "size": size,
+                        "area": area
+                    }
+                    objects.append(obj)
+                    placed = True
+                else:
+                    # If grid placement also fails spacing check, try more aggressive random placement
+                    # Reduce spacing requirements slightly to ensure all objects can be placed
+                    for fallback_attempt in range(500):
+                        if ensure_occluder_path:
+                            x = self.rng.randint(x_min_center, x_max_center)
+                            y = self.rng.randint(y_min, y_max)
+                        else:
+                            x = self.rng.randint(margin, canvas_w - margin)
+                            y = self.rng.randint(margin, canvas_h - margin)
+                        
+                        # Check collision with reduced spacing requirement (80% of normal)
+                        collision = False
+                        for existing_obj in objects:
+                            dx = x - existing_obj["x"]
+                            dy = y - existing_obj["y"]
+                            distance = np.sqrt(dx*dx + dy*dy)
+                            min_distance = int((size + existing_obj["size"]) // 2 + self.min_spacing * 0.8)
+                            if distance < min_distance:
+                                collision = True
+                                break
+                        
+                        if not collision:
+                            obj = {
+                                "id": i,
+                                "color": color,
+                                "shape": shape,
+                                "x": x,
+                                "y": y,
+                                "size": size,
+                                "area": area
+                            }
+                            objects.append(obj)
+                            placed = True
+                            break
+                    
+                    # If still not placed after all attempts, force placement at a safe position
+                    if not placed:
+                        # Find a position that's far enough from all existing objects
+                        # Use a more aggressive approach: place at a calculated safe position
+                        if len(objects) == 0:
+                            # First object: place in center
+                            x = canvas_w // 2
+                            y = canvas_h // 2
+                        else:
+                            # Find position with maximum distance from existing objects
+                            best_x, best_y = x_min_center, y_min
+                            max_min_distance = 0
+                            for test_x in range(x_min_center, x_max_center, 10):
+                                for test_y in range(y_min, y_max, 10):
+                                    min_dist_to_any = float('inf')
+                                    for existing_obj in objects:
+                                        dx = test_x - existing_obj["x"]
+                                        dy = test_y - existing_obj["y"]
+                                        dist = np.sqrt(dx*dx + dy*dy)
+                                        min_dist_to_any = min(min_dist_to_any, dist)
+                                    if min_dist_to_any > max_min_distance:
+                                        max_min_distance = min_dist_to_any
+                                        best_x, best_y = test_x, test_y
+                            x, y = best_x, best_y
+                        
+                        obj = {
+                            "id": i,
+                            "color": color,
+                            "shape": shape,
+                            "x": x,
+                            "y": y,
+                            "size": size,
+                            "area": area
+                        }
+                        objects.append(obj)
+                        placed = True
+        
+        # Verify that we generated the correct number of objects
+        if len(objects) != num_objects:
+            raise RuntimeError(
+                f"Failed to generate {num_objects} objects. Only generated {len(objects)} objects. "
+                f"This may indicate insufficient canvas space or spacing constraints that are too strict."
+            )
         
         return objects
 
@@ -516,37 +635,71 @@ class ObjectPermanenceGenerator:
             else:
                 return str(n)
         
-        # Build object descriptions
-        object_descriptions = []
+        # Build object descriptions and group duplicates
+        from collections import Counter
+        object_keys = [(obj['color'], obj['shape']) for obj in objects]
+        object_counts = Counter(object_keys)
+        
+        # Build description list with counts for duplicates
+        description_parts = []
+        seen = set()
         for obj in objects:
+            key = (obj['color'], obj['shape'])
+            if key in seen:
+                continue
+            seen.add(key)
+            count = object_counts[key]
             article = get_article(obj['color'])
-            object_descriptions.append(f"{article} {obj['color']} {obj['shape']}")
+            if count == 1:
+                description_parts.append(f"{article} {obj['color']} {obj['shape']}")
+            else:
+                # Use plural form: "two green circles"
+                description_parts.append(f"{number_to_word(count)} {obj['color']} {obj['shape']}s")
         
         # Format objects description based on count
-        objects_count_description = number_to_word(num_objects)
+        # Always use "several" for total count (objects + rectangle)
+        # Capitalize first letter of description
+        
+        def capitalize_first(s: str) -> str:
+            """Capitalize first letter of string."""
+            if not s:
+                return s
+            return s[0].upper() + s[1:] if len(s) > 1 else s.upper()
         
         if num_objects == 1:
-            # Single object: "a red square"
-            object_word = "object"
-            objects_description = object_descriptions[0]
-            objects_reference = "object"
+            # Single object: "(1) A red square"
+            objects_description = capitalize_first(description_parts[0])
+            obj = objects[0]
+            shape_name = obj['shape']
+            objects_reference = f"the {shape_name}"
             objects_pronoun = "it"
         elif num_objects == 2:
-            # Two objects: "a red square and a blue circle"
-            object_word = "objects"
-            objects_description = f"{object_descriptions[0]} and {object_descriptions[1]}"
-            objects_reference = "objects"
+            # Two objects: "(1) A red square and a blue circle" or "(1) Two green circles"
+            if len(description_parts) == 1:
+                # Both are the same: "Two green circles"
+                objects_description = capitalize_first(description_parts[0])
+            else:
+                # Different objects: "A red square and a blue circle"
+                objects_description = capitalize_first(description_parts[0]) + f" and {description_parts[1]}"
+            objects_reference = "the other objects"
             objects_pronoun = "them"
         else:
-            # Multiple objects (3+): "a red square, a blue circle, and a green triangle"
-            object_word = "objects"
-            objects_description = ", ".join(object_descriptions[:-1]) + f", and {object_descriptions[-1]}"
-            objects_reference = "objects"
+            # Multiple objects (3+): handle various combinations
+            if len(description_parts) == 1:
+                # All are the same: "Three green circles"
+                objects_description = capitalize_first(description_parts[0])
+            else:
+                # Mixed: "A red square, two green circles, and a blue triangle"
+                if len(description_parts) == 2:
+                    # Only two different groups: "A red square and two green circles"
+                    objects_description = capitalize_first(description_parts[0]) + f" and {description_parts[1]}"
+                else:
+                    # Three or more groups: "A red square, two green circles, and a blue triangle"
+                    objects_description = capitalize_first(description_parts[0]) + ", " + ", ".join(description_parts[1:-1]) + f", and {description_parts[-1]}"
+            objects_reference = "the other objects"
             objects_pronoun = "them"
         
         return template.format(
-            objects_count_description=objects_count_description,
-            object_word=object_word,
             objects_description=objects_description,
             objects_reference=objects_reference,
             objects_pronoun=objects_pronoun
@@ -561,21 +714,30 @@ def create_dataset(num_samples: int = 50,
     Args:
         num_samples: Total number of task pairs to generate
         difficulty_distribution: Optional dict like {
-            "easy": 0.33,   # 1 object
-            "medium": 0.33, # 2 objects
-            "hard": 0.34    # 3 objects
+            "easy": 0.33,   # 1 object (excluding gray rectangle)
+            "medium": 0.33, # 2 objects (excluding gray rectangle)
+            "hard": 0.34    # 3 objects (excluding gray rectangle)
         }
         
     Returns:
         Dictionary with 'pairs' key containing list of ObjectPermanenceTaskPair
     """
     if difficulty_distribution is None:
-        # Default distribution - equal distribution
-        difficulty_distribution = {
-            "easy": 1/3,   # 1 object
-            "medium": 1/3, # 2 objects
-            "hard": 1/3   # 3 objects
-        }
+        # Default distribution - custom distribution for better balance
+        # 10 hard (3 objects), 5 medium (2 objects), 5 easy (1 object) when num_samples=20
+        if num_samples == 20:
+            difficulty_distribution = {
+                "easy": 5/20,    # 5 tasks with 1 object (excluding gray rectangle)
+                "medium": 5/20,  # 5 tasks with 2 objects (excluding gray rectangle)
+                "hard": 10/20    # 10 tasks with 3 objects (excluding gray rectangle)
+            }
+        else:
+            # Default distribution - equal distribution for other sample sizes
+            difficulty_distribution = {
+                "easy": 1/3,   # 1 object (excluding gray rectangle)
+                "medium": 1/3, # 2 objects (excluding gray rectangle)
+                "hard": 1/3   # 3 objects (excluding gray rectangle)
+            }
     
     print(f"🎯 Creating Object Permanence Dataset")
     print(f"   Total samples: {num_samples}")
@@ -589,9 +751,9 @@ def create_dataset(num_samples: int = 50,
     medium_count = int(num_samples * difficulty_distribution.get("medium", 1/3))
     hard_count = num_samples - easy_count - medium_count
     
-    print(f"   Easy (1 object): {easy_count}")
-    print(f"   Medium (2 objects): {medium_count}")
-    print(f"   Hard (3 objects): {hard_count}")
+    print(f"   Easy (1 object, excluding gray rectangle): {easy_count}")
+    print(f"   Medium (2 objects, excluding gray rectangle): {medium_count}")
+    print(f"   Hard (3 objects, excluding gray rectangle): {hard_count}")
     
     # Generate tasks
     task_idx = 0

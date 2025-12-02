@@ -16,13 +16,13 @@ Unified prompt template that adapts to any number of objects (1, 2, 3, 4, etc.)
 # - {objects_reference}: Reference to objects (e.g., "the object", "the objects")
 # - {objects_pronoun}: Pronoun for objects (e.g., "it", "them")
 PROMPTS = [
-    "The scene contains {objects_count_description} 2D {object_word} at fixed positions: {objects_description}.\n\n"
-    "A solid opaque gray panel is placed at the left side of the scene.\n\n"
-    "The panel is rigid and maintains the same shape, size, color, and orientation for the entire sequence.\n\n"
-    "The panel moves horizontally to the right at a steady, continuous speed.\n\n"
-    "During its motion, the panel temporarily occludes the {objects_reference} when passing over {objects_pronoun}, without physically interacting with {objects_pronoun}.\n\n"
-    "Continue the motion horizontally to the right until the panel has moved completely out of the scene.\n\n"
-    "The camera view remains fixed throughout the entire sequence."
+    "The scene contains several stable 2D objects on a flat plane:\n\n"
+    "(1) {objects_description}\n\n"
+    "(2) A long thin gray rectangle positioned on the left side of the scene.\n\n"
+    "Move the long thin gray rectangle horizontally to the right at a steady speed.\n\n"
+    "As it moves, the rectangle will pass in front of {objects_reference} on the 2D plane and temporarily occlude {objects_pronoun}, without any physical interaction.\n\n"
+    "Continue moving the long thin gray rectangle to the right until it has fully exited the scene.\n\n"
+    "The camera view remains fixed for the entire sequence."
 ]
 
 # Default prompt index

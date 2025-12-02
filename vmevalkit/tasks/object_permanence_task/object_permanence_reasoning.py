@@ -491,35 +491,28 @@ class ObjectPermanenceGenerator:
         
         # Format objects description based on count
         if num_objects == 1:
-            # Single object: "A red cube" or "An orange sphere"
+            # Single object: "There is one object in the scene: a red cube"
             obj = objects[0]
-            article = get_article(obj['color'])
-            objects_description = f"{article.capitalize()} {obj['color']} {obj['shape']}"
-            are_or_is = "is"
+            objects_count_intro = "There is one object"
+            objects_description = object_descriptions[0]  # "a red cube" (lowercase)
             objects_reference = "object"
             objects_pronoun = "it"
         elif num_objects == 2:
-            # Two objects: "A red cube and a blue sphere" or "An orange sphere and a red cube"
-            first_obj = objects[0]
-            first_article = get_article(first_obj['color'])
-            objects_description = f"{first_article.capitalize()} {first_obj['color']} {first_obj['shape']} and {object_descriptions[1]}"
-            are_or_is = "are"
+            # Two objects: "There are two objects in the scene: a red cube and a blue sphere"
+            objects_count_intro = "There are two objects"
+            objects_description = f"{object_descriptions[0]} and {object_descriptions[1]}"
             objects_reference = "objects"
             objects_pronoun = "them"
         else:
-            # Multiple objects (3+): "A red cube, a blue sphere, and a green pyramid"
-            # Capitalize the first letter
-            first_obj = objects[0]
-            first_article = get_article(first_obj['color'])
-            first_desc = f"{first_article.capitalize()} {first_obj['color']} {first_obj['shape']}"
-            objects_description = first_desc + ", " + ", ".join(object_descriptions[1:-1]) + f", and {object_descriptions[-1]}"
-            are_or_is = "are"
+            # Multiple objects (3+): "There are three objects in the scene: a red cube, a blue sphere, and a green pyramid"
+            objects_count_intro = f"There are {num_objects} objects"
+            objects_description = ", ".join(object_descriptions[:-1]) + f", and {object_descriptions[-1]}"
             objects_reference = "objects"
             objects_pronoun = "them"
         
         return template.format(
+            objects_count_intro=objects_count_intro,
             objects_description=objects_description,
-            are_or_is=are_or_is,
             objects_reference=objects_reference,
             objects_pronoun=objects_pronoun
         )

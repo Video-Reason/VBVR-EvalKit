@@ -10,11 +10,12 @@ Unified prompt template that adapts to any number of objects (1, 2, 3, 4, etc.)
 
 # Unified prompt template for any number of objects
 # Placeholders:
-# - {objects_description}: Description of all objects (e.g., "A red cube" or "a red cube and a blue sphere")
+# - {objects_count_intro}: Introduction with object count (e.g., "There is one object" or "There are two objects")
+# - {objects_description}: Description of all objects (e.g., "a red cube" or "a red cube and a blue sphere")
 # - {objects_reference}: Reference to objects (e.g., "the object", "the objects")
 # - {objects_pronoun}: Pronoun for objects (e.g., "it", "them")
 PROMPTS = [
-    "{objects_description} {are_or_is} in the scene. An opaque gray panel is on the left side. "
+    "{objects_count_intro} in the scene: {objects_description}. An opaque gray panel is on the left side. "
     "Move the panel horizontally from left to right. "
     "The panel passes above the {objects_reference} and does not touch or move {objects_pronoun}. "
     "Continue moving the panel from left to right until the panel completely exits the frame. "

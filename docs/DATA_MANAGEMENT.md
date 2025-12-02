@@ -2,16 +2,6 @@
 
 This module provides comprehensive data management for VMEvalKit datasets, including version control, S3 synchronization, dataset organization, and web-based visualization.
 
-## Overview
-
-VMEvalKit's data management system handles:
-- 📁 **Dataset Organization** - Structured storage of questions, inference results, and evaluations
-- ☁️ **S3 Synchronization** - Automated backup and sharing via AWS S3
-- 🔖 **Version Tracking** - Built-in versioning for reproducibility
-- 🎥 **Web Dashboard** - Interactive visualization of results
-- 🔄 **Experiment Management** - Organized experiment tracking and results
-- ✅ **Data Validation** - Integrity checking and dataset verification
-
 ## Dataset Structure
 
 VMEvalKit uses a hierarchical structure for organizing all data:
@@ -27,9 +17,7 @@ data/
 │   │       ├── prompt.txt          # Move instructions
 │   │       └── question_metadata.json  # Task metadata
 │   ├── maze_task/                  # Maze solving challenges
-│   ├── raven_task/                 # Raven's progressive matrices
-│   ├── rotation_task/              # 3D mental rotation
-│   └── sudoku_task/                # Sudoku puzzles
+│   ├── ...                         # Other task domains
 │
 ├── outputs/                         # Model inference results
 │   └── pilot_experiment/           # Experiment name
@@ -68,9 +56,6 @@ python data/s3_sync.py --log
 
 # Upload with specific date
 python data/s3_sync.py --date 20250115
-
-# Future: Download from S3 (to be implemented)
-# python data/s3_sync.py --download --date 20250115
 ```
 
 ### Configuration
@@ -78,11 +63,9 @@ python data/s3_sync.py --date 20250115
 Set up AWS credentials in `.env`:
 
 ```bash
-# Required AWS credentials
 AWS_ACCESS_KEY_ID=your_aws_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret
 
-# Optional configuration
 S3_BUCKET=vmevalkit              # Default bucket name
 AWS_DEFAULT_REGION=us-east-2     # Default region
 AWS_REGION=us-east-2             # Alternative region setting
@@ -124,28 +107,6 @@ s3_uri = sync_to_s3(
 # ✅ Uploaded 1300 files (180.5 MB)
 ```
 
-### Advanced Features (Recommended Implementations)
-
-```python
-# Download from S3 (to be implemented)
-def download_from_s3(date_prefix=None, target_dir=None):
-    """Download dataset from S3 to local directory."""
-    # Implementation needed
-    pass
-
-# Incremental sync (to be implemented)
-def incremental_sync(since_date=None):
-    """Only upload changed files since last sync."""
-    # Implementation needed
-    pass
-
-# Compression before upload (to be implemented)
-def sync_with_compression(compression='gzip'):
-    """Compress data before uploading to save bandwidth."""
-    # Implementation needed
-    pass
-```
-
 ## Version Tracking
 
 VMEvalKit includes built-in version tracking for datasets.
@@ -160,43 +121,6 @@ VMEvalKit includes built-in version tracking for datasets.
 #   180.5MB, 1300 files
 # v1.1 (20250115) → s3://vmevalkit/202501151030/data
 #   195.2MB, 1450 files
-```
-
-### Python API
-
-```python
-# Version logging functionality has been removed
-log_version(
-    version="1.2",
-    s3_uri="s3://vmevalkit/202501151030/data",
-    stats={
-        "size_mb": 195.2,
-        "files": 1450,
-        "change": "Added 50 new chess puzzles",
-        "domains": {
-            "chess": 65,
-            "maze": 50,
-            "sudoku": 50,
-            "rotation": 50,
-            "raven": 50
-        }
-    }
-)
-
-# Get latest version info
-latest = get_latest()
-if latest:
-    print(f"Latest: v{latest['version']} at {latest['s3_uri']}")
-    print(f"Size: {latest.get('size_mb', 0):.1f}MB")
-    print(f"Files: {latest.get('files', 0)}")
-
-# Print comprehensive version summary
-print_summary()
-
-# Advanced: Force overwrite conflicting version
-log = load_log()
-log['versions'] = [v for v in log['versions'] if v['version'] != '1.0']
-save_log(log)
 ```
 
 ### Version Log Format
@@ -251,29 +175,6 @@ python -m vmevalkit.runner.create_dataset --read-only
 
 VMEvalKit uses a flexible domain registry for easy task extension:
 
-```python
-# In vmevalkit/runner/create_dataset.py
-DOMAIN_REGISTRY = {
-    'chess': {
-        'emoji': '♟️',
-        'name': 'Chess',
-        'description': 'Strategic thinking and tactical pattern recognition',
-        'module': 'vmevalkit.tasks.chess_task',
-        'create_function': 'create_dataset',
-        'process_dataset': lambda dataset, num_samples: dataset['pairs']
-    },
-    'maze': {
-        'emoji': '🌀',
-        'name': 'Maze',
-        'description': 'Spatial reasoning and navigation planning',
-        'module': 'vmevalkit.tasks.maze_task',
-        'create_function': 'create_dataset',
-        'process_dataset': lambda dataset, num_samples: dataset['pairs']
-    },
-    # Add new domains here...
-}
-```
-
 ### Adding New Task Domains
 
 To add a new reasoning domain:
@@ -296,7 +197,6 @@ def create_dataset(num_samples=15):
 
 # Add to DOMAIN_REGISTRY
 'physics': {
-    'emoji': '⚛️',
     'name': 'Physics',
     'description': 'Physical reasoning and simulation',
     'module': 'vmevalkit.tasks.physics_task',
@@ -377,16 +277,6 @@ python app.py
 
 # Access at: http://localhost:5000
 ```
-
-### Dashboard Features
-
-- **Hierarchical Navigation**: Models → Domains → Tasks
-- **Video Playback**: View generated videos with lazy loading
-- **Image Comparison**: Side-by-side initial/final frames
-- **Model Performance**: Success rates and statistics
-- **Quick Navigation**: Jump buttons for each model
-- **API Access**: REST endpoints for programmatic access
-- **Deduplication**: Automatically shows most recent runs
 
 ### API Endpoints
 
@@ -655,28 +545,6 @@ def parallel_validate(dataset, num_workers=4):
        process_chunk(chunk)
    ```
 
-## CLI Commands Summary
-
-| Command | Description |
-|---------|-------------|
-| `python data/s3_sync.py` | Upload data to S3 |
-| `python data/s3_sync.py` | Upload to S3 |
-| `python data/s3_sync.py --date YYYYMMDDHHMM` | Upload with specific timestamp |
-| `python -m vmevalkit.runner.create_dataset --pairs-per-domain N` | Generate dataset |
-| `python -m vmevalkit.runner.create_dataset --read-only` | Read existing dataset |
-| `python web/app.py` | Start web dashboard |
-| `./web/start.sh` | Start dashboard with script |
-
-## Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `AWS_ACCESS_KEY_ID` | AWS access key | For S3 | - |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | For S3 | - |
-| `S3_BUCKET` | S3 bucket name | For S3 | vmevalkit |
-| `AWS_DEFAULT_REGION` | AWS region | For S3 | us-east-2 |
-| `AWS_REGION` | Alternative region setting | For S3 | us-east-2 |
-| `SECRET_KEY` | Flask secret key | For web | auto-generated |
 
 ## Data Lifecycle Management
 
@@ -713,39 +581,3 @@ def migrate_to_new_structure():
         # Save in new location
         save_new_format(new_data, new_path)
 ```
-
-## Related Documentation
-
-- [INFERENCE.md](INFERENCE.md) - How inference results are stored and managed
-- [EVALUATION.md](EVALUATION.md) - How evaluation results are organized and analyzed
-- [ADDING_TASKS.md](ADDING_TASKS.md) - Creating new task datasets and domains
-- [WEB_DASHBOARD.md](WEB_DASHBOARD.md) - Using the web dashboard for visualization
-
-## Future Enhancements
-
-### Planned Features
-
-1. **S3 Download/Restore**: Implement bidirectional sync with S3
-2. **Incremental Sync**: Only upload changed files
-3. **Compression**: Automatic compression before upload
-4. **Data Validation UI**: Web interface for dataset validation
-5. **Automated Backups**: Cron-based backup scheduling
-6. **Dataset Versioning UI**: Web interface for version management
-7. **Multi-cloud Support**: Support for GCS, Azure Blob Storage
-8. **Data Lineage Tracking**: Track dataset transformations
-9. **Automated Cleanup**: Smart cleanup based on usage patterns
-10. **Real-time Sync**: Watch for changes and auto-sync
-
-### Contributing
-
-To contribute data management improvements:
-
-1. Check existing issues on GitHub
-2. Propose new features via issue discussion
-3. Implement with tests and documentation
-4. Submit pull request with clear description
-
----
-
-*Last updated: November 2024*
-*VMEvalKit Team*

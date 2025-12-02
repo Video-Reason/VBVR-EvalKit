@@ -16,32 +16,6 @@ VMEvalKit provides access to **9 local task generation engines(quickly increasin
 | **Object Subtraction** | Selective object removal | Multi-level cognitive reasoning |
 | **Clock** | Time-based reasoning | Clock time increment |
 
-
-## Examples
-
-Solving Chess
-
-![Chess Example](paper/video-models-start-to-solve/assets/chess_example.jpg)
-
-Solving Maze
-
-![Maze Example](paper/video-models-start-to-solve/assets/maze_example.jpg)
-
-Mental Rotation
-
-![Rotation Example](paper/video-models-start-to-solve/assets/rotation_example.jpg)
-
-Raven's Matrices
-
-![Raven Example](paper/video-models-start-to-solve/assets/raven_example.jpg)
-
-Sudoku Solving
-
-![Sudoku Example](paper/video-models-start-to-solve/assets/sudoku_example.jpg)
-
-
-
-
 ### External Benchmarks (HuggingFace)
 
 | Dataset | Tasks | Domains | Key Features |

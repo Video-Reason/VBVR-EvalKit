@@ -37,7 +37,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import  InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
-from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 
 # ========================================
@@ -61,7 +61,7 @@ QUESTIONS_DIR = Path("data/questions")
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
 # Expected domains (dynamically loaded from TASK_CATALOG)
-EXPECTED_DOMAINS = sorted(list(DOMAIN_REGISTRY.keys()))
+EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
 
 # ========================================
 # FOLDER-BASED TASK DISCOVERY
@@ -504,9 +504,9 @@ Examples:
     parser.add_argument(
         "--task",
         nargs="+",
-        choices=sorted(list(DOMAIN_REGISTRY.keys())),
+        choices=sorted(list(TASK_REGISTRY.keys())),
         default=None,
-        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(DOMAIN_REGISTRY.keys())))}. If not specified, runs all domains."
+        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(TASK_REGISTRY.keys())))}. If not specified, runs all domains."
     )
     
     parser.add_argument(

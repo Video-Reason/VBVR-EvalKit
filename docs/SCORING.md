@@ -19,17 +19,6 @@ This module provides comprehensive scoring methods for assessing video generatio
 ### 1. Human Scorer
 Interactive web interface for human scoring of generated videos.
 
-**Features:**
-- Gradio-based web interface
-- Side-by-side display of input and generated video
-- Structured scoring criteria
-- Real-time progress tracking with model-specific statistics
-- Export results as JSON
-- **Automatic skip of already scored tasks** (checks scorings folder)
-- **In-interface annotator name input** (no command-line setup needed)
-- Visual queue status with completion percentages
-- Refresh capability to reload scoring queue
-
 **Usage:**
 ```bash
 # Run human scoring interface (scores entire pilot experiment)
@@ -62,29 +51,10 @@ scorer.launch_interface(share=True, port=7860)
 ### 2. GPT-4O Scorer
 Automatic scoring using OpenAI's GPT-4O vision model.
 
-**Features:**
-- Compares final frame of generated video with ground truth
-- Direct assessment of whether the model answered the question correctly
-- **Task-specific scoring prompts** for each domain
-- Batch processing of all models with async execution
-- Detailed scoring and explanations
-- **Resume capability** - saves after each task scoring
-- Progress logging with skip statistics
-
-**Task-Specific Guidance:**
-- **Chess**: Checks if final board position matches expected position after correct move
-- **Maze**: Verifies complete path from start to end matches expected solution
-- **Rotation**: Checks if final rotation angle and position match expected result
-- **Raven**: Verifies pattern completion matches expected pattern
-- **Sudoku**: Checks if numbers placed match expected solution
-
 **Usage:**
 ```bash
 # Evaluate entire pilot experiment (all models, all tasks)
 python examples/score_videos.py gpt4o
-
-# Or use the command-line runner with specific options
-python -m vmevalkit.runner.score gpt4o --experiment pilot_experiment --temperature 0.1
 ```
 
 **Requirements:**
@@ -95,14 +65,6 @@ python -m vmevalkit.runner.score gpt4o --experiment pilot_experiment --temperatu
 
 ### Performance Visualization (`analysis/plot.py`)
 Creates professional visualizations of scoring results.
-
-**Features:**
-- Overall model performance ranking charts
-- Domain-specific performance heatmaps
-- Score distribution analysis
-- Binary success rate calculation (scores 4-5 = success)
-- Sophisticated color schemes and typography
-- Export to PNG and EPS formats
 
 **Usage:**
 ```bash
@@ -121,15 +83,6 @@ python analysis/plot.py --eval-folder data/scorings/gpt4o-eval/
 
 ### Statistical Comparison Tool (`analysis/stats.py`)
 Comprehensive statistical analysis comparing GPT-4O and human scorings.
-
-**Features:**
-- Paired t-test and Wilcoxon signed-rank test
-- Multiple correlation analyses (Pearson, Spearman, Kendall)
-- Cohen's kappa for inter-rater reliability
-- Bootstrap confidence intervals
-- Convergence analysis to find equivalence threshold
-- Task-type specific analysis
-- Publication-ready scatter plots
 
 **Usage:**
 ```bash
@@ -238,77 +191,6 @@ export VMEVAL_DATA_DIR="/path/to/data"
 export VMEVAL_OUTPUT_DIR="/path/to/scorings"
 ```
 
-## API Reference
-
-### HumanScorer
-
-**Parameters:**
-- `output_dir`: Directory for saving scorings (default: "data/scorings/human-eval")
-- `experiment_name`: Name of experiment to score (default: "pilot_experiment")
-
-**Methods:**
-- `launch_interface(share, port)`: Start web interface with annotator name input
-- `_load_scoring_queue()`: Load tasks, skipping already scored ones
-- `_get_queue_status_text()`: Generate detailed queue status with model breakdown
-- `_save_scoring()`: Save scoring result in standard format
-
-**Automatic Features:**
-- Checks for existing `*-eval.json` files
-- Automatically skips scored tasks
-- Real-time queue status updates
-- Model-specific progress tracking
-
-### GPT4OScorer
-
-**Parameters:**
-- `output_dir`: Directory for saving scorings (default: "data/scorings/gpt4o-eval")
-- `experiment_name`: Name of experiment to score (default: "pilot_experiment")
-- `api_key`: OpenAI API key (defaults to OPENAI_API_KEY env var)
-- `model`: GPT model to use (default: "gpt-4o")
-
-**Methods:**
-- `extract_final_frame(video_path)`: Extract the final frame from video
-- `create_prompt(task_type)`: Generate task-specific scoring prompts
-- `score_single_async()`: Async scoring of single video
-- `score_model_async()`: Async scoring of all tasks for a model
-- `score_all_models()`: Evaluate all models in experiment
-- `_has_scoring()`: Check if task already scored (resume support)
-- `_save_single_result()`: Save result immediately for resume capability
-
-**Async Features:**
-- Uses httpx for async API calls
-- Batch processing with progress logging
-- Automatic retry on failures
-
-### ScoringComparator
-
-**Location:** `analysis/stats.py`
-
-**Methods:**
-- `load_scorings()`: Load both GPT-4O and human scorings
-- `prepare_paired_data()`: Match scorings for comparison
-- `basic_statistics()`: Calculate descriptive statistics
-- `paired_t_test()`: Test for significant differences
-- `correlation_analysis()`: Calculate correlation coefficients
-- `inter_rater_reliability()`: Compute Cohen's kappa
-- `bootstrap_confidence_intervals()`: Generate confidence intervals
-- `convergence_analysis()`: Find statistical equivalence threshold
-- `plot_comparisons()`: Create publication-ready visualizations
-
-## Resume Capability
-
-### Human Scoring
-- **Automatic Resume**: Skips already scored tasks
-- **Detection Method**: Checks for any `*-eval.json` files
-- **Progress Tracking**: Shows tasks skipped and remaining
-- **Re-scoring**: Manually delete scoring files to re-score
-
-### GPT-4O Scoring
-- **Automatic Resume**: Skips already scored tasks (saves after each)
-- **Detection Method**: Checks for `GPT4OScorer.json` files
-- **Progress Logging**: Reports skipped, scored, and failed counts
-- **Interrupt Safe**: Can interrupt with Ctrl+C and resume later
-
 ## Analysis Workflow
 
 ### Complete Scoring Pipeline
@@ -328,10 +210,6 @@ python analysis/plot.py --eval-folder data/scorings/gpt4o-eval/
 
 # 5. Compare human vs GPT-4O statistically
 python analysis/stats.py
-
-# 6. View generated visualizations
-open analysis/statistics/gpt4o_vs_human_comparison.png
-open analysis/performance_by_domain.png
 ```
 
 ### Output Files Generated
@@ -351,9 +229,7 @@ open analysis/performance_by_domain.png
 
 ### For GPT-4O Scoring
 - **Cost Management**: Monitor API usage for large experiments
-- **Temperature**: Use low temperature (0.1) for consistency
 - **Ground Truth**: Only tasks with final frame ground truth will be scored
-- **Batch Processing**: Let it run uninterrupted for efficiency
 - **Resume on Failure**: Safe to restart after interruptions
 
 ### For Analysis

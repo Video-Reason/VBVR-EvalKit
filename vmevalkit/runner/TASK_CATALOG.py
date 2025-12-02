@@ -1,15 +1,8 @@
 """
 Task Catalog for VMEvalKit - Registry of all available reasoning tasks.
-
-Pure registry with no imports or logic - just task definitions organized by type.
-Uses string module paths for flexible dynamic loading.
 """
 
-# ========================================
-# TASK REGISTRY
-# ========================================
-
-DOMAIN_REGISTRY = {
+TASK_REGISTRY = {
     'videothinkbench': {
         'name': 'VideoThinkBench',
         'description': 'Complete VideoThinkBench dataset with all reasoning tasks (~4.1k tasks)',
@@ -94,10 +87,21 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'shape_sorter': {
+        'name': 'Shape Sorter',
+        'description': '2D shape matching under a fixed top-down camera',
+        'module': 'vmevalkit.tasks.shape_sorter_task',
     'object_rearr': {
         'name': 'Object Rearrangement',
         'description': 'Spatial reasoning and object manipulation with spatial relations',
         'module': 'vmevalkit.tasks.object_rearr_task.object_rearr',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'sliding_puzzle': {
+        'name': 'Sliding Puzzle',
+        'description': 'Spatial reasoning and simple planning through near-complete sliding puzzles',
+        'module': 'vmevalkit.tasks.sliding_puzzle_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
@@ -115,6 +119,12 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'edit_distance': {
+        'name': 'Edit Distance',
+        'description': 'String edit distance calculation and numerical reasoning',
+        'module': 'vmevalkit.tasks.edit_distance_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',

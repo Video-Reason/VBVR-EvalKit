@@ -29,7 +29,7 @@ from PIL import Image
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 # Domain Registry: Scalable way to add new domains
 # ============================================================
@@ -53,10 +53,10 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
         List of task pair metadata dictionaries
     """
     
-    if domain_name not in DOMAIN_REGISTRY:
-        raise ValueError(f"Unknown domain: {domain_name}. Available domains: {list(DOMAIN_REGISTRY.keys())}")
+    if domain_name not in TASK_REGISTRY:
+        raise ValueError(f"Unknown domain: {domain_name}. Available domains: {list(TASK_REGISTRY.keys())}")
     
-    domain_config = DOMAIN_REGISTRY[domain_name]
+    domain_config = TASK_REGISTRY[domain_name]
     
     if not domain_config.get('hf', False):
         raise ValueError(f"Domain {domain_name} is not a HuggingFace domain. Use generate_domain_to_folders() instead.")
@@ -178,10 +178,10 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
         List of task pair metadata dictionaries
     """
     
-    if domain_name not in DOMAIN_REGISTRY:
-        raise ValueError(f"Unknown domain: {domain_name}. Available domains: {list(DOMAIN_REGISTRY.keys())}")
+    if domain_name not in TASK_REGISTRY:
+        raise ValueError(f"Unknown domain: {domain_name}. Available domains: {list(TASK_REGISTRY.keys())}")
     
-    domain_config = DOMAIN_REGISTRY[domain_name]
+    domain_config = TASK_REGISTRY[domain_name]
     
     domain_dir = output_base / f"{domain_name}_task"
     domain_dir.mkdir(parents=True, exist_ok=True)
@@ -196,7 +196,6 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
     import importlib
     module = importlib.import_module(domain_config['module'])
     create_func = getattr(module, domain_config['create_function'])
-    
     dataset = create_func(num_samples=num_samples)
     
     if domain_config['process_dataset']:
@@ -218,18 +217,24 @@ def generate_domain_to_folders(domain_name: str, num_samples: int,
         final_rel = pair.get("final_image_path")
         
         if first_rel:
-            src_first = base_dir / first_rel
+            # Handle both absolute and relative paths
+            src_first = Path(first_rel) if Path(first_rel).is_absolute() else base_dir / first_rel
             dst_first = q_dir / "first_frame.png"
             if src_first.exists():
                 shutil.copyfile(src_first, dst_first)
                 pair['first_image_path'] = str(Path(domain_name + "_task") / pair_id / "first_frame.png")
+            else:
+                print(f"      ⚠️  Warning: Source image not found: {src_first}")
                 
         if final_rel:
-            src_final = base_dir / final_rel
+            # Handle both absolute and relative paths
+            src_final = Path(final_rel) if Path(final_rel).is_absolute() else base_dir / final_rel
             dst_final = q_dir / "final_frame.png"
             if src_final.exists():
                 shutil.copyfile(src_final, dst_final)
                 pair['final_image_path'] = str(Path(domain_name + "_task") / pair_id / "final_frame.png")
+            else:
+                print(f"      ⚠️  Warning: Source image not found: {src_final}")
         
         prompt_text = pair.get("prompt", "")
         (q_dir / "prompt.txt").write_text(prompt_text)
@@ -260,18 +265,13 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int | 
     """
     
     assert selected_tasks is not None, "selected_tasks must be provided"
-    invalid_tasks = [task for task in selected_tasks if task not in DOMAIN_REGISTRY]
+    invalid_tasks = [task for task in selected_tasks if task not in TASK_REGISTRY]
     if invalid_tasks:
-        raise ValueError(f"Unknown tasks: {invalid_tasks}. Available tasks: {list(DOMAIN_REGISTRY.keys())}")
+        raise ValueError(f"Unknown tasks: {invalid_tasks}. Available tasks: {list(TASK_REGISTRY.keys())}")
     domains_to_generate = selected_tasks
     
     num_domains = len(domains_to_generate)
     total_pairs = pairs_per_domain * num_domains
-    
-    print("=" * 70)
-    print("🚀 VMEvalKit Dataset Creation - Direct Folder Generation")
-    print(f"🎯 Total target: {total_pairs} task pairs across {num_domains} domain(s)")
-    print("=" * 70)
     
     base_dir = Path(__file__).parent.parent.parent
     output_base = base_dir / "data" / "questions"
@@ -281,12 +281,6 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int | 
         domain: pairs_per_domain 
         for domain in domains_to_generate
     }
-    
-    print(f"📈 Task Distribution:")
-    print(f"   📌 Generating {pairs_per_domain} task pairs per reasoning domain")
-    for domain, count in allocation.items():
-        print(f"   {domain.title():10}: {count:3d} task pairs")
-    print()
     
     all_pairs = []
     
@@ -316,7 +310,7 @@ def create_vmeval_dataset_direct(pairs_per_domain: int = 50, random_seed: int | 
                     "count": len([p for p in all_pairs if p.get('domain') == domain]),
                     "description": config['description']
                 }
-                for domain, config in DOMAIN_REGISTRY.items()
+                for domain, config in TASK_REGISTRY.items()
                 if domain in domains_to_generate
             }
         },
@@ -343,7 +337,7 @@ def read_dataset_from_folders(base_dir: Path = None) -> Dict[str, Any]:
     base_dir = Path(base_dir)
     
     all_pairs = []
-    domains = list(DOMAIN_REGISTRY.keys())
+    domains = list(TASK_REGISTRY.keys())
     
     for domain in domains:
         domain_dir = base_dir / f"{domain}_task"
@@ -392,10 +386,10 @@ def read_dataset_from_folders(base_dir: Path = None) -> Dict[str, Any]:
             "domains": {
                 domain: {
                     "count": len([p for p in all_pairs if p.get('domain') == domain]),
-                    "description": DOMAIN_REGISTRY.get(domain, {}).get('description', 'Unknown domain')
+                    "description": TASK_REGISTRY.get(domain, {}).get('description', 'Unknown domain')
                 }
                 for domain in domains
-                if domain in DOMAIN_REGISTRY
+                if domain in TASK_REGISTRY
             }
         },
         "pairs": all_pairs

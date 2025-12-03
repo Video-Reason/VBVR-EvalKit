@@ -129,6 +129,13 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'object_permanence': {
+        'name': 'Object Permanence',
+        'description': 'Object permanence reasoning - objects remain unchanged when occluder moves',
+        'module': 'vmevalkit.tasks.object_permanence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',

@@ -19,6 +19,7 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 TASK_GUIDANCE = {
+    "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
     "chess_task": "Check if The black king is in checkmate.",
     "maze_task": "Verify that the final frame at end of the maze is the red flag.",
     "rotation_task": "Check if the final rotation angle and position match the expected result.",

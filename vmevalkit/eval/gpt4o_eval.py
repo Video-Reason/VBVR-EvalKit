@@ -24,7 +24,8 @@ TASK_GUIDANCE = {
     "rotation_task": "Check if the final rotation angle and position match the expected result.",
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
     "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
-    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete."
+    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
+    "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame."
 }
 
 

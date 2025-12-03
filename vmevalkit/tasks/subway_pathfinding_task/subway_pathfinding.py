@@ -20,7 +20,7 @@ import copy
 from collections import defaultdict
 import os
 import tempfile
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Sequence
 
 # ============================================
 # Tin's Original Constants and Functions (UNCHANGED)
@@ -98,10 +98,19 @@ def draw_lines(all_routes, thickness, node_to_label, color, add_agent=False, age
     
 def convert_fig_to_pil(fig):
     fig.canvas.draw()
-    width, height = fig.canvas.get_width_height()
-
+    
     # Use buffer_rgba() for matplotlib 3.8+ compatibility
-    buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8).reshape(height, width, 4)
+    buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+    
+    # Calculate actual dimensions from buffer size (handles high-DPI displays)
+    # Buffer is RGBA, so divide by 4 to get number of pixels
+    num_pixels = len(buf) // 4
+    # Assume square image, calculate side length
+    side_length = int(np.sqrt(num_pixels))
+    
+    # Reshape using calculated dimensions
+    buf = buf.reshape(side_length, side_length, 4)
+    
     # Convert RGBA to RGB by dropping alpha channel
     image = Image.fromarray(buf[:, :, :3])
 
@@ -222,12 +231,15 @@ def generate_subway_routes():
 # VMEvalKit Wrapper
 # ============================================
 
-def create_dataset(num_samples: int = None) -> Dict[str, Any]:
+def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] = None) -> Dict[str, Any]:
     """
     Generate subway pathfinding dataset using Tin's original generation logic.
     
     Args:
-        num_samples: Number of samples to generate (None = generate all variations)
+        num_samples: Number of samples to generate
+        difficulties: List of difficulty levels to generate.
+                     Options: ['easy', 'medium', 'hard']
+                     If None, generates all difficulties
         
     Returns:
         Dataset dictionary with 'pairs' key containing task data
@@ -235,98 +247,143 @@ def create_dataset(num_samples: int = None) -> Dict[str, Any]:
     
     # Create temp directory for images
     temp_dir = tempfile.mkdtemp()
+    temp_dir = "subway_pathfinding"
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Setup difficulties
+    diffs = list(difficulties) if difficulties else ["easy", "medium", "hard"]
     
     # ============================================
     # Tin's Original Generation Logic (UNCHANGED)
     # ============================================
     
-    # Generate subway routes
+    # Generate subway routes (this generates 45 variations)
     images, node_to_label = generate_subway_routes()
     
+    # Define difficulty levels based on visual complexity
+    # Easy: larger images, thicker lines (easier to see)
+    # Medium: smaller images or thinner lines
+    # Hard: smaller images with thinner lines (harder to trace)
+    
+    difficulty_configs = {
+        'easy': {'image_sizes': [1024], 'thicknesses': [20]},
+        'medium': {'image_sizes': [1024, 512], 'thicknesses': [10, 20]},
+        'hard': {'image_sizes': [512], 'thicknesses': [10]}
+    }
+    
+    # Build available configurations based on requested difficulties
+    available_configs = []
+    for diff in diffs:
+        if diff in difficulty_configs:
+            config = difficulty_configs[diff]
+            for img_size in config['image_sizes']:
+                for thickness in config['thicknesses']:
+                    available_configs.append({
+                        'difficulty': diff,
+                        'image_size': img_size,
+                        'thickness': thickness
+                    })
+    
+    # If no configs available, return empty
+    if not available_configs:
+        return {
+            "name": "subway_pathfinding_tasks",
+            "pairs": [],
+            "source": "tin_tasks",
+            "total_samples": 0,
+            "difficulties": list(diffs)
+        }
+    
     test_samples = []
-    sample_idx = 0
 
-    counter = 1
-    for all_routes in images:
+    # Generate num_samples by randomly selecting from available configurations
+    for sample_idx in range(num_samples):
+        # Randomly select a route configuration
+        all_routes = random.choice(images)
         color = get_colors_from_colormap('tab10', len(all_routes))
         
-        for image_size in [512, 1024]:
-            for thickness in [10, 20]:
-                # Pick a random route to focus on for this sample
-                focus_route_idx = random.randint(0, len(all_routes) - 1)
-                focus_route = all_routes[focus_route_idx]
-                
-                # Get source and destination
-                source_station = node_to_label[str(focus_route['path'][0][0])]
-                dest_station = node_to_label[str(focus_route['path'][-1][-1])]
-                dest_coords = focus_route['path'][-1][-1]
-                
-                # Generate first frame (without agent)
-                fig, connections = draw_lines(all_routes, thickness, node_to_label, color, 
-                                             add_agent=False)
-                plt.tight_layout(pad=0.0)
-                image = convert_fig_to_pil(fig)
-                plt.close(fig)
-                image = image.resize((image_size, image_size))
-                
-                first_frame_name = f"{sample_idx + 1}_first.png"
-                image.save(os.path.join(temp_dir, first_frame_name))
-                
-                # Generate last frame (with agent at destination)
-                fig, connections = draw_lines(all_routes, thickness, node_to_label, color,
-                                             add_agent=True, agent_destination=dest_coords,
-                                             agent_path_idx=focus_route_idx)
-                plt.tight_layout(pad=0.0)
-                image = convert_fig_to_pil(fig)
-                plt.close(fig)
-                image = image.resize((image_size, image_size))
-                
-                last_frame_name = f"{sample_idx + 1}_last.png"
-                image.save(os.path.join(temp_dir, last_frame_name))
-               
-                # Tin's original data structure + minimal VMEvalKit fields
-                test_sample = {
-                    "sample_id": f"sample_{sample_idx + 1:04d}",
-                    "prompt": f"Create a video to show how an agent goes from station {source_station} to station {dest_station}",
-                    "first_frame": first_frame_name,
-                    "last_frame": last_frame_name,
-                    "source_station": source_station,
-                    "destination_station": dest_station,
-                    "path_color": rgba_to_color_name(color[focus_route_idx]),
-                    "metadata": {
-                        "linewidth": thickness,
-                        "path_outs": counter,
-                        "image_size": image_size,
-                        "all_connections": connections,
-                        "focus_route_idx": focus_route_idx,
-                        "destination_coords": dest_coords
-                    },
-                    # VMEvalKit required fields
-                    "id": f"subway_pathfinding_{sample_idx:04d}",
-                    "domain": "subway_pathfinding",
-                    "first_image_path": os.path.join(temp_dir, first_frame_name),
-                    "final_image_path": os.path.join(temp_dir, last_frame_name),
-                }
-                test_samples.append(test_sample)
-                sample_idx += 1
-                
-                if num_samples and len(test_samples) >= num_samples:
-                    break
-            
-            if num_samples and len(test_samples) >= num_samples:
-                break
+        # Randomly select difficulty configuration
+        config = random.choice(available_configs)
+        image_size = config['image_size']
+        thickness = config['thickness']
+        difficulty = config['difficulty']
         
-        if num_samples and len(test_samples) >= num_samples:
-            break
-                
-        counter += 1
-        if counter == 4:
-            counter = 1
+        # Pick a random route to focus on for this sample
+        focus_route_idx = random.randint(0, len(all_routes) - 1)
+        focus_route = all_routes[focus_route_idx]
+        
+        # Get source and destination
+        source_station = node_to_label[str(focus_route['path'][0][0])]
+        dest_station = node_to_label[str(focus_route['path'][-1][-1])]
+        dest_coords = focus_route['path'][-1][-1]
+        
+        # Generate first frame (without agent)
+        fig, connections = draw_lines(all_routes, thickness, node_to_label, color, 
+                                     add_agent=False)
+        plt.tight_layout(pad=0.0)
+        image = convert_fig_to_pil(fig)
+        plt.close(fig)
+        image = image.resize((image_size, image_size))
+        
+        first_frame_name = f"{sample_idx + 1}_first.png"
+        image.save(os.path.join(temp_dir, first_frame_name))
+        
+        # Generate last frame (with agent at destination)
+        fig, connections = draw_lines(all_routes, thickness, node_to_label, color,
+                                     add_agent=True, agent_destination=dest_coords,
+                                     agent_path_idx=focus_route_idx)
+        plt.tight_layout(pad=0.0)
+        image = convert_fig_to_pil(fig)
+        plt.close(fig)
+        image = image.resize((image_size, image_size))
+        
+        last_frame_name = f"{sample_idx + 1}_last.png"
+        image.save(os.path.join(temp_dir, last_frame_name))
+       
+        # Calculate path length for metadata
+        path_length = len(focus_route['path'])
+        
+        # Get the path color name
+        path_color = rgba_to_color_name(color[focus_route_idx])
+        
+        # Tin's original data structure + minimal VMEvalKit fields
+        test_sample = {
+            "sample_id": f"sample_{sample_idx + 1:04d}",
+            "prompt": f"Create a video to show how an agent travels from station {source_station} to station {dest_station} by following the {path_color} path/line on the subway map.",
+            "first_frame": first_frame_name,
+            "last_frame": last_frame_name,
+            "source_station": source_station,
+            "destination_station": dest_station,
+            "path_color": path_color,
+            "difficulty": difficulty,
+            "metadata": {
+                "linewidth": thickness,
+                "image_size": image_size,
+                "all_connections": connections,
+                "focus_route_idx": focus_route_idx,
+                "destination_coords": dest_coords,
+                "path_length": path_length,
+                "num_routes": len(all_routes)
+            },
+            # VMEvalKit required fields
+            "id": f"subway_pathfinding_{sample_idx:04d}",
+            "domain": "subway_pathfinding",
+            "first_image_path": os.path.join(temp_dir, first_frame_name),
+            "final_image_path": os.path.join(temp_dir, last_frame_name),
+        }
+        test_samples.append(test_sample)
 
     return {
         "name": "subway_pathfinding_tasks",
         "pairs": test_samples,
         "source": "tin_tasks",
-        "total_samples": len(test_samples)
+        "total_samples": len(test_samples),
+        "difficulties": list(diffs)
     }
 
+
+if __name__ == "__main__":
+    dataset = create_dataset(num_samples=10, difficulties=['easy', 'medium', 'hard'])
+    print(f"Generated {dataset['total_samples']} samples")
+    print(f"Difficulties: {dataset['difficulties']}")
+    print(f"Sample preview: {[s['sample_id'] for s in dataset['pairs'][:3]]}")

@@ -17,6 +17,7 @@ import time
 
 # Add VideoCrafter submodule to path
 VIDEOCRAFTER_PATH = Path(__file__).parent.parent.parent / "submodules" / "VideoCrafter"
+VMEVAL_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(VIDEOCRAFTER_PATH))
 
 
@@ -156,9 +157,8 @@ if __name__ == "__main__":
     # Model configuration
     config_path = "{VIDEOCRAFTER_PATH}/configs/inference_i2v_512_v1.0.yaml"
     
-    # Note: You would need to download the actual model checkpoint
-    # This is just a placeholder path
-    ckpt_path = "{VIDEOCRAFTER_PATH}/checkpoints/model.ckpt"
+    # VideoCrafter checkpoint path (using centralized weights directory)
+    ckpt_path = "{VMEVAL_ROOT}/weights/videocrafter/base_512_v2/model.ckpt"
     
     # Check if model files exist
     if not os.path.exists(config_path):

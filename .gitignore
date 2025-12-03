@@ -223,3 +223,15 @@ data/questions/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
 envs/
+
+# Model weights - centralized storage for all downloaded models
+weights/
+
+# Legacy model weight directories (kept for backwards compatibility)
+Wan2.2-I2V-A14B/
+morphic-frames-lora-weights/
+*.pth
+*.safetensors
+*.ckpt
+*.bin
+*.pt

@@ -87,6 +87,8 @@ pip install -e .
 
 For open-source video generation and evaluator models, please refer to [**Open Source Models**](./examples/opensource/open_source.md) for detailed installation instructions.
 
+**Model Weights:** All model weights are stored in a centralized `weights/` directory. See [**Weights Structure**](docs/WEIGHTS_STRUCTURE.md) for details on weight management and migration.
+
 ## 🚀 Quick Start - End-to-End Example
 
 Here's a complete workflow from creating questions to scoring results:
@@ -256,6 +258,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization
+- **[Weights Structure](docs/WEIGHTS_STRUCTURE.md)** - Model weights management and centralized storage
 
 ## Research
 

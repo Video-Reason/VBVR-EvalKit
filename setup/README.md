@@ -22,12 +22,16 @@ One command, 30-60 minutes.
 
 **Total: 15 open-source models**
 
-### Model Checkpoints (~24GB in `submodules/`)
+### Model Checkpoints (~24GB in `weights/`)
 
-- DynamiCrafter 256 (3.5GB)
-- DynamiCrafter 512 (5.2GB)
-- DynamiCrafter 1024 (9.7GB)
-- VideoCrafter2 (5.5GB)
+All model weights are now stored in a centralized `weights/` directory:
+
+- DynamiCrafter 256 (3.5GB) → `weights/dynamicrafter/dynamicrafter_256_v1/`
+- DynamiCrafter 512 (5.2GB) → `weights/dynamicrafter/dynamicrafter_512_v1/`
+- DynamiCrafter 1024 (9.7GB) → `weights/dynamicrafter/dynamicrafter_1024_v1/`
+- VideoCrafter2 (5.5GB) → `weights/videocrafter/base_512_v2/`
+- Wan2.2-I2V-A14B (~27GB) → `weights/wan/Wan2.2-I2V-A14B/`
+- Morphic LoRA weights → `weights/morphic/`
 
 ### Commercial API Keys (Optional)
 
@@ -108,7 +112,7 @@ python examples/generate_videos.py --model ltx-video --all-tasks
 
 ```bash
 rm -rf envs/
-rm -rf submodules/*/checkpoints/
+rm -rf weights/
 ./setup/RUN_SETUP.sh
 ```
 
@@ -136,13 +140,29 @@ VMEvalKit/
 │   ├── venv_hunyuan/
 │   ├── venv_dynamicrafter/
 │   └── venv_videocrafter/
-├── submodules/               # Model checkpoints (~24GB)
-│   ├── DynamiCrafter/checkpoints/
-│   └── VideoCrafter/checkpoints/
+├── weights/                  # Centralized model weights (~50GB)
+│   ├── dynamicrafter/
+│   │   ├── dynamicrafter_256_v1/
+│   │   ├── dynamicrafter_512_v1/
+│   │   └── dynamicrafter_1024_v1/
+│   ├── videocrafter/
+│   │   └── base_512_v2/
+│   ├── wan/
+│   │   └── Wan2.2-I2V-A14B/
+│   ├── morphic/
+│   ├── hunyuan/
+│   ├── ltx-video/
+│   └── svd/
+├── submodules/               # Model source code (no weights)
+│   ├── DynamiCrafter/
+│   ├── VideoCrafter/
+│   ├── HunyuanVideo-I2V/
+│   ├── LTX-Video/
+│   └── morphic-frames-to-video/
 ├── tests/
 │   ├── assets/               # Test questions
 │   └── outputs/              # Test results
 └── setup/                    # Setup scripts
 ```
 
-**Total disk usage: ~35GB**
+**Total disk usage: ~60GB** (11GB venvs + 50GB weights)

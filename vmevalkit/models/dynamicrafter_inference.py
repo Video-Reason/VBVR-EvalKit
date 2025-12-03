@@ -17,6 +17,7 @@ import time
 
 # Add DynamiCrafter submodule to path
 DYNAMICRAFTER_PATH = Path(__file__).parent.parent.parent / "submodules" / "DynamiCrafter"
+VMEVAL_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(DYNAMICRAFTER_PATH))
 
 
@@ -189,8 +190,8 @@ if __name__ == "__main__":
     # Model configuration
     config_path = "{DYNAMICRAFTER_PATH}/{config_file}"
     
-    # DynamiCrafter checkpoint path (correct format with model.ckpt in subdirectory)
-    ckpt_path = "{DYNAMICRAFTER_PATH}/checkpoints/{ckpt_dir}_v1/model.ckpt"
+    # DynamiCrafter checkpoint path (using centralized weights directory)
+    ckpt_path = "{VMEVAL_ROOT}/weights/dynamicrafter/{ckpt_dir}_v1/model.ckpt"
     
     # Check if config exists
     if not os.path.exists(config_path):

@@ -121,7 +121,7 @@ watch -n 1 nvidia-smi
 ### Reset Everything
 
 ```bash
-rm -rf envs/ submodules/*/checkpoints/
+rm -rf envs/ weights/
 ./setup/RUN_SETUP.sh
 ```
 

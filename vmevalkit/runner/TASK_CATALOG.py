@@ -136,6 +136,13 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'control_panel': {
+        'name': 'Control Panel',
+        'description': 'Control panel animation - lever position determines indicator light color',
+        'module': 'vmevalkit.tasks.control_panel_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',

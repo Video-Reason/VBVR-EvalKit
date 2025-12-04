@@ -22,10 +22,6 @@ import os
 import tempfile
 from typing import Dict, Any, List, Optional, Sequence
 
-# ============================================
-# CIRCLES - Tin's Original Functions
-# ============================================
-
 def hue_to_rgb(hue):
     rgb = hsv_to_rgb([hue, 1, 1])
     return "#{:02x}{:02x}{:02x}".format(int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
@@ -70,10 +66,6 @@ def draw_circles(dpi, size, radius, centers, colors, thickness, add_text=False,
     plt.close(fig)
     return filename
 
-# ============================================
-# PENTAGONS - Tin's Original Functions
-# ============================================
-
 def draw_pentagon(ax, center, diam, side, **kwargs):
     x_points = center[0] + np.array([0, diam*np.cos(np.pi/10), side/2, -side/2, -diam*np.cos(np.pi/10)])
     y_points = center[1] + np.array([diam, diam*np.sin(np.pi/10), -diam*np.cos(np.pi/5),-diam*np.cos(np.pi/5), diam*np.sin(np.pi/10)])
@@ -108,10 +100,6 @@ def draw_pentagons(centers, diam, side, dpi, colors, thickness, add_text=False, 
     fig.savefig(filepath, bbox_inches='tight', dpi=dpi, pad_inches=0)
     plt.close(fig)
     return filename
-
-# ============================================
-# SQUARES - Tin's Original Functions
-# ============================================
 
 def compute_squares(center, size, depth, reduction_factor, padding, squares_list):
     if depth == 0:

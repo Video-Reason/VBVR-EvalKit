@@ -14,10 +14,6 @@ import os
 import tempfile
 from typing import Dict, Any, Optional, Sequence
 
-# ============================================
-# Tin's Original Functions (UNCHANGED)
-# ============================================
-
 def draw_word(word, target_letter, dpi=100, add_circles=False, total_count=None, 
               text_position='top', filename=None, output_dir=None):
     """Draw a word with optional circles around target letters."""
@@ -101,7 +97,7 @@ def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] 
     # Setup difficulties
     diffs = list(difficulties) if difficulties else ["easy", "medium", "hard"]
     
-    # Tin's original words list categorized by difficulty
+    # Words list categorized by difficulty
     # Easy: Short words (4-7 letters)
     easy_words = ["BANANA", "COCONUT", "PIZZA", "COFFEE", "BUBBLE"]
     
@@ -181,7 +177,7 @@ def create_dataset(num_samples: int = 10, difficulties: Optional[Sequence[str]] 
             output_dir=temp_dir
         )
         
-        # Tin's original data structure + minimal VMEvalKit fields
+        # minimal VMEvalKit fields
         test_sample = {
             "sample_id": f"sample_{sample_idx + 1:04d}",
             "prompt": f"Create a video to show how to count the number of '{letter}' in {word}",

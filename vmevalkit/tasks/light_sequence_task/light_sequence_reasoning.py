@@ -98,7 +98,7 @@ class LightSequenceGenerator:
     """Light sequence image generator for spatial reasoning tasks."""
     
     def render_light_sequence(self, num_lights: int, state: Union[str, List[int]], 
-                             output_path: str, figsize: Tuple[int, int] = (8, 2)):
+                             output_path: str, figsize: Tuple[int, int] = (6, 6)):
         """
         Create a light sequence image.
         
@@ -106,7 +106,7 @@ class LightSequenceGenerator:
             num_lights: Number of lights (4, 6, 8, or 10)
             state: Binary string (e.g., "1010") or list of 0/1 representing light states
             output_path: Path to save the image
-            figsize: Figure size for matplotlib
+            figsize: Figure size for matplotlib (default: 6x6 inches for ~600x600px at 150 DPI)
         """
         # Convert state to list of integers
         if isinstance(state, str):
@@ -120,13 +120,18 @@ class LightSequenceGenerator:
         
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         
-        # Calculate spacing
-        total_width = num_lights * 1.5  # Each light takes 1.5 units
-        start_x = -total_width / 2 + 0.75
+        # Calculate spacing - fit horizontal layout in square canvas
+        # Scale to fit all lights horizontally while maintaining reasonable size
+        max_horizontal_span = 5.0  # Maximum horizontal span to fit in square
+        scale_factor = min(1.0, max_horizontal_span / (num_lights * 1.5))
+        
+        total_width = num_lights * 1.5 * scale_factor
+        start_x = -total_width / 2 + 0.75 * scale_factor
+        light_radius = 0.4 * scale_factor
         
         # Draw lights
         for i in range(num_lights):
-            x = start_x + i * 1.5
+            x = start_x + i * 1.5 * scale_factor
             is_on = state_list[i] == 1
             
             # Light color: yellow/white when on, gray when off
@@ -134,19 +139,21 @@ class LightSequenceGenerator:
             edge_color = '#FFA500' if is_on else '#404040'  # Orange edge when on, dark gray when off
             
             # Draw light circle
-            circle = plt.Circle((x, 0), 0.4, facecolor=color, edgecolor=edge_color, 
+            circle = plt.Circle((x, 0), light_radius, facecolor=color, edgecolor=edge_color, 
                                linewidth=3, zorder=2)
             ax.add_patch(circle)
             
             # Add glow effect for on lights
             if is_on:
-                glow = plt.Circle((x, 0), 0.5, color=color, alpha=0.3, zorder=1)
+                glow = plt.Circle((x, 0), light_radius * 1.25, color=color, alpha=0.3, zorder=1)
                 ax.add_patch(glow)
         
-        # Set equal aspect and limits
+        # Set equal aspect and limits - centered in square canvas
         ax.set_aspect('equal')
-        ax.set_xlim(-total_width / 2 - 0.5, total_width / 2 + 0.5)
-        ax.set_ylim(-1, 1)
+        # Use symmetric limits to ensure square output
+        max_span = max(total_width / 2 + 0.5, 1.0)
+        ax.set_xlim(-max_span, max_span)
+        ax.set_ylim(-max_span, max_span)
         ax.axis('off')
         ax.set_facecolor('white')
         

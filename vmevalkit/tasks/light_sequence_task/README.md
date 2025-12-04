@@ -33,7 +33,7 @@ python examples/generate_videos.py --model svd --task light_sequence
 ### Input Components
 - **First Frame**: A row of lights (4, 6, 8, or 10 lights) in a random on/off state
 - **Prompt**: Text instruction asking to manipulate lights according to spatial/mathematical rules
-- **Format**: 800×200px PNG image at 150 DPI with clear light representation
+- **Format**: 885×885px PNG image at 150 DPI with clear light representation
 
 ### Expected Output
 - **Video Sequence**: Animation showing lights turning on/off

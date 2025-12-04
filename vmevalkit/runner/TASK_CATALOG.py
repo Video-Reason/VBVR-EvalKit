@@ -153,26 +153,23 @@ DOMAIN_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
-    # ========================================
-    # TIN'S TASKS - From simple_task_video_reasoning
-    # ========================================
     'counting_objects': {
         'name': 'Counting Circles',
-        'description': 'Visual counting of Objects (Tin\'s task)',
+        'description': 'Visual counting of Objects',
         'module': 'vmevalkit.tasks.counting_objects_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'letter_counting': {
         'name': 'Letter Counting',
-        'description': 'Count letter occurrences in words (Tin\'s task)',
+        'description': 'Count letter occurrences in words',
         'module': 'vmevalkit.tasks.letter_counting_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
     'subway_pathfinding': {
         'name': 'Subway Pathfinding',
-        'description': 'Navigate through subway networks from source to destination (Tin\'s task)',
+        'description': 'Navigate through subway networks from source to destination',
         'module': 'vmevalkit.tasks.subway_pathfinding_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']

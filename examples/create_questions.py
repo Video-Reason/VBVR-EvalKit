@@ -30,7 +30,7 @@ from vmevalkit.runner.dataset import (
     print_dataset_summary,
     download_hf_domain_to_folders
 )
-from vmevalkit.runner.TASK_CATALOG import DOMAIN_REGISTRY
+from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 def main():
     """Flexible VMEvalKit question creation with customizable options."""
@@ -98,8 +98,8 @@ def main():
     parser.add_argument(
         "--task", 
         nargs='+', 
-        choices=list(DOMAIN_REGISTRY.keys()), 
-        help=f"Specific task domain(s) to generate. Available: {', '.join(DOMAIN_REGISTRY.keys())}. If not specified, generates all domains."
+        choices=list(TASK_REGISTRY.keys()), 
+        help=f"Specific task domain(s) to generate. Available: {', '.join(TASK_REGISTRY.keys())}. If not specified, generates all domains."
     )
     
     parser.add_argument(
@@ -120,10 +120,10 @@ def main():
     if args.list_domains:
         print("🧠 Available Task Domains:")
         print("=" * 60)
-        for domain_key, domain_info in DOMAIN_REGISTRY.items():
+        for domain_key, domain_info in TASK_REGISTRY.items():
             hf_info = " (HuggingFace)" if domain_info.get('hf', False) else ""
             print(f"{domain_info.get('emoji', '🔹')} {domain_key:15} - {domain_info['description']}{hf_info}")
-        print(f"\nTotal: {len(DOMAIN_REGISTRY)} reasoning domains available")
+        print(f"\nTotal: {len(TASK_REGISTRY)} reasoning domains available")
         print("\nUse --task to select specific domains, or run without --task for all domains.")
         return
 
@@ -137,15 +137,15 @@ def main():
         return
 
     output_path = Path(args.output_dir)
-    selected_domains = args.task if args.task else list(DOMAIN_REGISTRY.keys())
+    task = args.task
     
     # Determine random seed: None if --no-seed is set, otherwise use --random-seed value
     random_seed = None if args.no_seed else args.random_seed
     
     # Expand meta-tasks (like 'videothinkbench') into their constituent subsets
     expanded_domains = []
-    for domain in selected_domains:
-        domain_config = DOMAIN_REGISTRY.get(domain, {})
+    for domain in task:
+        domain_config = TASK_REGISTRY.get(domain, {})
         if domain_config.get('hf_meta', False):
             # This is a meta-task that contains multiple subsets
             subsets = domain_config.get('hf_subsets', [])
@@ -156,10 +156,10 @@ def main():
     
     # Remove duplicates while preserving order
     seen = set()
-    selected_domains = [d for d in expanded_domains if not (d in seen or seen.add(d))]
+    task = [d for d in expanded_domains if not (d in seen or seen.add(d))]
     
-    hf_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is True and not DOMAIN_REGISTRY.get(d, {}).get('hf_meta', False)]
-    regular_domains = [d for d in selected_domains if DOMAIN_REGISTRY.get(d, {}).get('hf', False) is not True]
+    hf_domains = [d for d in task if TASK_REGISTRY.get(d, {}).get('hf', False) is True and not TASK_REGISTRY.get(d, {}).get('hf_meta', False)]
+    regular_domains = [d for d in task if TASK_REGISTRY.get(d, {}).get('hf', False) is not True]
     
     if hf_domains:
         for domain in hf_domains:

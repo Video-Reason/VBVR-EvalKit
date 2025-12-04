@@ -18,23 +18,6 @@ python app.py
 
 **Access the dashboard at:** http://localhost:5000
 
-## 📊 Overview
-
-The web dashboard provides a comprehensive interface for exploring video generation results with:
-
-### Core Features
-- **📊 Hierarchical Dashboard**: Three-level organization (Models → Domains → Tasks)
-- **🤖 Model Performance**: Collapsible sections with task counts and metadata
-- **🧠 Domain Grouping**: Visual icons for each reasoning domain
-- **🎬 Smart Video Playback**: Lazy loading with progressive enhancement
-- **📷 Media Display**: Input images, prompts, and generated videos
-- **🚀 Multi-level Navigation**: Quick jump buttons, dropdowns, and direct links
-- **🔍 REST API**: Full programmatic access to all results
-- **📱 Responsive Design**: Optimized for desktop, tablet, and mobile
-- **♿ Accessibility**: WCAG 2.1 AA compliant with keyboard navigation
-- **🔒 Security**: Multi-layer protection against common web vulnerabilities
-- **⚡ Performance**: LRU caching, lazy loading, and optimized queries
-
 ## 🏗️ Architecture
 
 ### System Design
@@ -98,53 +81,6 @@ The web dashboard provides a comprehensive interface for exploring video generat
 - **Data Organization**: Hierarchical structuring for UI display
 - **Metadata Loading**: JSON parsing from inference logs
 - **Statistics**: Model and domain aggregation functions
-
-#### Frontend Components
-
-**JavaScript (`static/js/main.js`)**
-```javascript
-// Core modules initialized on page load:
-initializeVideoPlayers()     // Click-to-play, keyboard support
-initializeFilters()          // Table filtering
-initializeSearch()           // Global search with debouncing
-initializeLazyLoading()      // Progressive video loading
-initializeAccessibility()    // ARIA, skip links, focus management
-initializeProgressBars()     // Animated completion indicators
-```
-
-**Key JavaScript Features**:
-- **Video Management**:
-  - Three-stage loading: none → metadata → auto
-  - IntersectionObserver for viewport detection
-  - Error handling with fallback UI
-  - Loading states and animations
-- **Accessibility**:
-  - Skip-to-main-content link
-  - ARIA live regions for announcements
-  - Keyboard focus tracking
-  - Screen reader optimizations
-- **Utilities**:
-  - Debounce function for search
-  - Clipboard API with fallback
-  - Toast notifications
-  - Table sorting
-  - Keyboard shortcuts (Ctrl+K for search, Esc to clear)
-
-**CSS Design System (`static/css/style.css`)**
-- **Design Philosophy**: Apple HIG-inspired clean minimalism
-- **Color System**:
-  ```css
-  --primary: #000000;      /* Main text and borders */
-  --secondary: #666666;    /* Secondary elements */
-  --bg: #ffffff;          /* Primary background */
-  --bg-secondary: #f5f5f7; /* Section backgrounds */
-  --info: #007aff;        /* Interactive elements */
-  --success: #34c759;     /* Success states */
-  --error: #ff3b30;       /* Error states */
-  ```
-- **Components**: Cards, badges, buttons, progress bars, notifications
-- **Responsive Breakpoints**: 768px for mobile/tablet transition
-- **Animations**: Slide-in notifications, progress bar fills, hover effects
 
 ### Data Flow
 
@@ -250,10 +186,6 @@ curl "http://localhost:5000/api/results?domain=chess"
 curl "http://localhost:5000/api/results?model=veo-3.1-720p&domain=maze"
 ```
 
-**Error Responses:**
-- `400 Bad Request`: Invalid query parameters
-- `500 Internal Server Error`: Server-side error
-
 ### GET `/video/<path>`
 
 Stream video files with range request support.
@@ -324,21 +256,6 @@ Typical load times (75 tasks, 6 models):
 
 ## 🔒 Security Features
 
-### Path Traversal Protection
-
-```python
-# Multiple layers of protection
-if '..' in path or path.startswith('/'):
-    abort(403)
-
-safe_path = safe_join(OUTPUT_DIR, path)
-if not safe_path:
-    abort(403)
-
-if not str(full_path).startswith(str(OUTPUT_DIR)):
-    abort(403)
-```
-
 ### Input Validation
 
 - Parameter sanitization for API endpoints
@@ -381,25 +298,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY',
 | `Escape` | Clear search |
 
 ## 🎨 UI/UX Features
-
-### Navigation System
-
-**Three-Level Navigation:**
-1. **Quick Jump Buttons**: Direct access to any model
-2. **Dropdown Menus**: Model → Task selection
-3. **Hierarchical Sections**: Click to expand/collapse
-
-### Visual Design
-
-- **Apple-inspired Design**: Clean, minimal, focused
-- **Domain Icons**: Visual recognition
-  - ♟️ Chess
-  - 🌀 Maze
-  - 🧩 Raven
-  - 🔄 Rotation
-  - 🔢 Sudoku
-- **Status Indicators**: Success/error states, loading animations
-- **Hover Effects**: Interactive feedback for all clickable elements
 
 ### Responsive Breakpoints
 
@@ -577,27 +475,6 @@ web/
         └── main.js            # Interactive features (658 lines)
 ```
 
-## 🔮 Future Enhancements
-
-### Planned Features
-- [ ] **Comparison Matrix**: Side-by-side model comparisons
-- [ ] **Analytics Dashboard**: Success rates, generation times
-- [ ] **Export Functionality**: Download results as CSV/JSON
-- [ ] **Batch Operations**: Bulk video downloads
-- [ ] **Search & Filter**: Advanced query builder
-- [ ] **User Sessions**: Save preferences and bookmarks
-- [ ] **Real-time Updates**: WebSocket for live experiment tracking
-- [ ] **Evaluation Metrics**: Automatic quality scoring
-- [ ] **Annotation Tools**: Manual result labeling
-- [ ] **A/B Testing**: Experiment comparison framework
-
-### API Enhancements
-- [ ] GraphQL endpoint for flexible queries
-- [ ] Pagination for large datasets
-- [ ] WebSocket for real-time updates
-- [ ] Batch download endpoints
-- [ ] Statistics aggregation endpoints
-
 ## 🤝 Contributing
 
 To contribute to the web dashboard:
@@ -621,14 +498,3 @@ To contribute to the web dashboard:
    - Clear description of changes
    - Screenshots for UI changes
    - Performance impact assessment
-
-## 📄 License
-
-Same as VMEvalKit main project (Apache 2.0).
-
----
-
-For more information, see:
-- [Main VMEvalKit Documentation](../README.md)
-- [Quick Start Guide](../web/README.md)
-- [API Documentation](EVALUATION.md)

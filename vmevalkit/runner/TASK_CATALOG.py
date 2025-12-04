@@ -1,15 +1,8 @@
 """
 Task Catalog for VMEvalKit - Registry of all available reasoning tasks.
-
-Pure registry with no imports or logic - just task definitions organized by type.
-Uses string module paths for flexible dynamic loading.
 """
 
-# ========================================
-# TASK REGISTRY
-# ========================================
-
-DOMAIN_REGISTRY = {
+TASK_REGISTRY = {
     'videothinkbench': {
         'name': 'VideoThinkBench',
         'description': 'Complete VideoThinkBench dataset with all reasoning tasks (~4.1k tasks)',
@@ -133,6 +126,20 @@ DOMAIN_REGISTRY = {
         'name': 'Edit Distance',
         'description': 'String edit distance calculation and numerical reasoning',
         'module': 'vmevalkit.tasks.edit_distance_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'object_permanence': {
+        'name': 'Object Permanence',
+        'description': 'Object permanence reasoning - objects remain unchanged when occluder moves',
+        'module': 'vmevalkit.tasks.object_permanence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'control_panel': {
+        'name': 'Control Panel',
+        'description': 'Control panel animation - lever position determines indicator light color',
+        'module': 'vmevalkit.tasks.control_panel_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },

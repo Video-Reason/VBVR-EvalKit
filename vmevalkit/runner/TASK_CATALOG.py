@@ -152,6 +152,13 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.mirror_clock_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'light_sequence': {
+        'name': 'Light Sequence',
+        'description': 'Spatial reasoning and mathematical pattern recognition with light sequences',
+        'module': 'vmevalkit.tasks.light_sequence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

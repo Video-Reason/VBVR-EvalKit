@@ -26,7 +26,8 @@ TASK_GUIDANCE = {
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
     "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
     "clock_task": "Check if the time is correct in the final frame.",
-    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete."
+    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
+    "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame."
 }
 
 

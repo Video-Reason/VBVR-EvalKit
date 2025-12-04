@@ -176,6 +176,7 @@ class TetrisMap:
             return True
         else:
             self.place_block(self.current_block)
+            self.current_block = None  # Clear current block after placing
             self.clear_lines()
             return False
     
@@ -758,88 +759,143 @@ class TetrisMediumTaskGenerator:
 
 class TetrisHardTaskGenerator:
     """
-    Hard difficulty Tetris task generator.
-    - 10x10 map (same as medium)
-    - Initial state must NOT have any clearable lines (guarantee_clear=False)
-    - Spawns a new block at the top
-    - Simulates block drop AND line clearing
+    Hard difficulty Tetris task generator (IMPROVED).
+    - 10x10 map
+    - Initial state uses MIXED strategy (guarantee_clear can be True/False/None)
+    - This ensures variety while maintaining solvability
+    - Spawns a new block at varying positions (not fixed)
     """
     def __init__(self):
         self.map_width = 10
-        self.num_rows = 3  # Same as medium: 3 bottom rows pre-filled
-        self.fill_ratio = 0.8
+        self.num_rows = 3
+        self.fill_ratio = 0.85  # Higher fill for harder tasks
         self.tetris_map = TetrisMap(width=self.map_width, height=self.map_width)
         
     def generate_single_task(self, task_id: str) -> TetrisTaskPair:
-        """Generate a single hard task pair (10x10 map, with new block falling from top).
+        """Generate a single hard task pair with improved variety.
         
-        Initial state: bottom rows filled but NO complete lines (guarantee_clear=False)
-        A new block is spawned at top and will drop down.
-        Final state: after block lands and lines are cleared.
+        Key improvements:
+        1. Uses mixed guarantee_clear strategy (True/False/None) for variety
+        2. Spawns blocks at random columns (not always center)
+        3. Tries multiple block types if one fails
+        4. When task_id % 50 == 0, force regenerate until line clearing occurs
         """
-        # Fill bottom rows but guarantee NO complete lines initially
-        _smart_fill_bottom_rows(
-            self.tetris_map,
-            self.num_rows,
-            self.fill_ratio,
-            guarantee_clear=False,  # Force no initial clearable lines
-        )
+        # Extract numeric ID from task_id (e.g., "task_0050" -> 50)
+        try:
+            numeric_id = int(task_id.split('_')[-1])
+            force_line_clear = (numeric_id % 5 == 0)
+        except (ValueError, IndexError):
+            force_line_clear = False
         
-        # Verify no lines are clearable in initial state
-        initial_lines = []
-        for i in range(self.tetris_map.height):
-            if all(self.tetris_map.grid[i][j] != 0 for j in range(self.tetris_map.width)):
-                initial_lines.append(i)
-        if initial_lines:
-            print(f"  Warning: Initial state has {len(initial_lines)} full line(s), regenerating...")
-            # Clear and retry
-            self.tetris_map.grid = [[0 for _ in range(self.map_width)] for _ in range(self.map_width)]
-            _smart_fill_bottom_rows(self.tetris_map, self.num_rows, self.fill_ratio, guarantee_clear=False)
+        if force_line_clear:
+            print(f"  🎯 Force line clear mode activated for task {task_id}")
         
-        # Capture initial state (bottom 3 rows)
-        bottom_rows_initial = []
-        temp_dir = tempfile.mkdtemp()
-        start_row = self.tetris_map.height - self.num_rows
-        for r in range(start_row, self.tetris_map.height):
-            bottom_rows_initial.append([cell for cell in self.tetris_map.grid[r]])
+        max_attempts = 3000 if force_line_clear else 1
         
-        # Spawn a new block at the top
-        spawn_success = self.tetris_map.spawn_new_block()
-        if not spawn_success:
-            print(f"  Warning: Failed to spawn block (game over state), using fallback block")
-            # Fallback: manually create a simple block
-            fallback_shape = TetrisShape.I
-            self.tetris_map.current_block = TetrisBlock(fallback_shape, x=0, y=self.map_width // 2 - 1)
+        for attempt in range(max_attempts):
+            # Reset map for each attempt
+            self.tetris_map = TetrisMap(width=self.map_width, height=self.map_width)
+            
+            # Use mixed strategy - sometimes guarantee clear, sometimes not
+            guarantee_mode = random.choice([True, False, None, True])  # Bias toward True for success
+            
+            # Fill bottom rows
+            _smart_fill_bottom_rows(
+                self.tetris_map,
+                self.num_rows,
+                self.fill_ratio,
+                guarantee_clear=guarantee_mode
+            )
+            
+            # Clear any complete lines BEFORE spawning new block (ensure stable initial state)
+            initial_lines_cleared = self.tetris_map.clear_lines()
+            if initial_lines_cleared > 0 and attempt == 0:
+                print(f"  Initial clear: {initial_lines_cleared} line(s) cleared before spawning block")
+            
+            # Capture initial state (AFTER initial clear)
+            temp_dir = tempfile.mkdtemp()
+            bottom_rows_initial = []
+            start_row = self.tetris_map.height - self.num_rows
+            for r in range(start_row, self.tetris_map.height):
+                bottom_rows_initial.append([cell for cell in self.tetris_map.grid[r]])
+            
+            # Try to spawn a block - with randomization
+            all_shapes = list(TetrisShape)
+            spawn_success = False
+            attempted_shapes = []
+            
+            # Randomly try different shapes and positions
+            for _ in range(len(all_shapes) * 3):  # Multiple attempts
+                shape = random.choice(all_shapes)
+                col = random.randint(0, self.map_width - 1)  # Random column
+                
+                # Try to create block at this position
+                test_block = TetrisBlock(shape, x=0, y=col)
+                temp_map = TetrisMap(width=self.map_width, height=self.map_width)
+                temp_map.grid = [row[:] for row in self.tetris_map.grid]
+                temp_map.current_block = test_block
+                
+                if temp_map.is_valid_position(test_block):
+                    # This position works!
+                    self.tetris_map.current_block = test_block
+                    spawn_success = True
+                    break
+                
+                attempted_shapes.append((shape, col))
+            
+            if not spawn_success:
+                # Fallback: use I block at center
+                fallback_col = self.map_width // 2 - 1
+                self.tetris_map.current_block = TetrisBlock(TetrisShape.I, x=0, y=fallback_col)
+            
+            # Record block info
+            new_block_info = {
+                "shape": self.tetris_map.current_block.shape.value,
+                "initial_x": self.tetris_map.current_block.x,
+                "initial_y": self.tetris_map.current_block.y,
+                "rotation": self.tetris_map.current_block.rotation
+            }
+            
+            # Render first frame
+            first_temp_path = os.path.join(temp_dir, f"{task_id}_first.png")
+            self.tetris_map.render_to_image(first_temp_path)
+            
+            # Record lines cleared before dropping new block
+            lines_before_drop = self.tetris_map.lines_cleared
+            
+            # Simulate drop and clear (clear_lines is called inside move_block_down)
+            self.tetris_map.hard_drop()
+            
+            # Calculate lines cleared by the new block
+            lines_after_drop = self.tetris_map.lines_cleared
+            lines_cleared_by_block = lines_after_drop - lines_before_drop
+            
+            # Check if we need to retry (force_line_clear mode)
+            if force_line_clear and lines_cleared_by_block == 0:
+                if (attempt + 1) % 100 == 0:
+                    print(f"    Attempt {attempt + 1}/{max_attempts}: No line clear, retrying...")
+                continue  # Retry
+            
+            # Success! (either not force mode, or we got line clear)
+            if force_line_clear and lines_cleared_by_block > 0:
+                print(f"  ✅ Success after {attempt + 1} attempt(s): {lines_cleared_by_block} line(s) cleared!")
+            
+            # Capture final state
+            bottom_rows_final = []
+            actual_rows = min(self.num_rows, self.tetris_map.height)
+            start_row_final = self.tetris_map.height - actual_rows
+            for r in range(start_row_final, self.tetris_map.height):
+                bottom_rows_final.append([cell for cell in self.tetris_map.grid[r]])
+            
+            # Render final frame
+            final_temp_path = os.path.join(temp_dir, f"{task_id}_final.png")
+            self.tetris_map.render_to_image(final_temp_path)
+            
+            break  # Exit retry loop
         
-        # Record the spawned block info
-        new_block_info = {
-            "shape": self.tetris_map.current_block.shape.value,
-            "initial_x": self.tetris_map.current_block.x,
-            "initial_y": self.tetris_map.current_block.y,
-            "rotation": self.tetris_map.current_block.rotation
-        }
-        
-        # Render first frame (with block at top)
-        first_temp_path = os.path.join(temp_dir, f"{task_id}_first.png")
-        self.tetris_map.render_to_image(first_temp_path)
-        
-        # Simulate block drop (hard drop to bottom)
-        self.tetris_map.hard_drop()
-        
-        # After hard_drop, current_block is None (already placed and cleared)
-        # Now check and clear any complete lines
-        lines_cleared = self.tetris_map.clear_lines()
-        
-        # Capture final state (bottom 3 rows)
-        bottom_rows_final = []
-        actual_rows = min(self.num_rows, self.tetris_map.height)
-        start_row_final = self.tetris_map.height - actual_rows
-        for r in range(start_row_final, self.tetris_map.height):
-            bottom_rows_final.append([cell for cell in self.tetris_map.grid[r]])
-        
-        # Render final frame (after drop and clear)
-        final_temp_path = os.path.join(temp_dir, f"{task_id}_final.png")
-        self.tetris_map.render_to_image(final_temp_path)
+        else:
+            # Max attempts reached without success
+            print(f"  ⚠️ Warning: Reached max attempts ({max_attempts}) without line clear")
         
         # Generate prompt
         prompt = PROMPTS[0].format(difficulty="hard", n=self.map_width)
@@ -854,12 +910,12 @@ class TetrisHardTaskGenerator:
             difficulty="hard",
             initial_state_bottom3=bottom_rows_initial,
             final_state_bottom3=bottom_rows_final,
-            new_block=new_block_info,  # Include new block info for hard difficulty
+            new_block=new_block_info,
             map_size=[self.tetris_map.width, self.tetris_map.height],
             created_at=datetime.now().isoformat()
         )
         
-        print(f"  ✅ Hard task generated: block {new_block_info['shape']} dropped, {lines_cleared} lines cleared")
+        print(f"  ✅ Hard task: {new_block_info['shape']} at column {new_block_info['initial_y']}, cleared {lines_cleared_by_block} line(s)")
         return task_pair
     
     def generate_dataset(self, num_samples: int = 10) -> Dict[str, Any]:

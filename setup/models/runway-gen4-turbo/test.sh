@@ -18,7 +18,7 @@ if ! model_venv_exists "$MODEL_NAME"; then
 fi
 
 # Check API key
-API_KEY_VAR="RUNWAY_API_SECRET"
+API_KEY_VAR="RUNWAYML_API_SECRET"
 load_env_file
 if ! check_api_key "$API_KEY_VAR"; then
     print_error "${API_KEY_VAR} not configured"

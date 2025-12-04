@@ -80,28 +80,28 @@ class SGLangService:
         # FastWan models are now using correct paths from FastVideo organization
         # No warning needed as paths are verified from official source
         
-        # Check if SGLang is available
+        # Check if SGLang is available - raise error early if not installed
         self._check_sglang_availability()
     
-    def _check_sglang_availability(self) -> bool:
+    def _check_sglang_availability(self) -> None:
         """
-        Check if SGLang is available and working.
+        Check if SGLang is available and raise ImportError if not.
         
-        Returns:
-            True if SGLang is available, False otherwise
+        Raises:
+            ImportError: If SGLang is not installed
         """
         try:
-            # Try to import sglang
+            # Try to import sglang and required modules
             import sglang
+            from sglang.multimodal_gen import DiffGenerator
             logger.info("SGLang library found")
-            return True
-        except ImportError:
-            logger.warning(
-                "SGLang not found. Install with: pip install sglang[all]\n"
+        except ImportError as e:
+            raise ImportError(
+                "SGLang is required but not installed. "
+                "Install with: pip install sglang[all]\n"
                 "Note: SGLang may require Docker for some models. "
                 "See https://github.com/sgl-project/sglang for installation instructions."
-            )
-            return False
+            ) from e
     
     def _check_docker_available(self) -> bool:
         """Check if Docker is available."""
@@ -187,14 +187,17 @@ class SGLangService:
                 }
             }
         
-        # Try to use SGLang (CLI or Python API)
+        # Use SGLang (CLI or Python API)
+        # Note: ImportError is already checked in __init__, so imports are safe here
+        import sglang
+        from sglang.multimodal_gen import DiffGenerator
+        
+        logger.info(
+            "SGLang inference: Issue #12850 has been fixed (closed on 2025-11-09). "
+            "Implementation is ready for testing."
+        )
+        
         try:
-            import sglang
-            
-            logger.info(
-                "SGLang inference: Issue #12850 has been fixed (closed on 2025-11-09). "
-                "Implementation is ready for testing."
-            )
             
             # Method 1: Try SGLang CLI command (if available)
             # SGLang CLI format: sglang generate --model-path <model> --prompt <prompt> --output-path <output>
@@ -310,10 +313,8 @@ class SGLangService:
             
             # Method 2: Try SGLang Python API
             # Actual API: DiffGenerator.from_pretrained() then generator.generate()
+            # Note: DiffGenerator is already imported at the top of the try block
             try:
-                # Import SGLang's actual API
-                from sglang.multimodal_gen import DiffGenerator
-                
                 logger.info(f"Attempting SGLang Python API inference with model: {self.sglang_model}")
                 
                 # Create or reuse generator (could be cached for performance)
@@ -404,9 +405,6 @@ class SGLangService:
                         }
                     }
                     
-            except ImportError as e:
-                logger.warning(f"SGLang Python API not available: {str(e)}")
-                # Fall through to error handling
             except Exception as e:
                 logger.error(f"SGLang Python API failed: {str(e)}")
                 # Return error information
@@ -443,21 +441,6 @@ class SGLangService:
                 }
             }
             
-        except ImportError:
-            return {
-                "success": False,
-                "video_path": None,
-                "error": "SGLang library not installed. Install with: pip install sglang[all]",
-                "duration_seconds": time.time() - start_time,
-                "generation_id": f"sglang_error_{timestamp}",
-                "model": self.model_id,
-                "status": "failed",
-                "metadata": {
-                    "text_prompt": text_prompt,
-                    "image_path": str(image_path),
-                    "sglang_model": self.sglang_model,
-                }
-            }
         except Exception as e:
             return {
                 "success": False,

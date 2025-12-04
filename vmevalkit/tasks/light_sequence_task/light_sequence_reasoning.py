@@ -457,38 +457,56 @@ class LightSequenceTaskGenerator:
         Generate a dataset of light sequence reasoning tasks.
         
         Args:
-            num_samples: If None, generate all 672 tasks. Otherwise, randomly sample.
+            num_samples: If None, generate all 672 tasks. Otherwise, generate only the specified number.
         
         Returns:
             Dataset dictionary
         """
-        all_tasks = []
-        
-        # Generate all tasks
+        # Generate all possible task combinations (without actually creating tasks)
+        all_combinations = []
         for num_lights in [4, 6, 8, 10]:
             for state_idx in range(14):  # 14 states per light count
                 for task_type in range(1, 7):
                     for question_index in [0, 1]:
-                        # Generate task ID: light_sequence_灯数_题目类型
-                        task_id = f"light_sequence_{num_lights}_type{task_type}_s{state_idx:02d}_q{question_index}"
-                        
-                        # Use temporary directory
-                        import tempfile
-                        temp_dir = Path(tempfile.mkdtemp())
-                        
-                        task = self.generate_single_task(
-                            num_lights=num_lights,
-                            state_idx=state_idx,
-                            task_type=task_type,
-                            question_index=question_index,
-                            task_id=task_id,
-                            output_dir=temp_dir
-                        )
-                        all_tasks.append(task)
+                        all_combinations.append((num_lights, state_idx, task_type, question_index))
         
-        # Sample if requested
-        if num_samples is not None and num_samples < len(all_tasks):
-            all_tasks = random.sample(all_tasks, num_samples)
+        total_possible = len(all_combinations)
+        
+        # Select which combinations to generate
+        if num_samples is None:
+            # Generate all tasks
+            selected_combinations = all_combinations
+            print(f"🎯 Generating all {total_possible} light sequence tasks...")
+        else:
+            # Randomly sample combinations without generating all first
+            if num_samples > total_possible:
+                print(f"⚠️  Requested {num_samples} tasks, but only {total_possible} possible. Generating all {total_possible}.")
+                selected_combinations = all_combinations
+            else:
+                selected_combinations = random.sample(all_combinations, num_samples)
+                print(f"🎯 Generating {num_samples} light sequence tasks (randomly sampled from {total_possible} possible)...")
+        
+        # Generate only the selected tasks
+        all_tasks = []
+        import tempfile
+        temp_dir = Path(tempfile.mkdtemp())
+        
+        for idx, (num_lights, state_idx, task_type, question_index) in enumerate(selected_combinations):
+            # Generate task ID: light_sequence_灯数_题目类型
+            task_id = f"light_sequence_{num_lights}_type{task_type}_s{state_idx:02d}_q{question_index}"
+            
+            task = self.generate_single_task(
+                num_lights=num_lights,
+                state_idx=state_idx,
+                task_type=task_type,
+                question_index=question_index,
+                task_id=task_id,
+                output_dir=temp_dir
+            )
+            all_tasks.append(task)
+            
+            if (idx + 1) % 50 == 0:
+                print(f"  Generated {idx + 1}/{len(selected_combinations)} tasks...")
         
         # Convert to dictionaries
         task_dicts = []

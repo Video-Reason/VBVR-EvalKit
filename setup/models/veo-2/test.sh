@@ -18,12 +18,12 @@ if ! model_venv_exists "$MODEL_NAME"; then
 fi
 
 # Check API key
-API_KEY_VAR="GOOGLE_APPLICATION_CREDENTIALS"
+API_KEY_VAR="GEMINI_API_KEY"
 load_env_file
 if ! check_api_key "$API_KEY_VAR"; then
     print_error "${API_KEY_VAR} not configured"
     print_info "Add to ${VMEVAL_ROOT}/.env:"
-    echo "         ${API_KEY_VAR}=/path/to/credentials.json"
+    echo "         ${API_KEY_VAR}=your_gemini_api_key"
     exit 1
 fi
 

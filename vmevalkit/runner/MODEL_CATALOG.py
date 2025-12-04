@@ -32,8 +32,16 @@ LUMA_MODELS = {
     }
 }
 
-# Google Veo Models (Vertex AI)
+# Google Veo Models (Gemini API with GEMINI_API_KEY)
 VEO_MODELS = {
+    "veo-2": {
+        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_class": "VeoWrapper",
+        "service_class": "VeoService",
+        "model": "veo-2.0-generate-001",
+        "description": "Google Veo 2.0 - GA model for text+image→video",
+        "family": "Google Veo"
+    },
     "veo-2.0-generate": {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
@@ -56,6 +64,14 @@ VEO_MODELS = {
         "service_class": "VeoService",
         "model": "veo-3.0-fast-generate-preview",
         "description": "Google Veo 3.0 Fast - Preview model for faster generation",
+        "family": "Google Veo"
+    },
+    "veo-3.1-generate": {
+        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_class": "VeoWrapper",
+        "service_class": "VeoService",
+        "model": "veo-3.1-generate-001",
+        "description": "Google Veo 3.1 - Latest model with native 1080p and audio",
         "family": "Google Veo"
     }
 }

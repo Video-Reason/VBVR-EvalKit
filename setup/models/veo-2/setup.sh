@@ -11,7 +11,7 @@ create_model_venv "$MODEL"
 activate_model_venv "$MODEL"
 
 print_section "Dependencies"
-pip install -q httpx aiohttp requests tenacity google-cloud-aiplatform
+pip install -q google-genai
 pip install -q pydantic pydantic-settings python-dotenv
 pip install -q Pillow numpy imageio imageio-ffmpeg
 

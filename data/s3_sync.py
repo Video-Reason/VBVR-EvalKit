@@ -5,20 +5,11 @@ import os
 import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
-import boto3
 import argparse
+import subprocess
 # Load environment variables from .env file
 from dotenv import load_dotenv
 load_dotenv()
-
-
-def get_s3_client():
-    """Create and return an S3 client with credentials from environment."""
-    return boto3.client("s3",
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.getenv("AWS_REGION", "us-east-2")
-    )
 
 
 def get_bucket_name() -> str:
@@ -31,14 +22,13 @@ def get_username() -> Optional[str]:
     return os.getenv("AWS_S3_USERNAME") or os.getenv("S3_USERNAME")
 
 
-def upload_to_s3(local_path: str, s3_prefix: str = None, bucket: str = None, date_prefix: str = None) -> str:
+def upload_to_s3(local_path: str, s3_prefix: str = None, date_prefix: str = None) -> str:
     """
     Upload a file or directory to S3.
     
     Args:
         local_path: Local file or directory path to upload
         s3_prefix: S3 prefix/folder (if not provided, uses username/date_prefix/data format)
-        bucket: S3 bucket name (default: from environment)
         date_prefix: Date prefix in YYYYMMDDHHMM format (for backward compatibility)
         
     Returns:
@@ -51,7 +41,7 @@ def upload_to_s3(local_path: str, s3_prefix: str = None, bucket: str = None, dat
     if not local_path.exists():
         raise FileNotFoundError(f"Path does not exist: {local_path}")
     
-    bucket = bucket or get_bucket_name()
+    bucket = get_bucket_name()
     username = get_username()
     
     # Maintain original YYYYMMDDHHMM/data/ format for backward compatibility
@@ -62,35 +52,37 @@ def upload_to_s3(local_path: str, s3_prefix: str = None, bucket: str = None, dat
         if username:
             s3_prefix = f"{username}/{s3_prefix}"
     
-    s3 = get_s3_client()
-    
+    # Calculate file count and total size before upload
     file_count = 0
     total_size = 0
     
-    print(f"📤 Uploading to s3://{bucket}/{s3_prefix}/")
-    
-    # Upload single file or directory
     if local_path.is_file():
-        s3_key = f"{s3_prefix}/{local_path.name}"
-        s3.upload_file(str(local_path), bucket, s3_key)
         file_count = 1
         total_size = local_path.stat().st_size
-        print(f"  ✓ {local_path.name}")
     else:
         for root, _, files in os.walk(local_path):
             for filename in files:
                 file_path = Path(root) / filename
-                rel_path = file_path.relative_to(local_path)
-                s3_key = f"{s3_prefix}/{rel_path.as_posix()}"
-                
-                s3.upload_file(str(file_path), bucket, s3_key)
                 file_count += 1
                 total_size += file_path.stat().st_size
-                
-                if file_count % 50 == 0:
-                    print(f"  ↳ {file_count} files...")
     
     s3_uri = f"s3://{bucket}/{s3_prefix}"
+    
+    print(f"📤 Uploading to {s3_uri}/")
+    
+    # Use AWS CLI to upload
+    if local_path.is_file():
+        # Single file: use cp
+        s3_dest = f"{s3_uri}/{local_path.name}"
+        cmd = ["aws", "s3", "cp", str(local_path), s3_dest]
+        subprocess.run(cmd, check=True)
+        print(f"  ✓ {local_path.name}")
+    else:
+        # Directory: use sync
+        s3_dest = f"{s3_uri}/"
+        cmd = ["aws", "s3", "sync", str(local_path), s3_dest]
+        subprocess.run(cmd, check=True)
+    
     size_mb = total_size / (1024 * 1024)
     
     print(f"✅ Uploaded {file_count} file(s) ({size_mb:.1f} MB)")
@@ -112,57 +104,34 @@ def download_from_s3(s3_uri: str, local_path: str = None) -> str:
     """
     # Parse S3 URI
     if s3_uri.startswith("s3://"):
-        parts = s3_uri[5:].split("/", 1)
-        bucket = parts[0]
-        s3_prefix = parts[1] if len(parts) > 1 else ""
+        full_s3_uri = s3_uri
     else:
         bucket = get_bucket_name()
-        s3_prefix = s3_uri
+        full_s3_uri = f"s3://{bucket}/{s3_uri}"
     
     # Set default local path
     if local_path is None:
+        if s3_uri.startswith("s3://"):
+            parts = s3_uri[5:].split("/", 1)
+            s3_prefix = parts[1] if len(parts) > 1 else ""
+        else:
+            s3_prefix = s3_uri
         prefix_name = s3_prefix.rstrip("/").split("/")[-1] or "data"
         local_path = Path(__file__).parent / "downloads" / prefix_name
     else:
         local_path = Path(local_path)
     
-    local_path.mkdir(parents=True, exist_ok=True)
-    s3 = get_s3_client()
+    Path(local_path).mkdir(parents=True, exist_ok=True)
     
-    print(f"📥 Downloading from s3://{bucket}/{s3_prefix}/")
-    print(f"📂 Destination: {local_path}")
+    # AWS CLI parallel download
+    cmd = [
+        "aws", "s3", "sync",
+        full_s3_uri,
+        str(local_path)
+    ]
     
-    file_count = 0
-    total_size = 0
-    
-    # List and download all objects with the prefix
-    paginator = s3.get_paginator('list_objects_v2')
-    for page in paginator.paginate(Bucket=bucket, Prefix=s3_prefix):
-        if 'Contents' not in page:
-            continue
-            
-        for obj in page['Contents']:
-            s3_key = obj['Key']
-            
-            # Skip if it's just the prefix (directory marker)
-            if s3_key == s3_prefix or s3_key.endswith('/'):
-                continue
-            
-            # Determine local file path
-            rel_path = s3_key[len(s3_prefix):].lstrip('/')
-            local_file = local_path / rel_path
-            local_file.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Download file
-            s3.download_file(bucket, s3_key, str(local_file))
-            file_count += 1
-            total_size += obj['Size']
-            
-            if file_count % 50 == 0:
-                print(f"  ↳ {file_count} files...")
-    
-    size_mb = total_size / (1024 * 1024)
-    print(f"✅ Downloaded {file_count} file(s) ({size_mb:.1f} MB)")
+    print(f"📥 Downloading from {full_s3_uri}")
+    subprocess.run(cmd, check=True)
     
     return str(local_path)
 
@@ -179,42 +148,74 @@ def list_s3_datasets(bucket: str = None, prefix: str = "") -> List[Dict]:
         List of dataset information dicts
     """
     bucket = bucket or get_bucket_name()
-    s3 = get_s3_client()
     
-    print(f"📋 Listing datasets in s3://{bucket}/{prefix}")
+    # Build S3 URI
+    s3_uri = f"s3://{bucket}"
+    if prefix:
+        s3_uri = f"{s3_uri}/{prefix.rstrip('/')}"
+    
+    print(f"📋 Listing datasets in {s3_uri}")
     print()
     
-    # Use delimiter to get "folders" at top level
-    paginator = s3.get_paginator('list_objects_v2')
-    datasets = []
+    # Use AWS CLI to list files recursively
+    cmd = ["aws", "s3", "ls", s3_uri, "--recursive"]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    
     folder_stats = {}
     
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        if 'Contents' not in page:
+    # Parse output: format is "YYYY-MM-DD HH:MM:SS      SIZE path/to/file"
+    # Note: aws s3 ls output does NOT include s3://bucket/ prefix, only relative path
+    for line in result.stdout.strip().split('\n'):
+        if not line.strip():
             continue
+        
+        # Parse line: "2024-01-01 12:00:00     1234567 path/to/file"
+        parts = line.split(None, 3)  # Split into max 4 parts: date, time, size, path
+        if len(parts) < 4:
+            continue
+        
+        # Extract relative path (may contain spaces, so use parts[3])
+        relative_path = parts[3]
+        
+        # Apply prefix filter if specified
+        if prefix:
+            prefix_stripped = prefix.rstrip('/')
+            if not relative_path.startswith(prefix_stripped):
+                continue
+            # Remove prefix from path for dataset name extraction
+            relative_path = relative_path[len(prefix_stripped):].lstrip('/')
+        
+        # Skip if it's just the prefix (directory marker) or empty
+        if not relative_path or relative_path.endswith('/'):
+            continue
+        
+        # Extract top-level folder (dataset name)
+        path_parts = relative_path.split('/')
+        if len(path_parts) > 1:
+            dataset_name = path_parts[0]
             
-        for obj in page['Contents']:
-            s3_key = obj['Key']
+            # Parse file size
+            file_size = int(parts[2])
             
-            # Extract top-level folder (dataset name)
-            parts = s3_key.split('/')
-            if len(parts) > 1:
-                dataset_name = parts[0]
-                
-                if dataset_name not in folder_stats:
-                    folder_stats[dataset_name] = {
-                        'name': dataset_name,
-                        'file_count': 0,
-                        'total_size': 0,
-                        'last_modified': obj['LastModified']
-                    }
-                
-                folder_stats[dataset_name]['file_count'] += 1
-                folder_stats[dataset_name]['total_size'] += obj['Size']
-                
-                # Keep the most recent modification time
-                if obj['LastModified'] > folder_stats[dataset_name]['last_modified']:
-                    folder_stats[dataset_name]['last_modified'] = obj['LastModified']
+            # Parse date and time
+            date_str = parts[0]
+            time_str = parts[1]
+            last_modified = datetime.datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
+            
+            if dataset_name not in folder_stats:
+                folder_stats[dataset_name] = {
+                    'name': dataset_name,
+                    'file_count': 0,
+                    'total_size': 0,
+                    'last_modified': last_modified
+                }
+            
+            folder_stats[dataset_name]['file_count'] += 1
+            folder_stats[dataset_name]['total_size'] += file_size
+            
+            # Keep the most recent modification time
+            if last_modified > folder_stats[dataset_name]['last_modified']:
+                folder_stats[dataset_name]['last_modified'] = last_modified
     
     # Convert to sorted list
     datasets = sorted(folder_stats.values(), key=lambda x: x['last_modified'], reverse=True)
@@ -270,68 +271,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="S3 sync for VMEvalKit - upload, download, and list datasets",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-            ORIGINAL USAGE (Backward Compatible):
-            # Default: Upload data/ folder with auto-generated timestamp
-            # Format: {username}/YYYYMMDDHHMM/data/ (if AWS_S3_USERNAME is set)
-            #         or YYYYMMDDHHMM/data/ (if AWS_S3_USERNAME is not set)
-            python data/s3_sync.py
-            
-            # Upload with specific date prefix
-            python data/s3_sync.py --date 202411181530
-            
-            # Upload to S3
-            python data/s3_sync.py
-
-            NEW COMMANDS:
-
-            LIST - See what datasets are available in S3:
-                # List all datasets (shows username/YYYYMMDDHHMM folders if username is set)
-                python data/s3_sync.py list
-                
-                # List with specific prefix
-                python data/s3_sync.py list --prefix username/202411
-                
-            UPLOAD - Upload specific files or directories:
-                # Upload with date prefix (maintains {username}/YYYYMMDDHHMM/data/ format)
-                python data/s3_sync.py upload ./data/outputs
-                
-                # Upload with custom S3 prefix (username will be prepended if set)
-                python data/s3_sync.py upload ./data/outputs --prefix my-experiment
-                
-                # Upload specific file
-                python data/s3_sync.py upload ./results.json --prefix 202411181530/data
-                
-            DOWNLOAD - Download datasets from S3:
-                # Download using date prefix (username/YYYYMMDDHHMM/data/ format if username is set)
-                python data/s3_sync.py download username/202411181234/data
-                
-                # Download with full S3 URI
-                python data/s3_sync.py download s3://vmevalkit/username/202411181234/data
-                
-                # Download to specific local directory
-                python data/s3_sync.py download username/202411181234/data --output ./restored-data
-
-            S3 STRUCTURE (Original Design):
-            s3://vmevalkit/
-            ├── username/              # User prefix (if AWS_S3_USERNAME is set)
-            │   ├── 202411181234/data/    # YYYYMMDDHHMM/data/ format
-            │   │   ├── questions/
-            │   │   ├── outputs/
-            │   │   └── evaluations/
-            │   └── 202411181530/data/
-            │       └── ...
-            └── 202411181234/data/     # Without username (if AWS_S3_USERNAME not set)
-                └── ...
-
-            CREDENTIALS:
-            Loaded from .env file:
-                - AWS_ACCESS_KEY_ID
-                - AWS_SECRET_ACCESS_KEY
-                - AWS_REGION (defaults to us-east-2)
-                - AWS_S3_BUCKET (defaults to 'vmevalkit')
-                - AWS_S3_USERNAME (optional - adds username prefix to S3 paths)
-        """
     )
     
     # Add backward-compatible flags at top level (for original usage)

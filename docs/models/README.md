@@ -85,3 +85,15 @@ uv pip install sentencepiece accelerate #  otherwise has error. refer https://hu
 uv run examples/generate_videos.py --model ltx-video --task chess maze
 ```
 
+## sglang support
+
+refer https://github.com/sgl-project/sglang/tree/main/python/sglang/multimodal_gen
+may not compatible with lmdeploy.
+```bash
+git clone --branch v0.5.6 https://github.com/sgl-project/sglang.git
+cd sglang
+pip install -e "python[all]"
+pip install flash-attn --no-build-isolation
+python  examples/generate_videos.py --model sglang-wan-2.2
+
+```

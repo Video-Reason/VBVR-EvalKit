@@ -47,18 +47,11 @@ DEFAULT_TEST_MODELS = [
     "wavespeed-wan-2.2-i2v-720p",
 ]
 
-# Questions directory path
 QUESTIONS_DIR = Path("data/questions")
-
-# Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
 # Expected domains (dynamically loaded from TASK_CATALOG)
 EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
-
-# ========================================
-# FOLDER-BASED TASK DISCOVERY
-# ========================================
 
 def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     """

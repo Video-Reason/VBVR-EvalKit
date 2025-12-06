@@ -13,8 +13,6 @@ Reference:
 - Issue #12850: https://github.com/sgl-project/sglang/issues/12850 (fixed)
 """
 
-import os
-import sys
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
@@ -23,6 +21,9 @@ import time
 import logging
 
 logger = logging.getLogger(__name__)
+import sglang
+from sglang.multimodal_gen import DiffGenerator
+
 
 # SGLang supported models mapping
 SGLANG_MODEL_MAP = {
@@ -192,13 +193,11 @@ class SGLangService:
         
         # Use SGLang (CLI or Python API)
         # Note: ImportError is already checked in __init__, so imports are safe here
-            import sglang
-        from sglang.multimodal_gen import DiffGenerator
             
-            logger.info(
-                "SGLang inference: Issue #12850 has been fixed (closed on 2025-11-09). "
-                "Implementation is ready for testing."
-            )
+        logger.info(
+            "SGLang inference: Issue #12850 has been fixed (closed on 2025-11-09). "
+            "Implementation is ready for testing."
+        )
         
         try:
             
@@ -354,8 +353,6 @@ class SGLangService:
                         generate_kwargs.pop("image_path", None)
                         generate_kwargs["image"] = str(image_path)
                 video_result = generator.generate(**generate_kwargs)
-                    else:
-                        raise
                 
                 # Find the generated video file
                 found_output_path = None

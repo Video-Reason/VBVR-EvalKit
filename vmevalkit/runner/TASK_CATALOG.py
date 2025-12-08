@@ -192,6 +192,13 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.light_sequence_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'tower_of_hanoi': {
+        'name': 'Tower of Hanoi',
+        'description': 'Single-move planning and constraint satisfaction',
+        'module': 'vmevalkit.tasks.tower_of_hanoi_task.tower_of_hanoi_reasoning',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

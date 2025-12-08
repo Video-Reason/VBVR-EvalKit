@@ -30,7 +30,8 @@ TASK_GUIDANCE = {
     "letter_counting_task": "Check if the count shown in the final frame matches the ground_truth_count for the target letter. Award 1 point if counts match, 0 otherwise.",
     "subway_pathfinding_task": "Check if the agent icon in the final frame is at the correct destination_station. Award 1 point if destination matches, 0 otherwise.",
     "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
-    "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame."
+    "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
+    "tower_of_hanoi_task": "Check if exactly one disk moved to the correct position following Tower of Hanoi rules."
 }
 
 

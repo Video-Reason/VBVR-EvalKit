@@ -1,0 +1,4 @@
+Disks: 2
+Initial: [[], [2, 1], []]
+Final: [[1], [2], []]
+Move: disk 1 from Middle to Left

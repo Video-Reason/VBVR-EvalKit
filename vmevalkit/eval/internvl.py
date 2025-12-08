@@ -25,7 +25,8 @@ TASK_GUIDANCE = {
     "raven_task": "Verify that the pattern completion in the final frame matches the expected pattern.",
     "sudoku_task": "Check if the numbers placed in the final frame match the expected solution.",
     "clock_task": "Check if the time is correct in the final frame.",
-    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete."
+    "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
+    "tower_of_hanoi_task": "Check if exactly one disk moved to the correct position following Tower of Hanoi rules."
 }
 
 

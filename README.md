@@ -8,6 +8,7 @@
 [![Paper](https://img.shields.io/badge/Paper-A42C25?style=for-the-badge&logo=arxiv&logoColor=white)](paper/video-models-start-to-solve/Video_Model_Start_to_Solve.pdf) 
 [![Hugging Face](https://img.shields.io/badge/hf-fcd022?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/VideoReason)
 [![WeChat](https://img.shields.io/badge/WeChat-07C160?style=for-the-badge&logo=wechat&logoColor=white)](https://github.com/hokindeng/VMEvalKit/issues/132)
+[![Homepage](https://img.shields.io/badge/Homepage-07D100?style=for-the-badge&logo=googlehome&logoColor=white)](https://video-reason.github.io/)
 
 
 </div>
@@ -86,6 +87,8 @@ pip install -e .
 ```
 
 For open-source video generation and evaluator models, please refer to [**Open Source Models**](./examples/opensource/open_source.md) for detailed installation instructions.
+
+**Model Weights:** All model weights are stored in a centralized `weights/` directory. See [**Weights Structure**](docs/WEIGHTS_STRUCTURE.md) for details on weight management and migration.
 
 ## 🚀 Quick Start - End-to-End Example
 
@@ -254,6 +257,7 @@ VMEvalKit is meant to be a permissively open-source **shared playground** for ev
 - **[Adding Models](docs/ADDING_MODELS.md)** - How to add new video generation models
 - **[Adding Tasks](docs/ADDING_TASKS.md)** - How to create new reasoning tasks
 - **[Web Dashboard](docs/WEB_DASHBOARD.md)** - Interactive results visualization
+- **[Weights Structure](docs/WEIGHTS_STRUCTURE.md)** - Model weights management and centralized storage
 
 ## Research
 

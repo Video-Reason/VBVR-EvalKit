@@ -1,25 +1,23 @@
 """
-Google Veo 3 (Vertex AI) — Text + Image → Video
-- Auth: prefers Application Default Credentials (google-auth), falls back to `gcloud auth print-access-token`
-- Models: veo-3.0-generate-001 (default) or veo-3.0-fast-generate-001
-- Input image: local file (PNG/JPEG) or GCS URI
-- Output: returns video bytes (if API responds inline) or downloads from GCS (if provided and client available)
+Google Veo (Gemini API) — Text + Image → Video
+- Auth: uses GEMINI_API_KEY environment variable
+- Models: veo-2.0-generate-001, veo-3.0-generate-preview, veo-3.0-fast-generate-preview, veo-3.1-generate-001
+- Input image: local file (PNG/JPEG)
+- Output: saves video file directly using the Gemini client
 """
 
 from __future__ import annotations
 
 import os
 import base64
-import json
 import time
 import asyncio
 import logging
-import shutil
-import subprocess
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Union
 
-import httpx
+from google import genai
+from google.genai import types
 from PIL import Image
 import io
 from .base import ModelWrapper
@@ -37,20 +35,13 @@ try:
     if _dotenv_path:
         load_dotenv(_dotenv_path, override=False)
     else:
-        # Fallback: try default search from CWD
         load_dotenv(override=False)
 except Exception:
-    # Safe fallback: proceed if python-dotenv is unavailable
     pass
 
 
 def _hydrate_env_from_nearby_dotenv() -> None:
-    """Best-effort manual .env loader if python-dotenv did not populate env.
-
-    Searches for a .env starting from the current working directory and
-    walking up a few parent directories relative to this file.
-    Only sets variables that are not already present in os.environ.
-    """
+    """Best-effort manual .env loader if python-dotenv did not populate env."""
     candidate_paths = []
     try:
         candidate_paths.append(Path.cwd() / ".env")
@@ -81,258 +72,67 @@ def _hydrate_env_from_nearby_dotenv() -> None:
         except Exception:
             continue
 
-# -----------------------------
-# Utilities: auth
-# -----------------------------
 
-def _google_access_token_via_adc() -> Optional[str]:
-    """Try to obtain an access token via Application Default Credentials (google-auth)."""
-    try:
-        from google.auth import default
-        from google.auth.transport.requests import Request
-
-        creds, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-        if not creds.valid:
-            creds.refresh(Request())
-        return creds.token
-    except Exception as e:
-        logger.debug(f"ADC auth not available: {e}")
-        return None
-
-
-def _google_access_token_via_gcloud() -> Optional[str]:
-    """Fallback: obtain an access token from the gcloud CLI."""
-    gcloud_paths = [
-        shutil.which("gcloud"),
-        "/usr/bin/gcloud",
-        "/usr/local/bin/gcloud",
-        "/home/ubuntu/google-cloud-sdk/bin/gcloud",
-    ]
-    gcloud_cmd = next((p for p in gcloud_paths if p and os.path.exists(p)), None)
-    if not gcloud_cmd:
-        logger.debug("gcloud not found on PATH or common locations.")
-        return None
-    try:
-        token = subprocess.check_output([gcloud_cmd, "auth", "print-access-token"], text=True).strip()
-        return token or None
-    except subprocess.CalledProcessError as e:
-        logger.debug(f"gcloud token retrieval failed: {e}")
-        return None
-
-
-def get_google_access_token() -> str:
-    """Get an OAuth2 access token for Vertex AI."""
-    token = _google_access_token_via_adc() or _google_access_token_via_gcloud()
-    if not token:
+def get_gemini_api_key() -> str:
+    """Get GEMINI_API_KEY from environment."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        _hydrate_env_from_nearby_dotenv()
+        api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
         raise RuntimeError(
-            "Could not obtain Google access token. "
-            "Use Application Default Credentials (gcloud auth application-default login) "
-            "or run `gcloud auth login` and keep gcloud available."
+            "GEMINI_API_KEY not set. "
+            "Set it in your environment or add to .env file."
         )
-    return token
+    return api_key
 
-# -----------------------------
-# Veo 3 Client
-# -----------------------------
+
+# Model name mapping from catalog names to Gemini API model IDs
+MODEL_NAME_MAPPING = {
+    "veo-2.0-generate-001": "veo-2.0-generate-001",
+    "veo-3.0-generate-preview": "veo-3.0-generate-preview",
+    "veo-3.0-fast-generate-preview": "veo-3.0-fast-generate-preview",
+    "veo-3.1-generate-001": "veo-3.1-generate-001",
+}
+
 
 class VeoService:
     """
-    Vertex AI Veo 3 video generation client.
+    Google Veo video generation client using the google-genai library.
     """
 
     def __init__(
         self,
-        project_id: Optional[str] = None,
-        location: str = "us-central1",
         model_id: str = "veo-3.0-generate-preview",
-        http_timeout_s: float = 1800.0,  # 30 minute timeout
+        poll_interval_s: float = 5.0,
+        poll_timeout_s: float = 1800.0,
     ):
-        # Accept multiple common env var names for GCP project and location
-        self.project_id = (
-            project_id
-            or os.getenv("GOOGLE_PROJECT_ID")
-            or os.getenv("GOOGLE_CLOUD_PROJECT")
-            or os.getenv("GCP_PROJECT")
-            or os.getenv("PROJECT_ID")
-        )
-        self.location = (
-            os.getenv("GOOGLE_LOCATION")
-            or os.getenv("GOOGLE_CLOUD_REGION")
-            or os.getenv("REGION")
-            or os.getenv("LOCATION")
-            or location
-        )
-        self.model_id = model_id
-        if not self.project_id:
-            # As a last resort, parse a nearby .env and retry reading vars
-            _hydrate_env_from_nearby_dotenv()
-            self.project_id = (
-                project_id
-                or os.getenv("GOOGLE_PROJECT_ID")
-                or os.getenv("GOOGLE_CLOUD_PROJECT")
-                or os.getenv("GCP_PROJECT")
-                or os.getenv("PROJECT_ID")
-            )
-            if not self.project_id:
-                raise ValueError("GOOGLE_PROJECT_ID not set. Ensure it is in your .env or pass project_id=...")
-
-        # Use regionless host per Vertex AI REST; region is in the path.
-        self.base_url = "https://aiplatform.googleapis.com/v1"
-        self.http_timeout_s = http_timeout_s
-
-    # -------------------------
-    # Public API
-    # -------------------------
-
-    async def generate_video(
-        self,
-        prompt: str,
-        *,
-        image_path: Optional[str] = None,
-        image_gcs_uri: Optional[str] = None,
-        duration_seconds: int = 8,          # allowed: 4, 6, 8
-        aspect_ratio: str = "16:9",         # "16:9" or "9:16"
-        resolution: str = "1080p",          # "720p" or "1080p"
-        negative_prompt: Optional[str] = None,
-        enhance_prompt: bool = True,
-        generate_audio: bool = True,
-        sample_count: int = 1,              # 1–4
-        seed: Optional[int] = None,
-        person_generation: Optional[str] = None,  # "disallow" | "allow_adult"
-        storage_uri: Optional[str] = None,  # gs://bucket/prefix to write outputs
-        poll_interval_s: float = 8.0,
-        poll_timeout_s: float = 1800.0,  # 30 minute timeout
-        download_from_gcs: bool = False,    # if response points to GCS, try to download bytes
-    ) -> Tuple[Optional[bytes], Dict[str, Any]]:
         """
-        Submit a Veo 3 generation job and wait until completion.
-
-        Returns:
-            (video_bytes, metadata)
-            - video_bytes: bytes of the first video if inline; or downloaded from GCS if requested; else None
-            - metadata: full response dict (including any GCS URIs)
-        """
-        # Auto-detect best aspect ratio if image provided and using default aspect ratio
-        if image_path and aspect_ratio == "16:9":  # Only auto-detect if using default
-            with Image.open(image_path) as img:
-                aspect_ratio = self._determine_best_aspect_ratio(img.width, img.height, aspect_ratio)
+        Initialize the Veo service.
         
-        self._validate_params(duration_seconds, aspect_ratio, resolution, sample_count)
-
-        token = get_google_access_token()
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-
-        instance: Dict[str, Any] = {"prompt": prompt}
-        image_obj = self._build_image_object(
-            image_path=image_path, 
-            image_gcs_uri=image_gcs_uri,
-            aspect_ratio=aspect_ratio
-        )
-        if image_obj:
-            instance["image"] = image_obj
-
-        parameters: Dict[str, Any] = {
-            "durationSeconds": duration_seconds,
-            "aspectRatio": aspect_ratio,
-            "resolution": resolution,
-            "generateAudio": generate_audio,
-            "enhancePrompt": enhance_prompt,
-            "sampleCount": sample_count,
-        }
-        if seed is not None:
-            parameters["seed"] = int(seed)
-        if negative_prompt:
-            parameters["negativePrompt"] = negative_prompt
-        if person_generation:
-            parameters["personGeneration"] = person_generation
-        if storage_uri:
-            # Where Vertex AI should write outputs (video/audio) in GCS
-            parameters["storageUri"] = storage_uri
-
-        request_data = {"instances": [instance], "parameters": parameters}
-
-        predict_url = (
-            f"{self.base_url}/projects/{self.project_id}/locations/{self.location}"
-            f"/publishers/google/models/{self.model_id}:predictLongRunning"
-        )
-
-        async with httpx.AsyncClient(timeout=self.http_timeout_s) as client:
-            # Submit job
-            resp = await client.post(predict_url, headers=headers, json=request_data)
-            if resp.status_code != 200:
-                self._raise_api_error("Submit", resp)
-
-            op = resp.json()
-            op_name = op.get("name")
-            if not op_name:
-                raise RuntimeError("No operation name returned from Veo 3 API.")
-
-            logger.info(f"Veo 3 operation started: {op_name}")
-
-            # Poll for completion
-            response_data = await self._poll_operation(
-                client=client,
-                operation_name=op_name,
-                headers=headers,
-                poll_interval_s=poll_interval_s,
-                poll_timeout_s=poll_timeout_s,
-            )
-
-        # Extract video
-        videos = response_data.get("videos", [])
-        if not videos:
-            logger.warning("Operation completed but no videos found in response.")
-            return None, response_data
-
-        video0 = videos[0]
-        # Inline bytes path
-        if "bytesBase64Encoded" in video0:
-            video_bytes = base64.b64decode(video0["bytesBase64Encoded"])
-            logger.info(f"Received inline video bytes: {len(video_bytes)} bytes.")
-            return video_bytes, response_data
-
-        # GCS path
-        if "gcsUri" in video0:
-            gcs_uri = video0["gcsUri"]
-            logger.info(f"Video available in GCS: {gcs_uri}")
-            if download_from_gcs:
-                maybe_bytes = self._download_from_gcs(gcs_uri)
-                if maybe_bytes is not None:
-                    logger.info(f"Downloaded {len(maybe_bytes)} bytes from GCS.")
-                    return maybe_bytes, response_data
-                else:
-                    logger.warning("GCS download requested but google-cloud-storage not available or failed.")
-            return None, response_data
-
-        logger.warning("No inline bytes or GCS URI present for video[0].")
-        return None, response_data
-
-    async def save_video(self, video_bytes: bytes, output_path: Path) -> Path:
-        """Save video bytes to a file."""
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_bytes(video_bytes)
-        logger.info(f"Video saved to {output_path}")
-        return output_path
-
-    # -------------------------
-    # Internals
-    # -------------------------
-
-    def _validate_params(self, duration_seconds: int, aspect_ratio: str, resolution: str, sample_count: int) -> None:
-        if duration_seconds not in (4, 6, 8):
-            logger.warning(f"Veo 3 supports durations 4, 6, or 8 seconds; got {duration_seconds}. Using 8.")
-            duration_seconds = 8
-        if aspect_ratio not in ("16:9", "9:16"):
-            raise ValueError('aspect_ratio must be "16:9" or "9:16"')
-        if resolution not in ("720p", "1080p"):
-            raise ValueError('resolution must be "720p" or "1080p"')
-        if not (1 <= sample_count <= 4):
-            raise ValueError("sample_count must be between 1 and 4")
-
-    def _determine_best_aspect_ratio(self, image_width: int, image_height: int, preferred_ratio: Optional[str] = None) -> str:
+        Args:
+            model_id: Model ID to use for generation
+            poll_interval_s: Seconds between polling attempts
+            poll_timeout_s: Maximum time to wait for generation
         """
-        Determine the best aspect ratio for VEO based on input image dimensions.
+        self.model_id = MODEL_NAME_MAPPING.get(model_id, model_id)
+        self.poll_interval_s = poll_interval_s
+        self.poll_timeout_s = poll_timeout_s
+        
+        # Initialize client
+        api_key = get_gemini_api_key()
+        self.client = genai.Client(api_key=api_key)
+        
+        logger.info(f"VeoService initialized with model: {self.model_id}")
+
+    def _determine_best_aspect_ratio(
+        self, 
+        image_width: int, 
+        image_height: int, 
+        preferred_ratio: Optional[str] = None
+    ) -> str:
+        """
+        Determine the best aspect ratio for Veo based on input image dimensions.
         
         Args:
             image_width: Original image width
@@ -347,21 +147,19 @@ class VeoService:
             
         input_ratio = image_width / image_height
         
-        # Special handling for square images (1:1)
-        # Default to landscape (16:9) for square images since it's more common for video
-        if 0.9 <= input_ratio <= 1.1:  # Close to square
+        # Default to landscape (16:9) for square images
+        if 0.9 <= input_ratio <= 1.1:
             best_ratio = "16:9"
             logger.info(f"Square image detected ({image_width}×{image_height}) -> defaulting to landscape {best_ratio}")
             return best_ratio
         
         # For non-square images, choose based on orientation
-        # If input is wider than tall (>1), use landscape; otherwise use portrait
         if input_ratio > 1:
-            best_ratio = "16:9"  # Landscape
+            best_ratio = "16:9"
         else:
-            best_ratio = "9:16"  # Portrait
+            best_ratio = "9:16"
         
-        logger.info(f"Input aspect ratio {input_ratio:.3f} ({image_width}×{image_height}) -> Best VEO match: {best_ratio}")
+        logger.info(f"Input aspect ratio {input_ratio:.3f} ({image_width}×{image_height}) -> Best Veo match: {best_ratio}")
         return best_ratio
 
     def _pad_image_to_aspect_ratio(self, image: Image.Image, target_aspect_ratio: str) -> Image.Image:
@@ -375,7 +173,6 @@ class VeoService:
         Returns:
             PIL Image with white padding to match target aspect ratio
         """
-        # Parse target aspect ratio
         if target_aspect_ratio == "16:9":
             target_ratio = 16 / 9
         elif target_aspect_ratio == "9:16":
@@ -386,157 +183,197 @@ class VeoService:
         width, height = image.size
         current_ratio = width / height
         
-        # If already correct ratio, return as-is
         if abs(current_ratio - target_ratio) < 0.01:
             return image
         
-        # Calculate target dimensions
         if current_ratio > target_ratio:
-            # Image is wider than target - add height padding
             new_width = width
             new_height = int(width / target_ratio)
         else:
-            # Image is taller than target - add width padding
             new_height = height
             new_width = int(height * target_ratio)
         
-        # Create white canvas with target dimensions
         padded = Image.new("RGB", (new_width, new_height), color="white")
-        
-        # Calculate position to center the original image
         x_offset = (new_width - width) // 2
         y_offset = (new_height - height) // 2
-        
-        # Paste original image onto white canvas
         padded.paste(image, (x_offset, y_offset))
         
         logger.info(f"Padded image from {width}×{height} to {new_width}×{new_height} for {target_aspect_ratio} ratio")
         return padded
 
-    def _build_image_object(
+    def _prepare_image(
         self,
-        *,
         image_path: Optional[str],
-        image_gcs_uri: Optional[str],
-        aspect_ratio: str = "16:9",
-    ) -> Optional[Dict[str, Any]]:
-        """Create the 'image' object for an instance."""
-        if image_path and image_gcs_uri:
-            raise ValueError("Provide either image_path or image_gcs_uri, not both.")
-
-        if image_path:
-            p = Path(image_path)
-            if not p.exists():
-                raise FileNotFoundError(f"Image not found: {image_path}")
+        aspect_ratio: str = "16:9"
+    ) -> Optional[types.Image]:
+        """
+        Prepare an image for the Veo API.
+        
+        Args:
+            image_path: Path to the input image
+            aspect_ratio: Target aspect ratio for padding
             
-            # Load image and pad to target aspect ratio
-            image = Image.open(p)
-            if image.mode != "RGB":
-                image = image.convert("RGB")
+        Returns:
+            Prepared Image object or None
+        """
+        if not image_path:
+            return None
             
-            # Pad image to match video aspect ratio (prevents cropping)
-            padded_image = self._pad_image_to_aspect_ratio(image, aspect_ratio)
-            
-            # Convert to bytes
-            buffer = io.BytesIO()
-            padded_image.save(buffer, format="PNG")
-            data = buffer.getvalue()
-            
-            return {
-                "bytesBase64Encoded": base64.b64encode(data).decode("utf-8"),
-                "mimeType": "image/png",  # Always PNG after processing
-            }
+        p = Path(image_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Image not found: {image_path}")
+        
+        image = Image.open(p)
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        
+        # Pad image to match video aspect ratio
+        padded_image = self._pad_image_to_aspect_ratio(image, aspect_ratio)
+        
+        # Convert to bytes
+        buffer = io.BytesIO()
+        padded_image.save(buffer, format="PNG")
+        image_bytes = buffer.getvalue()
+        
+        # Create Gemini Image object
+        return types.Image(image_bytes=image_bytes, mime_type="image/png")
 
-        if image_gcs_uri:
-            # e.g., "gs://my-bucket/path/to/frame.png"
-            mime = "image/png" if image_gcs_uri.lower().endswith(".png") else "image/jpeg"
-            return {
-                "gcsUri": image_gcs_uri,
-                "mimeType": mime,
-            }
-
-        return None
-
-    async def _poll_operation(
+    async def generate_video(
         self,
+        prompt: str,
         *,
-        client: httpx.AsyncClient,
-        operation_name: str,
-        headers: Dict[str, str],
-        poll_interval_s: float,
-        poll_timeout_s: float,
-    ) -> Dict[str, Any]:
-        """Polls the Veo 3 long-running operation until completion."""
-        poll_url = (
-            f"{self.base_url}/projects/{self.project_id}/locations/{self.location}"
-            f"/publishers/google/models/{self.model_id}:fetchPredictOperation"
-        )
-
-        deadline = time.time() + poll_timeout_s
+        image_path: Optional[str] = None,
+        duration_seconds: int = 8,
+        aspect_ratio: str = "16:9",
+        negative_prompt: Optional[str] = None,
+        generate_audio: bool = True,
+        seed: Optional[int] = None,
+        person_generation: Optional[str] = None,
+        output_path: Optional[str] = None,
+    ) -> Tuple[Optional[bytes], Dict[str, Any]]:
+        """
+        Generate a video using the Veo model.
+        
+        Args:
+            prompt: Text prompt describing the desired video
+            image_path: Optional path to input image for image-to-video
+            duration_seconds: Duration of the video (4, 6, or 8 seconds)
+            aspect_ratio: Aspect ratio ("16:9" or "9:16")
+            negative_prompt: Optional negative prompt
+            generate_audio: Whether to generate audio
+            seed: Optional random seed for reproducibility
+            person_generation: Person generation setting ("disallow" or "allow_adult")
+            output_path: Optional path to save the video
+            
+        Returns:
+            Tuple of (video_bytes, metadata_dict)
+        """
+        # Auto-detect aspect ratio from image if using default
+        if image_path and aspect_ratio == "16:9":
+            with Image.open(image_path) as img:
+                aspect_ratio = self._determine_best_aspect_ratio(img.width, img.height, aspect_ratio)
+        
+        # Validate parameters
+        if duration_seconds not in (4, 6, 8):
+            logger.warning(f"Veo supports durations 4, 6, or 8 seconds; got {duration_seconds}. Using 8.")
+            duration_seconds = 8
+        if aspect_ratio not in ("16:9", "9:16"):
+            raise ValueError('aspect_ratio must be "16:9" or "9:16"')
+        
+        # Prepare image if provided
+        image = self._prepare_image(image_path, aspect_ratio)
+        
+        # Build generation config
+        config_kwargs: Dict[str, Any] = {
+            "aspect_ratio": aspect_ratio,
+        }
+        
+        if negative_prompt:
+            config_kwargs["negative_prompt"] = negative_prompt
+        if seed is not None:
+            config_kwargs["seed"] = seed
+        if person_generation:
+            config_kwargs["person_generation"] = person_generation
+            
+        config = types.GenerateVideosConfig(**config_kwargs)
+        
+        # Start video generation
+        logger.info(f"Starting Veo video generation with model: {self.model_id}")
+        logger.info(f"Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}")
+        
+        # Build the request - include image if provided
+        generate_kwargs: Dict[str, Any] = {
+            "model": self.model_id,
+            "prompt": prompt,
+            "config": config,
+        }
+        if image:
+            generate_kwargs["image"] = image
+            
+        operation = self.client.models.generate_videos(**generate_kwargs)
+        
+        logger.info(f"Started operation: {operation.name}")
+        
+        # Poll for completion
+        start_time = time.time()
+        max_attempts = int(self.poll_timeout_s / self.poll_interval_s)
         attempt = 0
-        while True:
-            if time.time() > deadline:
-                raise TimeoutError(f"Operation timed out after {poll_timeout_s:.0f}s: {operation_name}")
-
-            await asyncio.sleep(poll_interval_s)
+        
+        while not operation.done:
+            if attempt >= max_attempts:
+                raise TimeoutError(f"Video generation timed out after {self.poll_timeout_s}s")
+            
+            elapsed = time.time() - start_time
+            logger.info(f"Still running... attempt {attempt + 1}, elapsed: {elapsed:.1f}s")
+            await asyncio.sleep(self.poll_interval_s)
+            operation = self.client.operations.get(operation.name)
             attempt += 1
+        
+        elapsed_total = time.time() - start_time
+        logger.info(f"Operation completed in {elapsed_total:.1f}s")
+        
+        # Extract video from response
+        metadata: Dict[str, Any] = {
+            "operation_name": operation.name,
+            "elapsed_seconds": elapsed_total,
+            "model": self.model_id,
+            "prompt": prompt,
+        }
+        
+        if not operation.response or not operation.response.generated_videos:
+            logger.warning("Operation completed but no videos found in response.")
+            return None, metadata
+        
+        video = operation.response.generated_videos[0]
+        
+        # Download the video
+        self.client.files.download(file=video.video)
+        
+        # Save to file if output path provided
+        if output_path:
+            video.video.save(output_path)
+            logger.info(f"Video saved to {output_path}")
+            metadata["output_path"] = output_path
+            
+            # Read the saved file to return bytes
+            video_bytes = Path(output_path).read_bytes()
+        else:
+            # Save to temp location and read bytes
+            temp_path = Path(f"/tmp/veo_video_{int(time.time())}.mp4")
+            video.video.save(str(temp_path))
+            video_bytes = temp_path.read_bytes()
+            temp_path.unlink()  # Clean up temp file
+        
+        logger.info(f"Video bytes received: {len(video_bytes)} bytes")
+        return video_bytes, metadata
 
-            resp = await client.post(
-                poll_url,
-                headers=headers,
-                json={"operationName": operation_name},
-            )
-
-            if resp.status_code != 200:
-                logger.warning(f"[poll attempt {attempt}] non-200: {resp.status_code} {resp.text}")
-                continue
-
-            data = resp.json()
-            done = data.get("done", False)
-            if not done:
-                logger.info(f"Operation still running... attempt={attempt}")
-                continue
-
-            if "error" in data:
-                raise RuntimeError(f"Veo 3 operation failed: {json.dumps(data['error'])}")
-
-            response_data = data.get("response", {})
-            logger.info("Operation completed.")
-            return response_data
-
-    def _download_from_gcs(self, gcs_uri: str) -> Optional[bytes]:
-        """
-        Best-effort download from GCS using google-cloud-storage, if present.
-        Returns bytes or None on failure/unavailable.
-        """
-        try:
-            from google.cloud import storage
-        except Exception:
-            return None
-
-        if not gcs_uri.startswith("gs://"):
-            return None
-
-        try:
-            # Parse URI
-            _, _, bucket_and_path = gcs_uri.partition("gs://")
-            bucket_name, _, blob_path = bucket_and_path.partition("/")
-            client = storage.Client()
-            bucket = client.bucket(bucket_name)
-            blob = bucket.blob(blob_path)
-            return blob.download_as_bytes()
-        except Exception as e:
-            logger.warning(f"GCS download failed: {e}")
-            return None
-
-    @staticmethod
-    def _raise_api_error(phase: str, resp: httpx.Response) -> None:
-        try:
-            payload = resp.json()
-            msg = payload.get("error", {}).get("message", resp.text)
-        except Exception:
-            msg = resp.text
-        raise RuntimeError(f"Veo 3 API {phase} error [{resp.status_code}]: {msg}")
+    async def save_video(self, video_bytes: bytes, output_path: Path) -> Path:
+        """Save video bytes to a file."""
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(video_bytes)
+        logger.info(f"Video saved to {output_path}")
+        return output_path
 
 
 class VeoWrapper(ModelWrapper):
@@ -551,7 +388,6 @@ class VeoWrapper(ModelWrapper):
         **kwargs
     ):
         """Initialize Veo wrapper."""
-        # Veo uses Google Cloud authentication (no API key needed here)
         self.model = model
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
@@ -581,61 +417,47 @@ class VeoWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
-        import time
         start_time = time.time()
         
         # Convert duration to int (Veo requires int)
         duration_seconds = int(duration)
         
-        # Run async generation in sync context
-        # Filter kwargs to only include parameters supported by VeoService.generate_video
-        veo_kwargs = {}
-        # VeoService accepts: image_path, image_gcs_uri, duration_seconds, aspect_ratio, resolution,
-        # negative_prompt, enhance_prompt, generate_audio, sample_count, seed, person_generation,
-        # storage_uri, poll_interval_s, poll_timeout_s, download_from_gcs
+        # Filter kwargs to only include supported parameters
+        veo_kwargs: Dict[str, Any] = {}
         allowed_params = {
-            'image_gcs_uri', 'aspect_ratio', 'resolution', 'negative_prompt', 'enhance_prompt',
-            'generate_audio', 'sample_count', 'seed', 'person_generation', 'storage_uri',
-            'poll_interval_s', 'poll_timeout_s', 'download_from_gcs'
+            'aspect_ratio', 'negative_prompt', 'generate_audio',
+            'seed', 'person_generation'
         }
         for key, value in kwargs.items():
             if key in allowed_params:
                 veo_kwargs[key] = value
         
+        # Determine output path
+        if not output_filename:
+            output_filename = f"veo_{int(time.time())}.mp4"
+        output_path = self.output_dir / output_filename
+        
+        # Run async generation in sync context
         video_bytes, metadata = asyncio.run(
             self.veo_service.generate_video(
                 prompt=text_prompt,
                 image_path=str(image_path),
                 duration_seconds=duration_seconds,
+                output_path=str(output_path),
                 **veo_kwargs
             )
         )
-        
-        # Save video if we got bytes
-        video_path = None
-        if video_bytes:
-            if not output_filename:
-                # Generate filename from operation name if available
-                op_name = metadata.get('operation_name', 'veo_output')
-                if isinstance(op_name, str) and '/' in op_name:
-                    op_id = op_name.split('/')[-1]
-                    output_filename = f"veo_{op_id}.mp4"
-                else:
-                    output_filename = f"veo_{int(time.time())}.mp4"
-            
-            video_path = self.output_dir / output_filename
-            asyncio.run(self.veo_service.save_video(video_bytes, video_path))
         
         duration_taken = time.time() - start_time
         
         return {
             "success": video_bytes is not None,
-            "video_path": str(video_path) if video_path else None,
+            "video_path": str(output_path) if video_bytes else None,
             "error": None,
             "duration_seconds": duration_taken,
             "generation_id": metadata.get('operation_name', 'unknown'),
             "model": self.model,
-            "status": "success" if video_bytes else "completed_no_download",
+            "status": "success" if video_bytes else "failed",
             "metadata": {
                 "prompt": text_prompt,
                 "image_path": str(image_path),

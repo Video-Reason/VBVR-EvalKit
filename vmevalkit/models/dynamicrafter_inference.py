@@ -17,6 +17,7 @@ import time
 
 # Add DynamiCrafter submodule to path
 DYNAMICRAFTER_PATH = Path(__file__).parent.parent.parent / "submodules" / "DynamiCrafter"
+VMEVAL_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(DYNAMICRAFTER_PATH))
 
 
@@ -79,10 +80,14 @@ class DynamiCrafterService:
         that can run the inference programmatically.
         """
         
-        # Determine config file
+        # Determine config file and checkpoint path
         config_file = self.config_mapping.get(
             self.model_id, "configs/inference_512_v1.0.yaml"
         )
+        
+        # Map model ID to checkpoint directory name
+        # Replace hyphen with underscore for checkpoint path (dynamicrafter-256 -> dynamicrafter_256)
+        ckpt_dir = self.model_id.replace('-', '_')  # e.g., "dynamicrafter_256"
         
         script_content = f'''
 import sys
@@ -98,8 +103,7 @@ import cv2
 # Add DynamiCrafter modules to path
 try:
     from lvdm.models.samplers.ddim import DDIMSampler
-    from utils.utils import *
-    from lvdm.models.utils import instantiate_from_config
+    from utils.utils import instantiate_from_config
 except ImportError as e:
     print(f"Failed to import DynamiCrafter modules: {{e}}")
     print("Please ensure DynamiCrafter dependencies are installed.")
@@ -186,9 +190,8 @@ if __name__ == "__main__":
     # Model configuration
     config_path = "{DYNAMICRAFTER_PATH}/{config_file}"
     
-    # Note: You would need to download the actual model checkpoint
-    # DynamiCrafter checkpoints are typically large files
-    ckpt_path = "{DYNAMICRAFTER_PATH}/checkpoints/dynamicrafter_512_v1.ckpt"
+    # DynamiCrafter checkpoint path (using centralized weights directory)
+    ckpt_path = "{VMEVAL_ROOT}/weights/dynamicrafter/{ckpt_dir}_v1/model.ckpt"
     
     # Check if config exists
     if not os.path.exists(config_path):
@@ -294,11 +297,13 @@ if __name__ == "__main__":
             error_msg = result.stderr if result.returncode != 0 else None
             
             # If the basic script approach doesn't work, provide helpful error
-            if not success and not error_msg:
-                error_msg = (
-                    "DynamiCrafter inference requires manual setup of model checkpoints. "
-                    "Please refer to the DynamiCrafter repository for setup instructions."
-                )
+            if not success:
+                if not error_msg:
+                    error_msg = f"DynamiCrafter inference failed. stdout: {result.stdout[:500]}, stderr: {result.stderr[:500]}"
+                # Include stdout/stderr for debugging
+                print(f"DEBUG - Return code: {result.returncode}")
+                print(f"DEBUG - stdout: {result.stdout[:1000]}")
+                print(f"DEBUG - stderr: {result.stderr[:1000]}")
             
         except subprocess.TimeoutExpired:
             success = False

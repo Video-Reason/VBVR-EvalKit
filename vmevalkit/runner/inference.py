@@ -126,6 +126,9 @@ class InferenceRunner:
         
         # Keep in-memory run log
         self.runs = []
+        
+        # Cache wrapper instances to avoid reloading models
+        self._wrapper_cache = {}
     
     def run(
         self,
@@ -169,20 +172,39 @@ class InferenceRunner:
         inference_dir = task_base_dir / run_id
         inference_dir.mkdir(parents=True, exist_ok=True)
         
-        # Run inference with dynamic loading
-        result = run_inference(
-            model_name=model_name,
-            image_path=image_path,
-            text_prompt=text_prompt,
-            output_dir=str(task_base_dir),
-            question_data=question_data,
-            inference_id=run_id,
-            **kwargs
-        )
+        # Get or create cached wrapper for this model
+        if model_name not in self._wrapper_cache:
+            wrapper_class = _load_model_wrapper(model_name)
+            model_config = AVAILABLE_MODELS[model_name]
+            
+            init_kwargs = {
+                "model": model_config["model"],
+                "output_dir": str(task_base_dir / "video"),
+            }
+            
+            if "args" in model_config:
+                init_kwargs.update(model_config["args"])
+            
+            self._wrapper_cache[model_name] = wrapper_class(**init_kwargs)
+            print(f"📦 Loaded model: {model_name} (will be reused for all tasks)")
+        
+        wrapper = self._wrapper_cache[model_name]
+        
+        # Update output dir for this specific task
+        video_dir = inference_dir / "video"
+        video_dir.mkdir(parents=True, exist_ok=True)
+        wrapper.output_dir = video_dir
+        
+        # Run inference using cached wrapper
+        if question_data:
+            kwargs['question_data'] = question_data
+        
+        result = wrapper.generate(image_path, text_prompt, **kwargs)
         
         # Add metadata
         result["run_id"] = run_id
         result["timestamp"] = start_time.isoformat()
+        result["inference_dir"] = str(inference_dir)
         
         # Create question folder and copy images
         self._setup_question_folder(inference_dir, image_path, text_prompt, question_data)

@@ -219,6 +219,21 @@ outputs/
 deprecated/
 
 # VMEvalKit data folder - ignore large datasets but keep scripts and logging
-data/questions/
+data/questions/*
+!data/questions/tests_task/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
+.vscode/
+envs/
+
+# Model weights - centralized storage for all downloaded models
+weights/
+
+# Legacy model weight directories (kept for backwards compatibility)
+Wan2.2-I2V-A14B/
+morphic-frames-lora-weights/
+*.pth
+*.safetensors
+*.ckpt
+*.bin
+*.pt

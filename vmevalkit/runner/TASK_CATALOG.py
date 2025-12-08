@@ -91,6 +91,9 @@ TASK_REGISTRY = {
         'name': 'Shape Sorter',
         'description': '2D shape matching under a fixed top-down camera',
         'module': 'vmevalkit.tasks.shape_sorter_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'object_rearr': {
         'name': 'Object Rearrangement',
         'description': 'Spatial reasoning and object manipulation with spatial relations',
@@ -125,6 +128,21 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.edit_distance_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'object_permanence': {
+        'name': 'Object Permanence',
+        'description': 'Object permanence reasoning - objects remain unchanged when occluder moves',
+        'module': 'vmevalkit.tasks.object_permanence_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'control_panel': {
+        'name': 'Control Panel',
+        'description': 'Control panel animation - lever position determines indicator light color',
+        'module': 'vmevalkit.tasks.control_panel_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'vpct': {
         'name': 'VPCT',
         'description': 'Visual Physics Comprehension Test - predict which bucket the ball will fall into',
@@ -146,6 +164,29 @@ TASK_REGISTRY = {
         'name': 'Tower of Hanoi',
         'description': 'Single-move planning and constraint satisfaction',
         'module': 'vmevalkit.tasks.tower_of_hanoi_task.tower_of_hanoi_reasoning',
+    'counting_objects': {
+        'name': 'Counting Circles',
+        'description': 'Visual counting of Objects',
+        'module': 'vmevalkit.tasks.counting_objects_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'letter_counting': {
+        'name': 'Letter Counting',
+        'description': 'Count letter occurrences in words',
+        'module': 'vmevalkit.tasks.letter_counting_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'subway_pathfinding': {
+        'name': 'Subway Pathfinding',
+        'description': 'Navigate through subway networks from source to destination',
+        'module': 'vmevalkit.tasks.subway_pathfinding_task',
+    },
+    'light_sequence': {
+        'name': 'Light Sequence',
+        'description': 'Spatial reasoning and mathematical pattern recognition with light sequences',
+        'module': 'vmevalkit.tasks.light_sequence_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }

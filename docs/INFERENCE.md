@@ -219,7 +219,7 @@ Set up API keys in `.env` file:
 # Commercial APIs
 LUMA_API_KEY=your_key_here
 WAVESPEED_API_KEY=your_wavespeed_api_key
-RUNWAY_API_SECRET=your_runway_secret
+RUNWAYML_API_SECRET=your_runway_secret
 OPENAI_API_KEY=your_openai_key
 
 # AWS for S3 storage (optional)

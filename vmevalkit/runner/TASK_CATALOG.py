@@ -192,6 +192,13 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.light_sequence_task',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'rotation_puzzle': {
+        'name': 'Rotation Puzzle',
+        'description': 'Pipe puzzle with rotatable squares to connect paths',
+        'module': 'vmevalkit.tasks.rotation_puzzle_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
 

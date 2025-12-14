@@ -1,0 +1,78 @@
+.git
+.gitignore
+.DS_Store
+*.pyc
+__pycache__/
+.pytest_cache/
+*.sqlite3
+
+# Virtual envs / local python env
+.venv/
+venv/
+ENV/
+env/
+
+# Local IDE/editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Data, outputs, and generated artifacts (large)
+data/outputs/
+data/scorings/
+data/videos/
+data/*.sqlite3
+
+# Questions dataset and large generated files (optionally include if you want them in image)
+# If you want to include a small sample, move it to a subfolder not ignored.
+data/questions/
+
+# Weights and checkpoints - keep out of image, mount as volume instead
+weights/
+**/weights/
+**/checkpoints/
+**/ckpts/
+**/ckpt/
+**/models/
+
+# HuggingFace / Torch caches (mount host .cache instead)
+.cache/
+workspace/.cache/
+**/.cache/
+
+# Submodule large artifacts (avoid shipping models inside submodules)
+submodules/**/checkpoints/
+submodules/**/ckpts/
+submodules/**/weights/
+
+# Notebook checkpoints and outputs
+.ipynb_checkpoints
+*.ipynb
+
+# Logs and temp files
+logs/
+*.log
+tmp/
+*.tmp
+
+# Docker files we don't want copied into context (if any)
+Dockerfile.enhanced
+
+# Node modules (not used but safe to ignore)
+node_modules/
+
+# Other large files
+*.tar
+*.tar.gz
+*.zip
+*.pth
+*.safetensors
+
+# Keep README, code, requirements and Dockerfile
+!README.md
+!requirements.txt
+!Dockerfile
+!examples/**
+!vmevalkit/**
+!.env

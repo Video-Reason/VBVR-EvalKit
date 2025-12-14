@@ -82,6 +82,6 @@ gunicorn>=21.2.0  # Production WSGI server
 Flask-CORS>=4.0.0  # CORS support
 Flask-Talisman>=1.1.0  # Security headers
 
-ipython>=9.6.0
+ipython>=8.0.0
 zanj>=0.5.1
 transformers>=4.55.2

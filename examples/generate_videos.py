@@ -6,17 +6,14 @@ This script provides flexible video generation with customizable model and task 
 Run on specific models, domains, or individual tasks with full control over the process.
 
 Key Features:
-- Choose any available models from 40+ options across 11+ providers
 - Select specific domains or individual task IDs (all domains from TASK_CATALOG are supported)
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
-- Structured output with automatic organization
 
 Human Curation: Only tasks with existing folders are processed (deleted folders = rejected tasks)
 
 Requirements:
 - Relevant API keys configured in environment for selected models
-- Python environment activated
 - Questions available in: ./data/questions/
 - Output directory: ./data/outputs/pilot_experiment/
 
@@ -40,10 +37,6 @@ from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
 from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 
-# ========================================
-# PILOT EXPERIMENT CONFIGURATION
-# ========================================
-
 # Default models for quick testing (can be overridden with --model)
 DEFAULT_TEST_MODELS = [
     "luma-ray-2",
@@ -54,18 +47,11 @@ DEFAULT_TEST_MODELS = [
     "wavespeed-wan-2.2-i2v-720p",
 ]
 
-# Questions directory path
 QUESTIONS_DIR = Path("data/questions")
-
-# Output directory
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
 # Expected domains (dynamically loaded from TASK_CATALOG)
 EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
-
-# ========================================
-# FOLDER-BASED TASK DISCOVERY
-# ========================================
 
 def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -152,10 +138,6 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
     
     return tasks_by_domain
 
-
-# ========================================
-# INFERENCE EXECUTION
-# ========================================
 
 def create_output_structure(base_dir: Path) -> None:
     """Create organized output directory structure for the new system."""
@@ -257,11 +239,11 @@ def run_single_inference(
     if not _ensure_real_png(image_path):
         raise ValueError(f"Input image invalid or corrupt: {image_path}")
     
-    # Use InferenceRunner for structured output
+
     if runner is None:
         runner = InferenceRunner(output_dir=str(output_dir))
     
-    # Run inference with complete question data for structured output
+
     result = runner.run(
         model_name=model_name,
         image_path=image_path,
@@ -271,7 +253,6 @@ def run_single_inference(
         **kwargs  # Clean! No API key filtering needed
     )
     
-    # Add metadata
     result.update({
         "task_id": task_id,
         "category": category,
@@ -310,15 +291,13 @@ def run_pilot_experiment(
     Returns:
         Dictionary with all results and statistics
     """
-    print("=" * 80)
     print("🚀 VMEVAL KIT EXPERIMENT - CLEAN EXECUTION")
-    print("=" * 80)
     print(f"\n📊 Experiment Configuration:")
     print(f"   Models to run: {len(models)} - {', '.join(models.keys())}")
     print(f"   Domains: {len(tasks_by_domain)}")
     print(f"   🔄 Execution Mode: SEQUENTIAL")
     
-    # Calculate totals
+
     total_tasks = sum(len(tasks) for tasks in tasks_by_domain.values())
     total_generations = total_tasks * len(models)
     
@@ -330,12 +309,9 @@ def run_pilot_experiment(
     print(f"\n📁 Output directory: {output_dir}")
     print(f"   Skip existing: {skip_existing}\n")
     
-    # Create output structure
     create_output_structure(output_dir)
-    # Create per-model directories
     create_model_directories(output_dir, models)
     
-    # Results storage (no longer needs thread safety since we're sequential)
     all_results = []
     
     statistics = {
@@ -348,7 +324,6 @@ def run_pilot_experiment(
         "by_domain": {}
     }
     
-    # Initialize statistics
     for model in models.keys():
         statistics["by_model"][model] = {"completed": 0, "failed": 0, "skipped": 0}
     for domain in tasks_by_domain.keys():
@@ -356,20 +331,15 @@ def run_pilot_experiment(
     
     experiment_start = datetime.now()
     
-    # Count total jobs for progress tracking
     total_jobs = sum(len(tasks) for tasks in tasks_by_domain.values()) * len(models)
     print(f"📋 Total inference jobs to run: {total_jobs}")
     print("🚀 Starting sequential execution...\n")
     print("   Processing order: Model by model, task by task\n")
     
-    # Track overall progress
     job_counter = 0
     
-    # Sequential execution: model by model, task by task
     for model_name, model_display in models.items():
-        print(f"\n{'='*60}")
         print(f"🤖 Processing Model: {model_display} ({model_name})")
-        print(f"{'='*60}")
         # Use a model-specific output directory and runner (runner will further mirror domain/task)
         model_output_dir = output_dir / model_name
         runner = InferenceRunner(output_dir=str(model_output_dir))
@@ -416,7 +386,6 @@ def run_pilot_experiment(
                     print(f"      ⏭️  Skipped (existing output: {existing_dirs[0].name})")
                     continue
                 
-                # Run inference with structured output
                 result = run_single_inference(
                     model_name=model_name,
                     task=task,
@@ -425,7 +394,6 @@ def run_pilot_experiment(
                     runner=runner
                 )
                 
-                # Update statistics and results
                 all_results.append(result)
                 
                 if result["success"]:
@@ -441,26 +409,17 @@ def run_pilot_experiment(
                     model_failed += 1
                     print(f"      ❌ Failed: {result.get('error', 'Unknown error')}")
                 
-                # Intermediate results saving removed
         
-        # Model summary
         model_duration = (datetime.now() - model_start_time).total_seconds()
-        print(f"\n  📊 Model {model_display} Summary:")
-        print(f"     Completed: {model_completed}")
-        print(f"     Failed: {model_failed}")
-        print(f"     Skipped: {model_skipped}")
-        print(f"     Duration: {format_duration(model_duration)}")
+        print(f"\n  📊 Model {model_display} Summary: {model_completed} completed, {model_failed} failed, {model_skipped} skipped in {format_duration(model_duration)}")
     
     experiment_end = datetime.now()
     duration = (experiment_end - experiment_start).total_seconds()
     
-    # Final statistics
     statistics["experiment_start"] = experiment_start.isoformat()
     statistics["experiment_end"] = experiment_end.isoformat()
     statistics["duration_seconds"] = duration
     statistics["duration_formatted"] = format_duration(duration)
-    
-    # Final save to progress tracker removed
     
     print(f"\n⏱️  Sequential execution completed in {format_duration(duration)}")
     
@@ -487,21 +446,21 @@ def main():
         description="VMEvalKit Video Generation - Flexible model and task selection",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Run 1 task per domain on default models
-  python generate_videos.py
-  
-  # Run all tasks on default models  
-  python generate_videos.py --all-tasks
-  
-  # Run on specific models
-  python generate_videos.py --model luma-ray-2 openai-sora-2
-  
-  # Run specific tasks/domains
-  python generate_videos.py --task chess maze --pairs-per-domain 3
-  
-  # Run specific task IDs
-  python generate_videos.py --task-id chess_0001 maze_0005 --model luma-ray-2
+            Examples:
+            # Run 1 task per domain on default models
+            python generate_videos.py
+            
+            # Run all tasks on default models  
+            python generate_videos.py --all-tasks
+            
+            # Run on specific models
+            python generate_videos.py --model luma-ray-2 openai-sora-2
+            
+            # Run specific tasks/domains
+            python generate_videos.py --task chess maze --pairs-per-domain 3
+            
+            # Run specific task IDs
+            python generate_videos.py --task-id chess_0001 maze_0005 --model luma-ray-2
         """
     )
     
@@ -567,7 +526,6 @@ Examples:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
         print(f"🎮 Using GPU {args.gpu} (CUDA_VISIBLE_DEVICES={args.gpu})")
     
-    # Handle --list-models
     if args.list_models:
         print("🎬 Available Models:")
         print("=" * 60)
@@ -584,9 +542,8 @@ Examples:
                 print(f"   • {model_name:25} - {description}")
         
         print(f"\nTotal: {len(AVAILABLE_MODELS)} models across {len(families)} families")
-        sys.exit(0)
+        return 
     
-    # Handle --override flag: delete output directory
     if args.override:
         if OUTPUT_DIR.exists():
             print(f"🗑️  Override mode: Deleting {OUTPUT_DIR}...")
@@ -597,13 +554,10 @@ Examples:
     
     print("🔍 Discovering human-approved tasks from folder structure...")
     
-    # Check if questions directory exists
     if not QUESTIONS_DIR.exists():
-        print(f"❌ Questions directory not found at: {QUESTIONS_DIR}")
-        print("   Please ensure the questions directory exists with task folders.")
-        sys.exit(1)
+        raise ValueError(f"Questions directory not found at: {QUESTIONS_DIR}. Please ensure the questions directory exists with task folders.")
     
-    # Discover all approved tasks from folders
+
     all_tasks_by_domain = discover_all_tasks_from_folders(QUESTIONS_DIR)
     
     # Select tasks based on arguments
@@ -656,16 +610,12 @@ Examples:
             else:
                 tasks_by_domain[domain] = []
     
-    # Select models based on arguments
     model_names = []
     if args.model:
         model_names = args.model
-    elif args.only_model:  # Legacy support
-        model_names = args.only_model
     else:
         model_names = DEFAULT_TEST_MODELS
     
-    # Validate and filter available models
     selected_models = {}
     unavailable_models = []
     for model_name in model_names:
@@ -675,12 +625,10 @@ Examples:
             unavailable_models.append(model_name)
     
     if unavailable_models:
-        print(f"⚠️  Models not available: {', '.join(unavailable_models)}")
-        print("   Use --list-models to see all available models")
+        print(f"⚠️  Models not available: {', '.join(unavailable_models)}. Use --list-models to see all available models")
     
     if not selected_models:
-        print("❌ No valid models selected")
-        sys.exit(1)
+        raise ValueError("No valid models selected")
         
     print(f"\n🎯 Selected {len(selected_models)} model(s): {', '.join(selected_models.keys())}")
 
@@ -688,15 +636,10 @@ Examples:
     for model_name, family in selected_models.items():
         print(f"   ✅ {model_name}: {family}")
     
-    print(f"\n{'=' * 80}")
-    # Removed interactive prompt for non-interactive execution
     
-    # Verify we found tasks
     if not tasks_by_domain or sum(len(tasks) for tasks in tasks_by_domain.values()) == 0:
-        print("❌ No approved tasks found. Please check the questions directory structure.")
-        sys.exit(1)
+        raise ValueError("No approved tasks found. Please check the questions directory structure.")
     
-    # Run experiment
     experiment_results = run_pilot_experiment(
         tasks_by_domain=tasks_by_domain,
         models=selected_models,
@@ -704,12 +647,9 @@ Examples:
         skip_existing=True,
     )
     
-    print(f"\n{'=' * 80}")
     print("🎉 VIDEO GENERATION COMPLETE!")
-    print(f"{'=' * 80}")
     stats = experiment_results["statistics"]
     
-    # Calculate actual totals based on what was run
     actual_total_attempted = stats['completed'] + stats['failed'] + stats['skipped']
     
     print(f"\n📊 Final Statistics:")
@@ -737,8 +677,6 @@ Examples:
             print(f"   {model_name}: ✅ {c} | ❌ {f} | ⏭️  {s}")
     
     print(f"\n📁 All outputs saved to: {OUTPUT_DIR}")
-    
-    print(f"{'=' * 80}\n")
 
 
 if __name__ == "__main__":

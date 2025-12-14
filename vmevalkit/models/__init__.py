@@ -18,6 +18,7 @@ __all__ = [
     "MorphicService", "MorphicWrapper",
     "SVDService", "SVDWrapper",
     "WanService", "WanWrapper",
+    "SGLangService", "SGLangWrapper"
     "CogVideoXService", "CogVideoXWrapper",
     "SanaVideoService", "SanaVideoWrapper"
 ]
@@ -36,6 +37,7 @@ _MODULE_MAP = {
     "morphic_inference": ["MorphicService", "MorphicWrapper"],
     "svd_inference": ["SVDService", "SVDWrapper"],
     "wan_inference": ["WanService", "WanWrapper"],
+    "sglang_inference": ["SGLangService", "SGLangWrapper"],
     "cogvideox_inference": ["CogVideoXService", "CogVideoXWrapper"],
     "sana_inference": ["SanaVideoService", "SanaVideoWrapper"],
 }

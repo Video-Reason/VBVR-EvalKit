@@ -33,3 +33,67 @@ For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, St
 
 
 
+## Installation
+
+Install the required dependencies for open-source models:
+
+```bash
+uv pip install transformers diffusers # for diffusers support
+```
+
+
+## svd
+
+It takes  20GB vram.
+
+```bash
+uv run examples/generate_videos.py --model svd --task chess maze
+```
+
+## WAN (Wan-AI)
+
+WAN 2.1 FLF2V (First-Last Frame to Video) is an open-source image-to-video generation model using diffusers. 
+
+The model will be automatically downloaded from HuggingFace when first used. No additional installation steps are required.
+
+### Usage
+
+```bash
+# Generate videos using WAN model
+uv run examples/generate_videos.py --model wan --task chess maze # requires more than 48GB vram.
+
+# Or use the full model name
+uv run examples/generate_videos.py --model wan-2.1-flf2v-720p --task chess maze
+```
+
+### Model Details
+
+- **Model ID**: `Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers`
+- **Resolution**: Up to 720p (automatically resized based on input image aspect ratio)
+- **FPS**: 16 fps
+
+## LTX-Video
+
+refer https://huggingface.co/Lightricks/LTX-Video-0.9.8-13B-distilled 
+
+LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 30 FPS videos at a 1216×704 resolution faster than they can be watched.
+### Usage
+
+```bash
+uv pip install sentencepiece accelerate #  otherwise has error. refer https://huggingface.co/Lightricks/LTX-Video/discussions/96
+# Generate videos using LTX-Video model
+uv run examples/generate_videos.py --model ltx-video --task chess maze
+```
+
+## sglang support
+
+refer https://github.com/sgl-project/sglang/tree/main/python/sglang/multimodal_gen
+may not compatible with lmdeploy.
+```bash
+git clone --branch v0.5.6 https://github.com/sgl-project/sglang.git
+cd sglang
+pip install -e "python[all]"
+pip install flash-attn --no-build-isolation
+python  examples/generate_videos.py --model sglang-wan-2.2
+
+```

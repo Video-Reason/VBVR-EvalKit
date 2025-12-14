@@ -61,6 +61,34 @@ python examples/score_videos.py gpt4o
 - Set `OPENAI_API_KEY` environment variable
 - Install dependencies: `opencv-python`, `httpx`
 
+### 3. InternVL3-8B Scorer
+
+
+
+###  Opensource Evaluator
+
+
+refer https://huggingface.co/OpenGVLab/InternVL3-8B
+
+```bash
+uv pip install lmdeploy timm peft>=0.17.0 openai
+CUDA_VISIBLE_DEVICES=2 lmdeploy serve api_server OpenGVLab/InternVL3-8B --chat-template internvl2_5 --server-port 23333 --tp 1 # takes 30GB vram.
+
+# in another terminal
+uv run examples/score_videos.py internvl
+```
+
+After install the dependencies, run the following commands to run the batch evaluation.
+```
+cd VMEvalKit
+
+bash script/run.sh
+
+bash script/lmdeploy_server.sh
+```
+
+
+
 ## Analysis Tools
 
 ### Performance Visualization (`analysis/plot.py`)

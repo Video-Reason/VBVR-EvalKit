@@ -5,8 +5,9 @@
 
 set -euo pipefail
 
-# Project root
-export VMEVAL_ROOT="/home/hokindeng/VMEvalKit"
+# Project root - dynamically determine from script location
+SHARE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export VMEVAL_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
 export ENVS_DIR="${VMEVAL_ROOT}/envs"
 export SUBMODULES_DIR="${VMEVAL_ROOT}/submodules"
 export LOGS_DIR="${VMEVAL_ROOT}/logs"

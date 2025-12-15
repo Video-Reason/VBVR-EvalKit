@@ -16,7 +16,7 @@ VMEvalKit uses a **clean modular architecture** with dynamic loading, designed f
 2. Create wrapper class inheriting from ModelWrapper
 3. Implement generate() method (usually subprocess-based)
 4. Create setup script at `setup/models/{model-name}/setup.sh`
-5. Register checkpoints in `setup/lib/common.sh`
+5. Register checkpoints in `setup/lib/share.sh`
 6. Initialize git submodule if needed
 
 ### Comparison Table
@@ -82,7 +82,7 @@ setup/
 │   │   └── setup.sh       # Installation script for LTX-Video
 │   └── ...
 ├── lib/
-│   └── common.sh          # Shared utilities and model registry
+│   └── share.sh           # Shared utilities and model registry
 └── install_model.sh       # Master installation orchestrator
 ```
 
@@ -209,7 +209,7 @@ class ModelWrapper(ABC):
 ✅ **Setup script**: Create `setup/models/{model-name}/setup.sh`  
 ✅ **Exact versions**: Always use `package==X.Y.Z` format in pip install  
 ✅ **Virtual environment**: One isolated venv per model  
-✅ **Checkpoint registration**: Add to `setup/lib/common.sh`  
+✅ **Checkpoint registration**: Add to `setup/lib/share.sh`  
 ✅ **Submodule management**: Pin to specific commit, not floating HEAD
 
 ## 🚀 Model Installation & Deployment
@@ -306,7 +306,7 @@ your-model-name/
 │   ├── setup/models/your-model-name/
 │   │   ├── setup.sh              # Installation script
 │   │   └── test.sh               # Validation script (optional)
-│   └── setup/lib/common.sh       # Register checkpoints here
+│   └── setup/lib/share.sh        # Register checkpoints here
 ├── Runtime Components:
 │   ├── vmevalkit/models/
 │   │   └── yourmodel_inference.py  # Service + Wrapper classes
@@ -317,14 +317,14 @@ your-model-name/
 
 ### Creating a Setup Script
 
-Setup scripts follow a standardized pattern using shared utilities from `setup/lib/common.sh`:
+Setup scripts follow a standardized pattern using shared utilities from `setup/lib/share.sh`:
 
 ```bash
 #!/bin/bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="your-model-name"
 
@@ -354,7 +354,7 @@ print_success "${MODEL} setup complete"
 - Keep it consistent with other models (see `dynamicrafter-256`, `svd`, `videocrafter2-512`)
 - Always use exact versions: `package==X.Y.Z`
 
-**Key Functions from `common.sh`:**
+**Key Functions from `share.sh`:**
 - `create_model_venv "$MODEL"`: Creates fresh virtual environment
 - `activate_model_venv "$MODEL"`: Activates virtual environment
 - `download_checkpoint_by_path "$PATH"`: Downloads registered checkpoint
@@ -363,10 +363,10 @@ print_success "${MODEL} setup complete"
 
 ### Registering Model Checkpoints
 
-Add your model's checkpoints to `setup/lib/common.sh`:
+Add your model's checkpoints to `setup/lib/share.sh`:
 
 ```bash
-# In setup/lib/common.sh
+# In setup/lib/share.sh
 
 # 1. Add to CHECKPOINTS array
 declare -a CHECKPOINTS=(
@@ -1289,7 +1289,7 @@ class OpenSourceModelWrapper(ModelWrapper):
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="opensourcemodel-512"
 
@@ -1313,7 +1313,7 @@ download_checkpoint_by_path "${MODEL_CHECKPOINT_PATHS[$MODEL]}"
 print_success "${MODEL} setup complete"
 ```
 
-**Register in `setup/lib/common.sh`:**
+**Register in `setup/lib/share.sh`:**
 
 ```bash
 # Add to OPENSOURCE_MODELS
@@ -1382,9 +1382,9 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 ### For Open-Source Models ✅
 
 - [ ] Created `setup/models/{model-name}/setup.sh` script
-- [ ] Script uses functions from `setup/lib/common.sh`
+- [ ] Script uses functions from `setup/lib/share.sh`
 - [ ] All pip packages use exact versions (==X.Y.Z)
-- [ ] Added checkpoint entries to `setup/lib/common.sh` CHECKPOINTS array
+- [ ] Added checkpoint entries to `setup/lib/share.sh` CHECKPOINTS array
 - [ ] Added model to OPENSOURCE_MODELS list
 - [ ] Added checkpoint mapping to MODEL_CHECKPOINT_PATHS
 - [ ] Created inference file `{model}_inference.py` with Service and Wrapper
@@ -1408,7 +1408,7 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 1. **Start Simple**: Study a commercial API model (e.g., `luma_inference.py`)
 2. **Understand Catalog**: Read `MODEL_CATALOG.py` to see all models
 3. **Read Base Class**: Study `ModelWrapper` in `models/base.py`
-4. **Study Setup**: Look at `setup/lib/common.sh` for open-source utilities
+4. **Study Setup**: Look at `setup/lib/share.sh` for open-source utilities
 5. **Try Integration**: Add a simple commercial model first
 6. **Advanced**: Tackle open-source model with full setup script
 

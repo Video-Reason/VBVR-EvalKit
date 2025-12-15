@@ -40,7 +40,7 @@ Both models support **image+text → video** generation, meeting VMEvalKit's cor
   - Auto-download from HuggingFace (~11GB per model)
 
 ### 4. Registration in Setup System
-- **Modified**: `setup/lib/common.sh`
+- **Modified**: `setup/lib/share.sh`
   - Added both models to `OPENSOURCE_MODELS` array
   - No checkpoint array needed (Diffusers handles downloads)
 
@@ -271,7 +271,7 @@ config = CogVideoXConfig(
 - [x] Setup scripts at `setup/models/{model-name}/setup.sh`
 - [x] Exact versions: `package==X.Y.Z` format
 - [x] Isolated virtual environments
-- [x] Models registered in `setup/lib/common.sh`
+- [x] Models registered in `setup/lib/share.sh`
 - [x] Catalog entries in `MODEL_CATALOG.py`
 - [x] Exports in `models/__init__.py`
 - [x] Image+Text→Video support (core requirement)

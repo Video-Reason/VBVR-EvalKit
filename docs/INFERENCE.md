@@ -168,16 +168,6 @@ The `metadata.json` file contains comprehensive inference information:
 
 ## Running Experiments
 
-### Basic Usage
-
-Generate dataset and run experiments:
-
-```bash
-source venv/bin/activate
-
-python run.py
-```
-
 
 ## 💻 Python API
 

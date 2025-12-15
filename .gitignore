@@ -21,6 +21,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!setup/lib/    # But allow setup/lib/ to be tracked
 lib64/
 parts/
 sdist/

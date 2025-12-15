@@ -1,10 +1,13 @@
 #!/bin/bash
 ##############################################################################
-# Install and test models (individual or all)
+# Install and test models (individual, by category, or all)
 #
 # Usage:
 #   ./setup/install_model.sh --model ltx-video
 #   ./setup/install_model.sh --model ltx-video --validate
+#   ./setup/install_model.sh --opensource
+#   ./setup/install_model.sh --opensource --validate
+#   ./setup/install_model.sh --commercial --validate
 #   ./setup/install_model.sh --all
 #   ./setup/install_model.sh --all --validate
 ##############################################################################
@@ -16,11 +19,13 @@ source "${SCRIPT_DIR}/lib/common.sh"
 
 usage() {
     cat <<USAGE
-Usage: $(basename "$0") [--model <name>|--all] [--validate]
+Usage: $(basename "$0") [--model <name>|--all|--opensource|--commercial] [--validate]
 
 Options:
   --model <name>       Model name (install single model)
-  --all                Install all models
+  --all                Install all models (both open-source and commercial)
+  --opensource         Install only open-source models
+  --commercial         Install only commercial models
   --list               List all available models
   --validate           Test model(s) after installation
   -h, --help           Show this help
@@ -29,6 +34,9 @@ Examples:
   ./setup/install_model.sh --list
   ./setup/install_model.sh --model ltx-video
   ./setup/install_model.sh --model ltx-video --validate
+  ./setup/install_model.sh --opensource
+  ./setup/install_model.sh --opensource --validate
+  ./setup/install_model.sh --commercial --validate
   ./setup/install_model.sh --all
   ./setup/install_model.sh --all --validate
 USAGE
@@ -59,6 +67,8 @@ list_models() {
 
 MODEL=""
 INSTALL_ALL=false
+INSTALL_OPENSOURCE=false
+INSTALL_COMMERCIAL=false
 VALIDATE=false
 
 while [[ $# -gt 0 ]]; do
@@ -69,6 +79,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --all)
             INSTALL_ALL=true
+            shift
+            ;;
+        --opensource)
+            INSTALL_OPENSOURCE=true
+            shift
+            ;;
+        --commercial)
+            INSTALL_COMMERCIAL=true
             shift
             ;;
         --list)
@@ -84,7 +102,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            if [[ -z "$MODEL" && "$INSTALL_ALL" == "false" ]]; then
+            if [[ -z "$MODEL" && "$INSTALL_ALL" == "false" && "$INSTALL_OPENSOURCE" == "false" && "$INSTALL_COMMERCIAL" == "false" ]]; then
                 MODEL="$1"
                 shift
             else
@@ -96,13 +114,20 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$MODEL" && "$INSTALL_ALL" == "false" ]]; then
+if [[ -z "$MODEL" && "$INSTALL_ALL" == "false" && "$INSTALL_OPENSOURCE" == "false" && "$INSTALL_COMMERCIAL" == "false" ]]; then
     usage
     exit 1
 fi
 
-if [[ -n "$MODEL" && "$INSTALL_ALL" == "true" ]]; then
-    print_error "Cannot specify both --model and --all"
+# Check for conflicting options
+OPTION_COUNT=0
+[[ -n "$MODEL" ]] && ((OPTION_COUNT++)) || true
+[[ "$INSTALL_ALL" == "true" ]] && ((OPTION_COUNT++)) || true
+[[ "$INSTALL_OPENSOURCE" == "true" ]] && ((OPTION_COUNT++)) || true
+[[ "$INSTALL_COMMERCIAL" == "true" ]] && ((OPTION_COUNT++)) || true
+
+if [[ $OPTION_COUNT -gt 1 ]]; then
+    print_error "Cannot specify multiple installation options (--model, --all, --opensource, --commercial)"
     exit 1
 fi
 
@@ -112,6 +137,12 @@ MODELS_TO_INSTALL=()
 if [[ "$INSTALL_ALL" == "true" ]]; then
     print_header "Installing ALL models"
     MODELS_TO_INSTALL=("${OPENSOURCE_MODELS[@]}" "${COMMERCIAL_MODELS[@]}")
+elif [[ "$INSTALL_OPENSOURCE" == "true" ]]; then
+    print_header "Installing OPEN-SOURCE models only"
+    MODELS_TO_INSTALL=("${OPENSOURCE_MODELS[@]}")
+elif [[ "$INSTALL_COMMERCIAL" == "true" ]]; then
+    print_header "Installing COMMERCIAL models only"
+    MODELS_TO_INSTALL=("${COMMERCIAL_MODELS[@]}")
 else
     if ! is_opensource_model "$MODEL" && ! is_commercial_model "$MODEL"; then
         print_error "Unknown model: ${MODEL}"

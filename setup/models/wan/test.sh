@@ -1,13 +1,13 @@
 #!/bin/bash
 ##############################################################################
-# WAN 2.1 I2V 480p Test Script
+# WAN Model Test Script
 # Tests the model by generating sample videos
 ##############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../lib/common.sh"
 
-MODEL_NAME="wan-2.1-i2v-480p"
+MODEL_NAME="wan"
 
 print_header "Testing ${MODEL_NAME}"
 
@@ -25,4 +25,3 @@ else
     print_header "❌ ${MODEL_NAME} test FAILED"
     exit 1
 fi
-

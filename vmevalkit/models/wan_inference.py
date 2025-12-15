@@ -116,7 +116,6 @@ class WanService:
         
         output = self.pipe(
             image=image,
-            last_image=image,
             prompt=text_prompt,
             height=height,
             width=width,

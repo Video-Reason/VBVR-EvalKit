@@ -421,30 +421,26 @@ SVD_MODELS = {
     },
 }
 
+# Sana Models (Diffusers)
+SANA_MODELS = {
+    "sana": {
+        "wrapper_module": "vmevalkit.models.sana_inference",
+        "wrapper_class": "SanaWrapper",
+        "service_class": "SanaService",
+        "model": "Efficient-Large-Model/SANA-Video_2B_480p_diffusers",
+        "description": "SANA Video 2B 480p - Image-to-Video generation with motion control",
+        "family": "Sana"
+    }
+}
+
 # WAN Models (Wan-AI, local diffusers implementation)
 WAN_MODELS = {
-    "wan": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
-        "description": "WAN 2.1 FLF2V 14B 720P - First-Last Frame to Video generation",
-        "family": "WAN (Wan-AI)"
-    },
     "wan-2.1-flf2v-720p": {
         "wrapper_module": "vmevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
         "description": "WAN 2.1 FLF2V 14B 720P - First-Last Frame to Video generation",
-        "family": "WAN (Wan-AI)"
-    },
-    "wan-2.2-i2v-a14b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.2-I2V-A14B-Diffusers",
-        "description": "WAN 2.2 I2V A14B - Image to Video generation with 14B parameters",
         "family": "WAN (Wan-AI)"
     },
     "wan-2.1-i2v-480p": {
@@ -463,14 +459,6 @@ WAN_MODELS = {
         "description": "WAN 2.1 I2V 14B 720P - Image to Video generation at 720p resolution",
         "family": "WAN (Wan-AI)"
     },
-    "wan-2.2-ti2v-5b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
-        "description": "WAN 2.2 TI2V 5B - Text + Image to Video generation with 5B parameters",
-        "family": "WAN (Wan-AI)"
-    },
     "wan-2.1-vace-14b": {
         "wrapper_module": "vmevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
@@ -486,6 +474,86 @@ WAN_MODELS = {
         "model": "Wan-AI/Wan2.1-VACE-1.3B-diffusers",
         "description": "WAN 2.1 VACE 1.3B - Lightweight video generation with 1.3B parameters",
         "family": "WAN (Wan-AI)"
+    },
+    "wan-2.2-i2v-a14b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+        "description": "WAN 2.2 I2V A14B - Image to Video generation with 14B parameters",
+        "family": "WAN (Wan-AI)"
+    },
+    "wan-2.2-ti2v-5b": {
+        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_class": "WanWrapper",
+        "service_class": "WanService",
+        "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
+        "description": "WAN 2.2 TI2V 5B - Text + Image to Video generation with 5B parameters",
+        "family": "WAN (Wan-AI)"
+    }
+}
+
+# CogVideoX Models (Zhipu AI/THUDM)
+COGVIDEOX_MODELS = {
+    "cogvideox-5b-i2v": {
+        "wrapper_module": "vmevalkit.models.cogvideox_inference",
+        "wrapper_class": "CogVideoXWrapper",
+        "service_class": "CogVideoXService",
+        "model": "THUDM/CogVideoX-5b-I2V",
+        "args": {
+            "resolution": (720, 480),
+            "num_frames": 49,
+            "fps": 8,
+            "guidance_scale": 6.0
+        },
+        "description": "CogVideoX-5B-I2V - 6s image+text to video (720x480)",
+        "family": "CogVideoX"
+    },
+    "cogvideox1.5-5b-i2v": {
+        "wrapper_module": "vmevalkit.models.cogvideox_inference",
+        "wrapper_class": "CogVideoXWrapper",
+        "service_class": "CogVideoXService",
+        "model": "THUDM/CogVideoX1.5-5B-I2V",
+        "args": {
+            "resolution": (1360, 768),
+            "num_frames": 81,
+            "fps": 16,
+            "guidance_scale": 6.0
+        },
+        "description": "CogVideoX1.5-5B-I2V - 10s image+text to video (1360x768)",
+        "family": "CogVideoX"
+    }
+}
+
+# SANA-Video Models (NVLabs/Efficient-Large-Model)
+SANA_VIDEO_MODELS = {
+    "sana-video-2b-480p": {
+        "wrapper_module": "vmevalkit.models.sana_inference",
+        "wrapper_class": "SanaVideoWrapper",
+        "service_class": "SanaVideoService",
+        "model": "Efficient-Large-Model/SANA-Video_2B_480p_diffusers",
+        "args": {
+            "resolution": (480, 832),
+            "num_frames": 81,
+            "fps": 16,
+            "guidance_scale": 4.5
+        },
+        "description": "SANA-Video 2B 480p - Efficient text+image to video (480x832)",
+        "family": "SANA-Video"
+    },
+    "sana-video-2b-longlive": {
+        "wrapper_module": "vmevalkit.models.sana_inference",
+        "wrapper_class": "SanaVideoWrapper",
+        "service_class": "SanaVideoService",
+        "model": "Efficient-Large-Model/SANA-Video_2B_480p_LongLive",
+        "args": {
+            "resolution": (480, 832),
+            "num_frames": 161,
+            "fps": 16,
+            "guidance_scale": 4.5
+        },
+        "description": "SANA-Video 2B LongLive - Extended length video generation",
+        "family": "SANA-Video"
     }
 }
 
@@ -508,7 +576,10 @@ AVAILABLE_MODELS = {
     **DYNAMICRAFTER_MODELS,
     **MORPHIC_MODELS,
     **SVD_MODELS,
-    **WAN_MODELS
+    **WAN_MODELS,
+    **COGVIDEOX_MODELS,
+    **SANA_VIDEO_MODELS,
+    **SANA_MODELS
 }
 
 # Model families metadata for easier management
@@ -526,7 +597,10 @@ MODEL_FAMILIES = {
     "DynamiCrafter": DYNAMICRAFTER_MODELS,
     "Morphic": MORPHIC_MODELS,
     "Stable Video Diffusion": SVD_MODELS,
-    "WAN (Wan-AI)": WAN_MODELS
+    "WAN (Wan-AI)": WAN_MODELS,
+    "CogVideoX": COGVIDEOX_MODELS,
+    "SANA-Video": SANA_VIDEO_MODELS,
+    "Sana": SANA_MODELS
 }
 
 # ========================================

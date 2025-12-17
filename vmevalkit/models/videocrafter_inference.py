@@ -78,6 +78,7 @@ import os
 sys.path.insert(0, "{VIDEOCRAFTER_PATH}")
 
 import torch
+import torch.utils.checkpoint  # Pre-import for VideoCrafter compatibility
 from PIL import Image
 import numpy as np
 from omegaconf import OmegaConf

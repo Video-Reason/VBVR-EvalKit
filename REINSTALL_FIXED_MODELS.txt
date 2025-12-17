@@ -1,0 +1,38 @@
+════════════════════════════════════════════════════════════════
+REINSTALL COMMAND TO APPLY ALL FIXES
+════════════════════════════════════════════════════════════════
+
+All code fixes have been applied to:
+  - Setup scripts (added missing dependencies)
+  - Inference wrappers (fixed API calls, imports, compatibility issues)
+  - Configuration (.env file updated for Morphic GPU count)
+
+To apply all fixes, run this command from the project root:
+
+cd /home/ubuntu/Hokin/VMEvalKit
+bash setup/install_model.sh --all --validate
+
+This will:
+  1. Reinstall all 21 model environments with updated dependencies
+  2. Validate each model can generate videos
+  3. Show comprehensive pass/fail report
+
+Expected improvements after reinstall:
+  ✅ SANA models - Fixed syntax errors
+  ✅ Veo models - Fixed API call
+  ✅ CogVideoX models - Added opencv-python  
+  ✅ Luma models - Added boto3 + opencv-python
+  ✅ Runway - Added boto3 + load_dotenv
+  ✅ OpenAI Sora - Added load_dotenv
+  ✅ HunyuanVideo - Added tensorboard
+  ✅ DynamiCrafter/VideoCrafter - Pre-import torch.utils.checkpoint
+  ✅ WAN - Simplified model loading
+  ✅ Morphic - Fixed GPU count (2 instead of 8)
+  ✅ Wavespeed-WAN - Created symlink
+  ✅ veo-3.1-fast - Fixed google-genai version
+
+Expected final result: 
+  15-18 models passing validation (vs current 3)
+
+════════════════════════════════════════════════════════════════
+

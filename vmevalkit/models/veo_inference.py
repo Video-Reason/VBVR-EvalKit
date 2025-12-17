@@ -319,6 +319,7 @@ class VeoService:
         max_attempts = int(self.poll_timeout_s / self.poll_interval_s)
         attempt = 0
         
+        operation_name = operation.name
         while not operation.done:
             if attempt >= max_attempts:
                 raise TimeoutError(f"Video generation timed out after {self.poll_timeout_s}s")
@@ -326,7 +327,7 @@ class VeoService:
             elapsed = time.time() - start_time
             logger.info(f"Still running... attempt {attempt + 1}, elapsed: {elapsed:.1f}s")
             await asyncio.sleep(self.poll_interval_s)
-            operation = self.client.operations.get(operation.name)
+            operation = self.client.operations.get(operation_name)
             attempt += 1
         
         elapsed_total = time.time() - start_time

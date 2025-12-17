@@ -54,16 +54,16 @@ VEO_MODELS = {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
-        "model": "veo-3.0-generate-preview",
-        "description": "Google Veo 3.0 - Preview model with advanced capabilities",
+        "model": "veo-3.0-generate-001",
+        "description": "Google Veo 3.0 - Advanced video generation model",
         "family": "Google Veo"
     },
     "veo-3.0-fast-generate": {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
-        "model": "veo-3.0-fast-generate-preview",
-        "description": "Google Veo 3.0 Fast - Preview model for faster generation",
+        "model": "veo-3.0-fast-generate-001",
+        "description": "Google Veo 3.0 Fast - Faster generation model",
         "family": "Google Veo"
     },
     "veo-3.1-generate": {

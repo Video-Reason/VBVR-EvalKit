@@ -32,28 +32,29 @@ declare -a OPENSOURCE_MODELS=(
     "cogvideox1.5-5b-i2v"
     "sana-video-2b-480p"
     "sana-video-2b-longlive"
+    "wan-2.2-i2v-a14b"
 )
 
 declare -a COMMERCIAL_MODELS=(
     "luma-ray-2"
-    "luma-ray-2-flash"
+    "luma-ray-flash-2"
     "veo-2"
     "veo-3.0-generate"
-    "veo-3.1-flash"
-    "wavespeed-wan2.1"
+    "veo-3.1-fast"
+    "wavespeed-wan-2.1-i2v-480p"
     "runway-gen4-turbo"
-    "openai-sora"
+    "openai-sora-2"
 )
 
 declare -A COMMERCIAL_API_KEYS=(
     ["luma-ray-2"]="LUMA_API_KEY"
-    ["luma-ray-2-flash"]="LUMA_API_KEY"
+    ["luma-ray-flash-2"]="LUMA_API_KEY"
     ["veo-2"]="GEMINI_API_KEY"
     ["veo-3.0-generate"]="GEMINI_API_KEY"
-    ["veo-3.1-flash"]="WAVESPEED_API_KEY"
-    ["wavespeed-wan2.1"]="WAVESPEED_API_KEY"
+    ["veo-3.1-fast"]="WAVESPEED_API_KEY"
+    ["wavespeed-wan-2.1-i2v-480p"]="WAVESPEED_API_KEY"
     ["runway-gen4-turbo"]="RUNWAYML_API_SECRET"
-    ["openai-sora"]="OPENAI_API_KEY"
+    ["openai-sora-2"]="OPENAI_API_KEY"
 )
 
 declare -a CHECKPOINTS=(

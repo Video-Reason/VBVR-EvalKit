@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../lib/share.sh"
 
-MODEL="runway-gen4-turbo"
+MODEL="luma-ray-flash-2"
 
 print_section "Virtual Environment"
 create_model_venv "$MODEL"
@@ -29,3 +29,4 @@ else
 fi
 
 print_success "${MODEL} setup complete"
+

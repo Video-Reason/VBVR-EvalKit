@@ -193,6 +193,10 @@ class CogVideoXService:
             f"with guidance_scale={self.config.guidance_scale} (seed={seed})"
         )
         
+        # Filter out kwargs not accepted by the pipeline
+        pipeline_kwargs = {k: v for k, v in kwargs.items() 
+                          if k not in ['question_data', 'duration', 'output_filename']}
+        
         # Generate video frames
         result = self.pipe(
             prompt=text_prompt,
@@ -201,7 +205,7 @@ class CogVideoXService:
             num_inference_steps=self.config.num_inference_steps,
             guidance_scale=self.config.guidance_scale,  # Fixed for reproducibility
             generator=generator,
-            **kwargs
+            **pipeline_kwargs
         )
         
         frames = result.frames[0]

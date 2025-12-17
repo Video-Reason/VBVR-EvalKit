@@ -247,8 +247,9 @@ class SanaService:
             "video_path": video_path,
             "frames": frames,
             "num_frames": num_frames,
-
-        logger.info(f"SANA model loaded on {self.device}")
+            "duration_taken": duration_taken,
+            "fps": fps
+        }
 
     def _prepare_image(self, image_path: Union[str, Path]) -> Image.Image:
         image = load_image(str(image_path))
@@ -338,14 +339,21 @@ class SanaVideoWrapper(ModelWrapper):
     - Automatic parameter optimization
     """
     
-                "motion_score": motion_score,
-                "guidance_scale": guidance_scale,
-                "num_inference_steps": num_inference_steps,
-                "height": height,
-                "width": width,
-                "seed": seed,
-            },
-        }
+    def __init__(
+        self,
+        model: str = "Efficient-Large-Model/SANA-Video_2B_480p_diffusers",
+        output_dir: str = "./data/outputs",
+        **kwargs
+    ):
+        """Initialize SANA-Video wrapper.
+        
+        Args:
+            model: HuggingFace model ID
+            output_dir: Directory for output videos
+            **kwargs: Additional configuration parameters
+        """
+        super().__init__(model=model, output_dir=output_dir, **kwargs)
+        self.sana_service = SanaVideoService(model=model)
 
 
 class SanaWrapper(ModelWrapper):
@@ -364,9 +372,6 @@ class SanaWrapper(ModelWrapper):
         """
         super().__init__(model=model, output_dir=output_dir, **kwargs)
         self.sana_service = SanaVideoService(model=model)
-    
-        super().__init__(model=model, output_dir=output_dir, **kwargs)
-        self.sana_service = SanaService(model=model)
 
     def generate(
         self,
@@ -482,6 +487,4 @@ class SanaWrapper(ModelWrapper):
                 "fps": result.get("fps"),
                 "sana_result": result
             }
-                "sana_result": result,
-            },
         }

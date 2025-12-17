@@ -83,7 +83,8 @@ setup/
 │   └── ...
 ├── lib/
 │   └── share.sh           # Shared utilities and model registry
-└── install_model.sh       # Master installation orchestrator
+├── install_model.sh       # Master installation orchestrator
+└── test_model.sh          # Centralized testing script
 ```
 
 ### Key Architecture Principles
@@ -251,17 +252,50 @@ The `setup/install_model.sh` script handles all model installations:
 
 ```bash
 # Install single model
-bash setup/install_model.sh dynamicrafter-512
+bash setup/install_model.sh --model dynamicrafter-512
 
-# Install multiple models
-bash setup/install_model.sh ltx-video svd videocrafter2-512
+# Install with validation
+bash setup/install_model.sh --model dynamicrafter-512 --validate
 
 # Install all open-source models
-bash setup/install_model.sh --all-opensource
+bash setup/install_model.sh --opensource
+
+# Install all models (open-source + commercial)
+bash setup/install_model.sh --all
 
 # Validate after installation
-bash setup/install_model.sh dynamicrafter-512 --validate
+bash setup/install_model.sh --opensource --validate
 ```
+
+### Testing Script Master Orchestrator
+
+The `setup/test_model.sh` script handles all model testing:
+
+```bash
+# Test single model
+bash setup/test_model.sh --model ltx-video
+
+# Test all open-source models
+bash setup/test_model.sh --opensource
+
+# Test all commercial models
+bash setup/test_model.sh --commercial
+
+# Test all models
+bash setup/test_model.sh --all
+
+# List models with installation status
+bash setup/test_model.sh --list
+```
+
+**Features:**
+- ✅ Checks if model virtual environments exist
+- ✅ Runs validation tests (generates 2 test videos)
+- ✅ Categorizes results: Passed, Failed, Not Installed
+- ✅ Provides detailed summary at the end
+- ✅ Exit code: 0 for success, 1 if any tests fail
+
+**Test Outputs:** `data/outputs/pilot_experiment/<model>/tests_task/`
 
 ### Directory Structure After Installation
 
@@ -303,16 +337,18 @@ Open-source models require additional setup beyond the wrapper class:
 ```
 your-model-name/
 ├── Setup Components:
-│   ├── setup/models/your-model-name/
-│   │   ├── setup.sh              # Installation script
-│   │   └── test.sh               # Validation script (optional)
-│   └── setup/lib/share.sh        # Register checkpoints here
-├── Runtime Components:
-│   ├── vmevalkit/models/
-│   │   └── yourmodel_inference.py  # Service + Wrapper classes
-│   ├── envs/your-model-name/     # Virtual environment (created by setup)
-│   ├── weights/your-model/       # Model checkpoints (downloaded by setup)
-│   └── submodules/YourModel/     # Git submodule (if needed)
+│   ├── setup/
+│   │   ├── models/your-model-name/
+│   │   │   └── setup.sh          # Installation script
+│   │   ├── lib/share.sh          # Register checkpoints here
+│   │   ├── install_model.sh      # Master installation orchestrator
+│   │   └── test_model.sh         # Centralized testing script
+│   └── Runtime Components:
+│       ├── vmevalkit/models/
+│       │   └── yourmodel_inference.py  # Service + Wrapper classes
+│       ├── envs/your-model-name/ # Virtual environment (created by setup)
+│       ├── weights/your-model/   # Model checkpoints (downloaded by setup)
+│       └── submodules/YourModel/ # Git submodule (if needed)
 ```
 
 ### Creating a Setup Script
@@ -493,7 +529,10 @@ ls envs/your-model-name/bin/python
 # Verify checkpoints
 ls weights/your-model/
 
-# Run validation
+# Run validation using centralized test script
+bash setup/test_model.sh --model your-model-name
+
+# Or test manually with examples script
 python examples/generate_videos.py --model your-model-name --task-id tests_0001
 ```
 
@@ -641,6 +680,33 @@ This runs the full validation:
 3. Verifies output quality
 4. Reports pass/fail
 
+### Centralized Testing Script
+
+Test models without reinstalling using the dedicated test script:
+
+```bash
+# Test single model
+bash setup/test_model.sh --model your-model-name
+
+# Test all open-source models
+bash setup/test_model.sh --opensource
+
+# Test all commercial models
+bash setup/test_model.sh --commercial
+
+# Test everything
+bash setup/test_model.sh --all
+
+# List all models and their installation status
+bash setup/test_model.sh --list
+```
+
+The test script:
+- ✅ Checks if virtual environments exist
+- ✅ Runs validation tests (generates 2 test videos)
+- ✅ Provides detailed pass/fail summary
+- ✅ Shows which models are not installed
+
 ### Manual Testing Steps
 
 For detailed verification without using `--validate`:
@@ -661,7 +727,10 @@ ls -lh weights/your-model/
 # 4. Verify submodule (if applicable)
 ls -la submodules/YourModel/
 
-# 5. Run manual validation
+# 5. Run centralized test
+bash setup/test_model.sh --model your-model-name
+
+# Or run manual validation
 python examples/generate_videos.py \
     --model your-model-name \
     --task-id tests_0001 tests_0002
@@ -678,7 +747,10 @@ For commercial models, verify API key first:
 # 1. Verify API key is set
 echo $YOUR_PROVIDER_API_KEY
 
-# 2. Install and test
+# 2. Test using centralized script (no installation needed)
+bash setup/test_model.sh --model your-provider-model
+
+# Or install and test together
 bash setup/install_model.sh --model your-provider-model --validate
 
 # Or test manually
@@ -1376,7 +1448,7 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 - [ ] Error handling returns error dict (not raises exception)
 - [ ] Added exports to `vmevalkit/models/__init__.py`
 - [ ] Created `.env` entry for API key
-- [ ] Tested with `examples/generate_videos.py`
+- [ ] Tested with `bash setup/test_model.sh --model your-model`
 - [ ] Validated output format and video quality
 
 ### For Open-Source Models ✅
@@ -1395,8 +1467,8 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 - [ ] Submodule added (if needed) and documented
 - [ ] Added model to `MODEL_CATALOG.py`
 - [ ] Added exports to `vmevalkit/models/__init__.py`
-- [ ] Ran setup script successfully
-- [ ] Tested inference with `examples/generate_videos.py`
+- [ ] Ran setup script successfully: `bash setup/install_model.sh --model {model-name}`
+- [ ] Tested with centralized script: `bash setup/test_model.sh --model {model-name}`
 - [ ] Validated output format and video quality
 
 ---

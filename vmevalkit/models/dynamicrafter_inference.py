@@ -95,6 +95,7 @@ import os
 sys.path.insert(0, "{DYNAMICRAFTER_PATH}")
 
 import torch
+import torch.utils.checkpoint  # Pre-import for DynamiCrafter compatibility
 import numpy as np
 from PIL import Image
 from omegaconf import OmegaConf

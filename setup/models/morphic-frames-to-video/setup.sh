@@ -21,11 +21,12 @@ pip install -q imageio==2.36.0 imageio-ffmpeg==0.5.1 matplotlib==3.9.2 moviepy==
 pip install -q peft==0.13.2
 pip install -q -r "${SUBMODULES_DIR}/morphic-frames-to-video/requirements.txt" --no-deps
 pip install -q easydict dashscope librosa "tokenizers>=0.20.3"
-
-deactivate
+pip install -q "huggingface_hub[cli]>=0.20.0"
 
 print_section "Checkpoints"
 ensure_morphic_assets
+
+deactivate
 
 print_section "Creating Symlinks"
 # Create symlink in submodule directory to access weights

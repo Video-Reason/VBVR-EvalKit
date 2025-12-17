@@ -48,7 +48,11 @@ class MorphicService:
         # Get configuration from kwargs or defaults
         self.size = kwargs.get('size', "1280*720")
         self.frame_num = kwargs.get('frame_num', 81)
-        self.nproc_per_node = kwargs.get('nproc_per_node', 8)
+        
+        # Auto-detect number of available GPUs
+        import torch
+        available_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+        self.nproc_per_node = kwargs.get('nproc_per_node', available_gpus)
         self.ulysses_size = kwargs.get('ulysses_size', self.nproc_per_node)
         
         # Get weight paths from environment variables or kwargs

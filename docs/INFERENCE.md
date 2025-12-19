@@ -6,6 +6,8 @@
 python run.py configs/demo.yaml
 ```
 
+you could create your own config file in configs/your_config.yaml.
+
 ## 📚 Core Concepts
 
 ### Task Pairs: The Evaluation Unit

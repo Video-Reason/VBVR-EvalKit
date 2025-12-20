@@ -14,5 +14,6 @@ TASK_PROMPTS = {
     "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
     "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
     "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
-    "tower_of_hanoi_task": "Check if exactly one disk moved between frames. Verify the move is legal (top disk moved to empty peg or larger disk). Compare final disk positions to expected."
+    "tower_of_hanoi_task": "Check if exactly one disk moved between frames. Verify the move is legal (top disk moved to empty peg or larger disk). Compare final disk positions to expected.",
+    "symmetry_completion_task": "Verify that the right half of the grid in the final frame is correctly mirrored from the left half, creating a symmetric pattern. Check that all missing cells have been filled correctly to complete the vertical symmetry."
 }

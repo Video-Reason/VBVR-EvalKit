@@ -153,6 +153,13 @@ TASK_REGISTRY = {
         'hf_dataset': 'camelCase12/vpct-1',
         'hf_special_format': True  # Indicates file-based format, not standard dataset format
     },
+    '2d_dice_reasoning': {
+        'name': '2D Dice Reasoning',
+        'description': '2D dice opposite face spatial reasoning and logical deduction (opposite faces sum to 7)',
+        'module': 'vmevalkit.tasks.dice_2d_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'tetris': {
         'name': 'Tetris',
         'description': 'Tetris line-clearing reasoning tasks with animation instructions',
@@ -213,6 +220,12 @@ TASK_REGISTRY = {
         'module': 'vmevalkit.tasks.tower_of_hanoi_task.tower_of_hanoi_reasoning',
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
+    'rotation_puzzle': {
+        'name': 'Rotation Puzzle',
+        'description': 'Pipe puzzle with rotatable squares to connect paths',
+        'module': 'vmevalkit.tasks.rotation_puzzle_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     }
 }
-

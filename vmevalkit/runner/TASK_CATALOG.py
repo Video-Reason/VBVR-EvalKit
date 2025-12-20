@@ -207,6 +207,13 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'symmetry_completion': {
+        'name': 'Symmetry Completion',
+        'description': 'Left-right symmetry reasoning - complete right half by mirroring left half',
+        'module': 'vmevalkit.tasks.symmetry_completion_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'tower_of_hanoi': {
         'name': 'Tower of Hanoi',
         'description': 'Single-move planning and constraint satisfaction',

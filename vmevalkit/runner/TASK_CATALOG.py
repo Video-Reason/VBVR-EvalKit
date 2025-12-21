@@ -94,6 +94,13 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'grid_shift': {
+        'name': 'Grid Shift',
+        'description': 'Shift all blocks 1-2 steps in a random direction within a 6x6 grid',
+        'module': 'vmevalkit.tasks.grid_shift_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
+    },
     'shape_sorter': {
         'name': 'Shape Sorter',
         'description': '2D shape matching under a fixed top-down camera',

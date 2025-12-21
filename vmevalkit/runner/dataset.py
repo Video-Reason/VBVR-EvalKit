@@ -86,7 +86,11 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
         task_dir.mkdir(parents=True, exist_ok=True)
         
         # Handle first_image - can be Image object, numpy array, or file path
-        first_image = task['first_image']
+        first_image = task.get('first_image')
+        if first_image is None:
+            print(f"      ⚠️  Skipping {task_id}: first_image is None")
+            continue
+        
         if isinstance(first_image, str):
             # File path (for special formats like vpct)
             first_image_path = Path(first_image)
@@ -96,7 +100,12 @@ def download_hf_domain_to_folders(domain_name: str, output_base: Path) -> List[D
             first_image = Image.open(first_image_path)
         elif not isinstance(first_image, Image.Image):
             # numpy array or other format
-            first_image = Image.fromarray(first_image) if hasattr(first_image, 'shape') else Image.open(first_image)
+            if hasattr(first_image, 'shape'):
+                import numpy as np
+                first_image = Image.fromarray(first_image)
+            else:
+                print(f"      ⚠️  Skipping {task_id}: first_image has unsupported type {type(first_image)}")
+                continue
         
         if first_image.mode != "RGB":
             first_image = first_image.convert("RGB")

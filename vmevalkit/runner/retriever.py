@@ -18,7 +18,7 @@ class Retriever:
 
         self.output_path = dataset_config.get('output_path', 'data/questions')
         self.task_name = dataset_config.get('task', None)
-        self.pairs_per_domain = dataset_config.get('pairs_per_domain', 5)
+        self.pairs_per_domain = dataset_config.get('pairs_per_domain', 50)
         self.random_seed = dataset_config.get('random_seed', 42)
         self.config = TASK_REGISTRY.get(self.task_name, {})
     

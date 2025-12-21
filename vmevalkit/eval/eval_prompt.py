@@ -12,6 +12,7 @@ TASK_PROMPTS = {
     "letter_counting_task": "Check if the count shown in the final frame matches the ground_truth_count for the target letter. Award 1 point if counts match, 0 otherwise.",
     "subway_pathfinding_task": "Check if the agent icon in the final frame is at the correct destination_station. Award 1 point if destination matches, 0 otherwise.",
     "object_subtraction_task": "Verify that the specified object(s) have been correctly removed from the scene, while other objects remain unchanged and the scene remains complete.",
+    "majority_color_task": "Verify that all objects in the final frame are recolored to match the most common color in the first frame, while positions and shapes remain unchanged.",
     "object_permanence_task": "Verify that the object(s) remain unchanged in position, color, and shape, and the occluder is moved out of the frame.",
     "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
     "tower_of_hanoi_task": "Check if exactly one disk moved between frames. Verify the move is legal (top disk moved to empty peg or larger disk). Compare final disk positions to expected.",

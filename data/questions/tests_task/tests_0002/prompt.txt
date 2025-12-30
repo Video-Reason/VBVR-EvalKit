@@ -1,1 +1,0 @@
-The image shows a horizontally flipped clock. After 2 hours passes on the original clock, what will be the new time?

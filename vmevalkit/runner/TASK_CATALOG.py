@@ -200,6 +200,12 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'sequence_completion': {
+        'name': 'Sequence Completion',
+        'description': 'Pattern recognition and logical extrapolation for sequence completion',
+        'module': 'vmevalkit.tasks.sequence_completion_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     'dot_to_dot': {
         'name': 'Dot to Dot',
         'description': 'Sequential dot connection to reveal patterns',

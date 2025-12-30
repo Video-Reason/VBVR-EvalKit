@@ -228,6 +228,12 @@ TASK_REGISTRY = {
         'create_function': 'create_dataset',
         'process_dataset': lambda dataset, num_samples: dataset['pairs']
     },
+    'nonogram': {
+        'name': 'Nonogram',
+        'description': 'Constraint satisfaction puzzle with row/column hints',
+        'module': 'vmevalkit.tasks.nonogram_task',
+        'create_function': 'create_dataset',
+        'process_dataset': lambda dataset, num_samples: dataset['pairs']
     'pbench': {
         'name': 'PBench',
         'description': 'nvidia/PBench',

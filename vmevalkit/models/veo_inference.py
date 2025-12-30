@@ -326,7 +326,7 @@ class VeoService:
             elapsed = time.time() - start_time
             logger.info(f"Still running... attempt {attempt + 1}, elapsed: {elapsed:.1f}s")
             await asyncio.sleep(self.poll_interval_s)
-            operation = self.client.operations.get(operation.name)
+            operation = self.client.operations.get(operation)
             attempt += 1
         
         elapsed_total = time.time() - start_time

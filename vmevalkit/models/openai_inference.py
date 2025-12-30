@@ -6,9 +6,13 @@ from typing import Optional, Dict, Any, Union, Tuple
 from pathlib import Path
 from io import BytesIO
 from PIL import Image
+from dotenv import load_dotenv
 from .base import ModelWrapper
 
 logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
 
 try:
     import httpx

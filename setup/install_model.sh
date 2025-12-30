@@ -15,7 +15,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/common.sh"
+source "${SCRIPT_DIR}/lib/share.sh"
 
 usage() {
     cat <<USAGE
@@ -35,6 +35,7 @@ Examples:
   ./setup/install_model.sh --model ltx-video
   ./setup/install_model.sh --model ltx-video --validate
   ./setup/install_model.sh --opensource
+  ./setup/install_model.sh --commercial
   ./setup/install_model.sh --opensource --validate
   ./setup/install_model.sh --commercial --validate
   ./setup/install_model.sh --all

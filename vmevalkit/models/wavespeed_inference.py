@@ -17,9 +17,13 @@ import logging
 from enum import Enum
 import io
 from PIL import Image
+from dotenv import load_dotenv
 from .base import ModelWrapper
 
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class WaveSpeedModel(str, Enum):

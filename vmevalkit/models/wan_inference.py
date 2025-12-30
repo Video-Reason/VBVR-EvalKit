@@ -35,32 +35,19 @@ class WanService:
         
         if torch.cuda.is_available():
             self.device = "cuda"
-            encoder_dtype = torch.bfloat16
+            model_dtype = torch.bfloat16
         else:
             self.device = "cpu"
-            encoder_dtype = torch.float32
+            model_dtype = torch.float32
         
         load_kwargs = {
             "low_cpu_mem_usage": True,
-            "torch_dtype": encoder_dtype,
-            "torch_dtype": torch.bfloat16
+            "torch_dtype": model_dtype
         }
         
-        self.image_encoder = CLIPVisionModel.from_pretrained(
-            self.model_id, 
-            subfolder="image_encoder", 
-            **load_kwargs
-        )
-        self.vae = AutoencoderKLWan.from_pretrained(
-            self.model_id, 
-            subfolder="vae", 
-            **load_kwargs
-        )
-
+        # Load pipeline directly - it will load all components automatically
         self.pipe = WanImageToVideoPipeline.from_pretrained(
             self.model_id,
-            vae=self.vae,
-            image_encoder=self.image_encoder,
             **load_kwargs
         )
         self.pipe.to(self.device)

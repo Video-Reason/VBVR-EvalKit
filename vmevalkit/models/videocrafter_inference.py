@@ -3,288 +3,245 @@ VideoCrafter Inference Service for VMEvalKit
 
 Wrapper for the VideoCrafter model (submodules/VideoCrafter) to integrate with VMEvalKit's
 unified inference interface. Supports text-guided image-to-video generation.
+
+This implementation loads the model once and performs real diffusion-based video generation.
 """
 
 import os
 import sys
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 from .base import ModelWrapper
-import json
 import time
 
 # Add VideoCrafter submodule to path
 VIDEOCRAFTER_PATH = Path(__file__).parent.parent.parent / "submodules" / "VideoCrafter"
 VMEVAL_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(VIDEOCRAFTER_PATH))
+sys.path.insert(0, str(VIDEOCRAFTER_PATH / "scripts" / "evaluation"))
+
+# Import torch and checkpoint module BEFORE importing VideoCrafter modules
+# VideoCrafter's lvdm.common module expects torch.utils.checkpoint to be available
+import torch
+import torch.utils.checkpoint
+
+# VideoCrafter optionally uses xFormers "memory_efficient_attention" for *spatial* attention
+# when xformers is importable. On some GPU/driver/CUDA combos this can crash at runtime with:
+#   RuntimeError: cutlassF: no kernel found to launch!
+# To keep VMEvalKit inference robust across machines, we force VideoCrafter to use the
+# standard PyTorch attention implementation (no xformers fast-path) by flipping the
+# module-level availability flag *before* the model is instantiated.
+import importlib
+
+_vc_attention = importlib.import_module("lvdm.modules.attention")
+_vc_attention.XFORMERS_IS_AVAILBLE = False
+import torchvision
+from omegaconf import OmegaConf
+from pytorch_lightning import seed_everything
+
+# Import VideoCrafter modules
+from funcs import load_model_checkpoint, load_image_batch, batch_ddim_sampling
+from utils.utils import instantiate_from_config
 
 
 class VideoCrafterService:
     """
     Service class for VideoCrafter inference integration.
+    Loads model once and performs real diffusion-based video generation.
     """
     
     def __init__(
         self,
-        model_id: str = "videocrafter2",
+        model_id: str = "videocrafter2-512",
         output_dir: str = "./data/outputs",
         **kwargs
     ):
         """
-        Initialize VideoCrafter service.
+        Initialize VideoCrafter service and load model.
         
         Args:
-            model_id: VideoCrafter model variant
+            model_id: VideoCrafter model variant (e.g., "videocrafter2-512")
             output_dir: Directory to save generated videos
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (device, ddim_steps, cfg_scale, etc.)
         """
         self.model_id = model_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
-        # Check if VideoCrafter is available
-        self.gradio_script = VIDEOCRAFTER_PATH / "gradio_app.py"
-        if not self.gradio_script.exists():
+        # Parse model variant
+        self.resolution = 512  # Default
+        if "512" in model_id:
+            self.resolution = 512
+        elif "1024" in model_id:
+            self.resolution = 1024
+        
+        # Model paths
+        # Note: VideoCrafter has separate models for t2v and i2v
+        # i2v model is from VideoCrafter/Image2Video-512-v1.0 (has IP-Adapter + image encoder)
+        # t2v model is from VideoCrafter/VideoCrafter2 (text-only, no image conditioning)
+        self.config_path = VIDEOCRAFTER_PATH / "configs" / "inference_i2v_512_v1.0.yaml"
+        self.ckpt_path = VMEVAL_ROOT / "weights" / "videocrafter" / "i2v_512_v1" / "model.ckpt"
+        
+        # Check if files exist
+        if not self.config_path.exists():
             raise FileNotFoundError(
-                f"VideoCrafter inference script not found at {self.gradio_script}.\n"
-                f"Please initialize submodule:\n"
-                f"cd {VIDEOCRAFTER_PATH.parent} && git submodule update --init VideoCrafter"
+                f"VideoCrafter config not found at {self.config_path}.\n"
+                f"Please ensure VideoCrafter submodule is initialized."
             )
+        
+        if not self.ckpt_path.exists():
+            raise FileNotFoundError(
+                f"VideoCrafter checkpoint not found at {self.ckpt_path}.\n"
+                f"Please download the model checkpoint. See setup script for details."
+            )
+        
+        # Load model once
+        self._load_model()
 
-    def _create_inference_script(
-        self,
-        image_path: Union[str, Path],
-        text_prompt: str,
-        output_path: Union[str, Path],
-        height: int = 512,
-        width: int = 512,
-        num_frames: int = 16,
-        fps: int = 8,
-        seed: Optional[int] = None,
-        **kwargs
-    ) -> Path:
-        """
-        Create a temporary inference script for VideoCrafter.
+    def _load_model(self):
+        """Load VideoCrafter model once at initialization."""
+        print(f"Loading VideoCrafter model from {self.ckpt_path}...")
         
-        Since VideoCrafter uses Gradio, we need to create a standalone script
-        that can run the inference programmatically.
-        """
-        script_content = f'''
-import sys
-import os
-sys.path.insert(0, "{VIDEOCRAFTER_PATH}")
-
-import torch
-from PIL import Image
-import numpy as np
-from omegaconf import OmegaConf
-import cv2
-
-# Add VideoCrafter modules to path
-from lvdm.models.samplers.ddim import DDIMSampler
-from utils.utils import instantiate_from_config
-
-def load_model(config_path, ckpt_path):
-    """Load VideoCrafter model."""
-    config = OmegaConf.load(config_path)
-    model = instantiate_from_config(config.model)
-    model.load_state_dict(torch.load(ckpt_path, map_location="cpu")["state_dict"], strict=False)
-    model = model.cuda()
-    model.eval()
-    return model, config
-
-def generate_video(
-    model,
-    config,
-    image_path,
-    text_prompt,
-    output_path,
-    height=512,
-    width=512,
-    num_frames=16,
-    fps=8,
-    seed=None
-):
-    """Generate video using VideoCrafter."""
-    try:
-        if seed is not None:
-            torch.manual_seed(seed)
-            np.random.seed(seed)
+        # Load config
+        config = OmegaConf.load(self.config_path)
+        model_config = config.pop("model", OmegaConf.create())
         
-        # Load and preprocess image
-        image = Image.open(image_path).convert("RGB")
-        image = image.resize((width, height))
-        image_tensor = torch.from_numpy(np.array(image)).float() / 255.0
-        image_tensor = image_tensor.permute(2, 0, 1).unsqueeze(0).cuda()
+        # Disable gradient checkpointing for inference (faster)
+        if 'unet_config' in model_config.get('params', {}):
+            model_config['params']['unet_config']['params']['use_checkpoint'] = False
         
-        # Prepare text conditioning
-        # Note: This is a simplified version - actual VideoCrafter may need
-        # more sophisticated text encoding
+        # Instantiate model
+        self.model = instantiate_from_config(model_config)
         
-        # Create sampler
-        sampler = DDIMSampler(model)
+        # Load checkpoint
+        self.model = load_model_checkpoint(self.model, str(self.ckpt_path))
         
-        # Generate video frames
-        with torch.no_grad():
-            # This is a placeholder for the actual VideoCrafter inference
-            # The exact implementation depends on the specific model architecture
-            # and configuration files
-            
-            # For now, we'll create a basic video by duplicating the input image
-            # Real implementation would use model.sample() or similar
-            frames = []
-            for i in range(num_frames):
-                frames.append(np.array(image))
-            
-            # Save video
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
-            
-            for frame in frames:
-                out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            
-            out.release()
-            
-        return True, None
+        # Move to GPU and set to eval mode
+        self.model = self.model.cuda()
+        self.model.eval()
         
-    except Exception as e:
-        return False, str(e)
-
-if __name__ == "__main__":
-    # Model configuration
-    config_path = "{VIDEOCRAFTER_PATH}/configs/inference_i2v_512_v1.0.yaml"
-    
-    # VideoCrafter checkpoint path (using centralized weights directory)
-    ckpt_path = "{VMEVAL_ROOT}/weights/videocrafter/base_512_v2/model.ckpt"
-    
-    # Check if model files exist
-    if not os.path.exists(config_path):
-        print(f"Config not found: {{config_path}}")
-        print("Please download VideoCrafter model files and update paths.")
-        sys.exit(1)
-    
-    if not os.path.exists(ckpt_path):
-        print(f"Checkpoint not found: {{ckpt_path}}")
-        print("Please download VideoCrafter model checkpoint.")
-        sys.exit(1)
-    
-    # Load model
-    try:
-        model, config = load_model(config_path, ckpt_path)
-    except Exception as e:
-        print(f"Failed to load model: {{e}}")
-        sys.exit(1)
-    
-    # Run inference
-    success, error = generate_video(
-        model=model,
-        config=config,
-        image_path="{image_path}",
-        text_prompt="{text_prompt}",
-        output_path="{output_path}",
-        height={height},
-        width={width},
-        num_frames={num_frames},
-        fps={fps},
-        seed={seed if seed is not None else "None"}
-    )
-    
-    if success:
-        print("Video generation completed successfully")
-    else:
-        print(f"Video generation failed: {{error}}")
-        sys.exit(1)
-'''
+        # Store model properties
+        self.channels = self.model.channels
+        self.temporal_length = self.model.temporal_length
         
-        # Create temporary script file
-        temp_script = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False)
-        temp_script.write(script_content)
-        temp_script.close()
-        
-        return Path(temp_script.name)
+        print(f"✓ VideoCrafter model loaded successfully")
+        print(f"  - Temporal length: {self.temporal_length} frames")
+        print(f"  - Channels: {self.channels}")
 
     def _run_videocrafter_inference(
         self,
         image_path: Union[str, Path],
         text_prompt: str,
-        height: int = 512,
+        height: int = 320,
         width: int = 512,
-        num_frames: int = 16,
+        num_frames: Optional[int] = None,
         fps: int = 8,
         seed: Optional[int] = None,
+        ddim_steps: int = 50,
+        ddim_eta: float = 1.0,
+        cfg_scale: float = 12.0,
+        save_fps: int = 8,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Run VideoCrafter inference using a temporary script.
+        Run real VideoCrafter diffusion-based inference.
+        
+        This performs actual video generation using the loaded model,
+        not a placeholder or subprocess hack.
         
         Returns:
             Dictionary with inference results and metadata
         """
         start_time = time.time()
         
+        # Set random seed if provided
+        if seed is not None:
+            seed_everything(seed)
+        
+        # Use model's default temporal length if not specified
+        if num_frames is None:
+            num_frames = self.temporal_length
+        
         # Generate output filename
         timestamp = int(time.time())
         output_filename = f"videocrafter_{timestamp}.mp4"
         output_path = self.output_dir / output_filename
         
-        # Create inference script
-        temp_script = self._create_inference_script(
-            image_path=image_path,
-            text_prompt=text_prompt,
-            output_path=output_path,
-            height=height,
-            width=width,
-            num_frames=num_frames,
-            fps=fps,
-            seed=seed,
-            **kwargs
-        )
+        # Ensure output directory exists
+        output_path.parent.mkdir(exist_ok=True, parents=True)
         
-        try:
-            # Run the inference script
-            result = subprocess.run(
-                [sys.executable, str(temp_script)],
-                cwd=str(VIDEOCRAFTER_PATH),
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
+        error_msg = None
+        
+        # Perform inference
+        with torch.no_grad():
+            # Set up batch parameters
+            batch_size = 1
+            h, w = height // 8, width // 8  # Latent space dimensions
+            noise_shape = [batch_size, self.channels, num_frames, h, w]
+            
+            # Load and preprocess image
+            cond_images = load_image_batch([str(image_path)], (height, width))
+            cond_images = cond_images.to(self.model.device)
+            
+            # Get text embeddings
+            text_emb = self.model.get_learned_conditioning([text_prompt])
+            
+            # Get image embeddings
+            img_emb = self.model.get_image_embeds(cond_images)
+            
+            # Concatenate text and image embeddings (i2v conditioning)
+            imtext_cond = torch.cat([text_emb, img_emb], dim=1)
+            
+            # Prepare conditioning with fps
+            fps_tensor = torch.tensor([fps] * batch_size).to(self.model.device).long()
+            cond = {"c_crossattn": [imtext_cond], "fps": fps_tensor}
+            
+            # Run DDIM sampling (actual diffusion inference!)
+            batch_samples = batch_ddim_sampling(
+                self.model,
+                cond,
+                noise_shape,
+                n_samples=1,
+                ddim_steps=ddim_steps,
+                ddim_eta=ddim_eta,
+                cfg_scale=cfg_scale,
+                **kwargs
             )
             
-            success = result.returncode == 0 and output_path.exists()
-            error_msg = result.stderr if result.returncode != 0 else None
+            # Process and save video
+            # batch_samples shape: [batch, samples, c, t, h, w]
+            vid_tensor = batch_samples[0, 0]  # Get first batch, first sample
+            video = vid_tensor.detach().cpu()
+            video = torch.clamp(video.float(), -1.0, 1.0)
             
-            # If the basic script approach doesn't work, fall back to a placeholder
-            if not success:
-                error_msg = (
-                    "VideoCrafter inference requires manual setup of model checkpoints. "
-                    "Please refer to the VideoCrafter repository for setup instructions. "
-                    f"Original error: {error_msg}"
-                )
+            # Rearrange to [t, c, h, w]
+            video = video.permute(1, 0, 2, 3)  # c,t,h,w -> t,c,h,w
             
-        except subprocess.TimeoutExpired:
-            success = False
-            error_msg = "VideoCrafter inference timed out"
-        except Exception as e:
-            success = False
-            error_msg = f"VideoCrafter inference failed: {str(e)}"
-        finally:
-            # Clean up temporary script
-            try:
-                temp_script.unlink()
-            except:
-                pass
+            # Normalize to [0, 1]
+            video = (video + 1.0) / 2.0
+            
+            # Convert to uint8 [t, h, w, c]
+            video = (video * 255).to(torch.uint8).permute(0, 2, 3, 1)
+            
+            # Save video using torchvision
+            torchvision.io.write_video(
+                str(output_path),
+                video,
+                fps=save_fps,
+                video_codec="h264",
+                options={"crf": "10"}
+            )
         
+        success = output_path.exists() and output_path.stat().st_size > 0
         duration = time.time() - start_time
         
         return {
             "success": success,
-            "video_path": str(output_path) if success and output_path.exists() else None,
+            "video_path": str(output_path) if success else None,
             "error": error_msg,
             "duration_seconds": duration,
-            "generation_id": f"videocrafter_{int(time.time())}",
+            "generation_id": f"videocrafter_{timestamp}",
             "model": self.model_id,
             "status": "success" if success else "failed",
             "metadata": {
@@ -294,9 +251,11 @@ if __name__ == "__main__":
                 "width": width,
                 "num_frames": num_frames,
                 "fps": fps,
+                "save_fps": save_fps,
                 "seed": seed,
-                "stdout": result.stdout if 'result' in locals() else None,
-                "stderr": result.stderr if 'result' in locals() else None,
+                "ddim_steps": ddim_steps,
+                "ddim_eta": ddim_eta,
+                "cfg_scale": cfg_scale,
             }
         }
 
@@ -305,31 +264,40 @@ if __name__ == "__main__":
         image_path: Union[str, Path],
         text_prompt: str,
         duration: float = 8.0,
-        height: int = 512,
+        height: int = 320,
         width: int = 512,
         seed: Optional[int] = None,
         output_filename: Optional[str] = None,
+        ddim_steps: int = 50,
+        cfg_scale: float = 12.0,
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Generate video from image and text prompt.
+        Generate video from image and text prompt using VideoCrafter diffusion.
         
         Args:
             image_path: Path to input image
             text_prompt: Text prompt for video generation
-            duration: Video duration in seconds
-            height: Video height in pixels
-            width: Video width in pixels
+            duration: Video duration in seconds (used to calculate frames)
+            height: Video height in pixels (default 320 for i2v_512 model)
+            width: Video width in pixels (default 512 for i2v_512 model)
             seed: Random seed for reproducibility
             output_filename: Optional output filename (auto-generated if None)
-            **kwargs: Additional parameters passed to VideoCrafter
+            ddim_steps: Number of DDIM sampling steps (higher = better quality, slower)
+            cfg_scale: Classifier-free guidance scale (higher = stronger prompt following)
+            **kwargs: Additional parameters (fps, ddim_eta, save_fps, etc.)
             
         Returns:
             Dictionary with generation results and metadata
         """
-        # Convert duration to frames
+        # VideoCrafter i2v_512 defaults: 320x512
+        # Calculate frames from duration
         fps = kwargs.get('fps', 8)
-        num_frames = max(1, int(duration * fps))
+        num_frames = kwargs.get('num_frames')
+        if num_frames is None:
+            # Use model's temporal length, ignore duration for now
+            # VideoCrafter models have fixed temporal length
+            num_frames = None  # Will use self.temporal_length
         
         # Validate inputs
         image_path = Path(image_path)
@@ -345,7 +313,7 @@ if __name__ == "__main__":
                 "metadata": {"text_prompt": text_prompt, "image_path": str(image_path)},
             }
         
-        # Run inference
+        # Run real diffusion inference
         result = self._run_videocrafter_inference(
             image_path=image_path,
             text_prompt=text_prompt,
@@ -354,6 +322,8 @@ if __name__ == "__main__":
             num_frames=num_frames,
             fps=fps,
             seed=seed,
+            ddim_steps=ddim_steps,
+            cfg_scale=cfg_scale,
             **kwargs
         )
         
@@ -372,6 +342,9 @@ if __name__ == "__main__":
 class VideoCrafterWrapper(ModelWrapper):
     """
     Wrapper for VideoCrafterService to match VMEvalKit's standard interface.
+    
+    This wrapper loads the VideoCrafter model once and performs real diffusion-based
+    video generation for each request, not subprocess-based placeholder generation.
     """
     
     def __init__(
@@ -380,13 +353,20 @@ class VideoCrafterWrapper(ModelWrapper):
         output_dir: str = "./data/outputs",
         **kwargs
     ):
-        """Initialize VideoCrafter wrapper."""
+        """
+        Initialize VideoCrafter wrapper.
+        
+        Args:
+            model: Model identifier (e.g., "videocrafter2-512")
+            output_dir: Directory to save generated videos
+            **kwargs: Additional parameters passed to VideoCrafterService
+        """
         self.model = model
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
-        # Create VideoCrafterService instance
+        # Create VideoCrafterService instance (loads model)
         self.videocrafter_service = VideoCrafterService(
             model_id=model, output_dir=output_dir, **kwargs
         )
@@ -400,17 +380,25 @@ class VideoCrafterWrapper(ModelWrapper):
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Generate video using VideoCrafter (matches VMEvalKit interface).
+        Generate video using VideoCrafter diffusion model (matches VMEvalKit interface).
+        
+        Performs real text-guided image-to-video generation using the VideoCrafter
+        diffusion model. This is NOT a placeholder or frame duplication.
         
         Args:
             image_path: Path to input image
             text_prompt: Text prompt for video generation
-            duration: Video duration in seconds
+            duration: Video duration in seconds (note: VideoCrafter has fixed temporal length)
             output_filename: Optional output filename
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (height, width, ddim_steps, cfg_scale, seed, etc.)
             
         Returns:
-            Dictionary with generation results
+            Dictionary with generation results including:
+                - success: bool
+                - video_path: str (path to generated video)
+                - error: Optional[str]
+                - duration_seconds: float (inference time)
+                - metadata: dict (full generation parameters)
         """
         return self.videocrafter_service.generate(
             image_path=image_path,

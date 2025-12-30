@@ -22,8 +22,8 @@ data/
 ├── outputs/                         # Model inference results
 │   └── pilot_experiment/           # Experiment name
 │       └── <model_name>/           # e.g., openai-sora-2, luma-ray-2
-│           └── <domain>_task/      # e.g., chess_task
-│               └── <task_id>/      # e.g., chess_0000
+│           └── <domain>_task/      # e.g., chess_task, tests_task
+│               └── <task_id>/      # e.g., chess_0000, tests_0001
 │                   └── <run_id>/   # Timestamped run folder
 │                       ├── video/
 │                       │   └── model_output.mp4
@@ -31,6 +31,10 @@ data/
 │                       │   ├── prompt.txt
 │                       │   └── first_frame.png
 │                       └── metadata.json
+│
+│   Note: tests_task/ contains validation test outputs from:
+│   - bash setup/install_model.sh --validate
+│   - bash setup/test_model.sh
 │
 ├── evaluations/                     # Evaluation results
 │   └── pilot_experiment/
@@ -338,6 +342,62 @@ data/evaluations/{experiment_name}/
 
 # This allows parallel experiments without conflicts
 ```
+
+## Model Testing & Validation
+
+### Centralized Test Script
+
+VMEvalKit includes a centralized testing script for validating model installations:
+
+```bash
+# Test single model
+bash setup/test_model.sh --model ltx-video
+
+# Test all open-source models
+bash setup/test_model.sh --opensource
+
+# Test all commercial models
+bash setup/test_model.sh --commercial
+
+# Test all models
+bash setup/test_model.sh --all
+
+# List all models and installation status
+bash setup/test_model.sh --list
+```
+
+### Test Output Location
+
+Test outputs are stored in the standard output directory:
+
+```
+data/outputs/pilot_experiment/<model_name>/tests_task/
+├── tests_0001/
+│   └── <model>_tests_0001_<timestamp>/
+│       ├── video/
+│       │   └── generated_video.mp4
+│       ├── question/
+│       │   ├── prompt.txt
+│       │   └── first_frame.png
+│       └── metadata.json
+└── tests_0002/
+    └── <model>_tests_0002_<timestamp>/
+        └── ...
+```
+
+The validation checks:
+- ✅ Virtual environment exists
+- ✅ Generates 2 test videos (tests_0001, tests_0002)
+- ✅ Verifies video files are created
+- ✅ Reports pass/fail status
+
+### Test Questions
+
+Test questions are located in `data/questions/tests_task/`:
+- `tests_0001/` - First validation test
+- `tests_0002/` - Second validation test
+
+These are minimal test cases used for quick model validation.
 
 ## Data Validation & Integrity
 

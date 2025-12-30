@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="cogvideox-5b-i2v"
 
@@ -15,8 +15,9 @@ activate_model_venv "$MODEL"
 
 print_section "Dependencies"
 pip install -q torch==2.5.1+cu118 torchvision==0.20.1+cu118 --index-url https://download.pytorch.org/whl/cu118
-pip install -q diffusers==0.31.0 transformers==4.46.2 accelerate==1.2.1 imageio-ffmpeg==0.5.1
+pip install -q diffusers==0.31.0 transformers==4.46.2 accelerate==1.2.1 imageio-ffmpeg==0.5.1 sentencepiece==0.2.0
 pip install -q Pillow==10.4.0 numpy==1.24.4 pydantic==2.10.6 pydantic-settings==2.7.1 python-dotenv==1.2.1 requests==2.32.3
+pip install -q opencv-python==4.10.0.84
 
 deactivate
 

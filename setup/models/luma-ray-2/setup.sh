@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="luma-ray-2"
 
@@ -14,6 +14,7 @@ print_section "Dependencies"
 pip install -q httpx==0.28.1 aiohttp==3.12.12 requests==2.32.5 tenacity==9.1.2
 pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
 pip install -q Pillow==12.0.0 numpy==2.2.6 imageio==2.37.2 imageio-ffmpeg==0.6.0
+pip install -q boto3==1.42.11 opencv-python==4.10.0.84
 
 deactivate
 

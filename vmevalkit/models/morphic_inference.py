@@ -48,7 +48,14 @@ class MorphicService:
         # Get configuration from kwargs or defaults
         self.size = kwargs.get('size', "1280*720")
         self.frame_num = kwargs.get('frame_num', 81)
-        self.nproc_per_node = kwargs.get('nproc_per_node', 8)
+        
+        # Auto-detect number of available GPUs
+        import torch
+        available_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 1
+        # Default to single-GPU unless explicitly overridden to avoid NCCL issues
+        self.nproc_per_node = kwargs.get('nproc_per_node', 1)
+        if self.nproc_per_node > available_gpus:
+            self.nproc_per_node = available_gpus
         self.ulysses_size = kwargs.get('ulysses_size', self.nproc_per_node)
         
         # Get weight paths from environment variables or kwargs
@@ -69,6 +76,11 @@ class MorphicService:
         if env_nproc:
             self.nproc_per_node = int(env_nproc)
             self.ulysses_size = self.nproc_per_node
+        
+        # Force non-distributed defaults when running on a single GPU
+        if self.nproc_per_node < 2:
+            self.nproc_per_node = 1
+            self.ulysses_size = 1
         
         # Validate paths
         self._validate_paths()
@@ -138,28 +150,48 @@ class MorphicService:
         output_filename = f"morphic_{timestamp}.mp4"
         output_path = (self.output_dir / output_filename).resolve()  # Convert to absolute path
         
-        # Build torchrun command
+        use_distributed = self.nproc_per_node > 1
+        
+        # Build command: prefer single-process execution to avoid NCCL crashes
         cmd = [
-            "torchrun",
-            f"--nproc_per_node={self.nproc_per_node}",
+            sys.executable if not use_distributed else "torchrun"
+        ]
+        
+        if use_distributed:
+            cmd.append(f"--nproc_per_node={self.nproc_per_node}")
+        
+        cmd.extend([
             str(MORPHIC_PATH / "generate.py"),
             "--task", "i2v-A14B",
             "--size", self.size,
             "--frame_num", str(self.frame_num),
             "--ckpt_dir", str(self.wan2_ckpt_dir),
             "--high_noise_lora_weights_path", str(self.lora_weights_path),
-            "--dit_fsdp",
-            "--t5_fsdp",
-            "--ulysses_size", str(self.ulysses_size),
             "--image", str(image_path),
             "--prompt", text_prompt,
             "--img_end", str(final_image_path),
             "--save_file", str(output_path),  # Directly specify output path
-        ]
+        ])
+        
+        # Only enable FSDP/sequence parallelism when using multiple GPUs
+        if use_distributed:
+            cmd.extend([
+                "--dit_fsdp",
+                "--t5_fsdp",
+                "--ulysses_size", str(self.ulysses_size),
+            ])
+        
+        # Only enable model offloading if explicitly requested or if GPU count < 8
+        # With 8 GPUs and FSDP, offloading can cause segfaults
+        if kwargs.get('offload_model', False) or self.nproc_per_node < 8:
+            cmd.extend(["--offload_model", "True"])
         
         # Add seed if provided
         if kwargs.get('seed') is not None:
             cmd.extend(["--seed", str(kwargs['seed'])])
+        
+        # Set up environment variables
+        env = os.environ.copy()
         
         try:
             # Change to Morphic directory and run inference
@@ -168,7 +200,8 @@ class MorphicService:
                 cwd=str(MORPHIC_PATH),
                 capture_output=True,
                 text=True,
-                timeout=1800  # 30 minute timeout for distributed large model inference
+                timeout=1800,  # 30 minute timeout for distributed large model inference
+                env=env  # Pass environment with memory optimization settings
             )
             
             success = result.returncode == 0

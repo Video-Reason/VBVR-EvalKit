@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 # Supported WAN model variants
 # WAN_MODELS=(
@@ -16,7 +16,7 @@ source "${SCRIPT_DIR}/../../lib/common.sh"
 # )
 
 # Get model name from argument or use first one as default
-MODEL="wan"
+MODEL="wan-2.2-i2v-a14b"
 
 print_section "Virtual Environment"
 create_model_venv "$MODEL"

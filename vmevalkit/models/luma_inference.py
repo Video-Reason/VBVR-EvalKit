@@ -15,9 +15,13 @@ from io import BytesIO
 from PIL import Image
 import numpy as np
 from tenacity import retry, stop_after_attempt, wait_exponential
+from dotenv import load_dotenv
 
 from ..utils.s3_uploader import S3ImageUploader
 from .base import ModelWrapper
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class LumaAPIError(Exception):

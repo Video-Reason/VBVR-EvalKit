@@ -40,7 +40,9 @@ class HunyuanVideoService:
             **kwargs: Additional parameters
         """
         self.model_id = model_id
-        self.output_dir = Path(output_dir)
+        # Resolve to an absolute path so the subprocess (running from the submodule dir)
+        # writes to the same folder we later read from.
+        self.output_dir = Path(output_dir).expanduser().resolve()
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
@@ -73,65 +75,140 @@ class HunyuanVideoService:
         """
         start_time = time.time()
         
-        # Generate output filename
+        # Generate output directory (HunyuanVideo saves to directory, not file)
         timestamp = int(time.time())
-        output_filename = f"hunyuan_{timestamp}.mp4"
-        output_path = self.output_dir / output_filename
+        output_dir = self.output_dir / f"hunyuan_{timestamp}"
+        output_dir.mkdir(exist_ok=True, parents=True)
+        
+        # Determine i2v resolution based on height
+        if height >= 720:
+            i2v_resolution = "720p"
+        elif height >= 540:
+            i2v_resolution = "540p"
+        else:
+            i2v_resolution = "360p"
+        
+        # Get model base path from kwargs or use default
+        model_base = kwargs.get('model_base', str(HUNYUAN_PATH / "ckpts" / "hunyuan-video-i2v-720p"))
+        model_type = kwargs.get('model_type', 'HYVideo-T/2')
+        infer_steps = kwargs.get('infer_steps', 50)
+        embedded_cfg_scale = kwargs.get('embedded_cfg_scale', 6.0)
+        
+        # Single GPU mode (default) - xfuser not required
+        # For multi-GPU, set num_gpus > 1 and ensure xfuser is installed
+        num_gpus = kwargs.get('num_gpus', 1)  # Default to single GPU
+        use_cpu_offload = kwargs.get('use_cpu_offload', True)  # Recommended for single GPU
         
         # Prepare inference command
         cmd = [
             sys.executable,
-            str(self.inference_script),
-            "--prompt", text_prompt,
-            "--image-path", str(image_path),
-            "--height", str(height),
-            "--width", str(width),
-            "--video-length", str(video_length),
-            "--output-path", str(output_path),
+            str(HUNYUAN_PATH / "sample_image2video.py"),
         ]
         
-        # Add stability and flow shift parameters
+        # Add common arguments
+        cmd.extend([
+            "--prompt", text_prompt,
+            "--i2v-image-path", str(image_path),
+            "--video-size", str(width), str(height),
+            "--video-length", str(video_length),
+            "--save-path", str(output_dir),
+            "--model", model_type,
+            "--model-base", model_base,
+            "--i2v-mode",
+            "--i2v-resolution", i2v_resolution,
+            "--infer-steps", str(infer_steps),
+            "--embedded-cfg-scale", str(embedded_cfg_scale),
+        ])
+        
+        # Add CPU offload for single GPU (reduces memory usage)
+        if use_cpu_offload and num_gpus == 1:
+            cmd.append("--use-cpu-offload")
+        
+        # Add stability parameter
         if use_i2v_stability:
             cmd.append("--i2v-stability")
+        
+        # Add flow shift parameter
         if flow_shift:
             cmd.extend(["--flow-shift", str(flow_shift)])
         
+        # Add flow-reverse (recommended by docs)
+        cmd.append("--flow-reverse")
+        
+        # Add seed
         if seed is not None:
             cmd.extend(["--seed", str(seed)])
+        else:
+            cmd.extend(["--seed", "0"])  # Use deterministic seed by default
             
-        # Add any additional parameters
+        # Add any additional parameters (skip already handled ones and metadata)
+        skip_keys = ['use_i2v_stability', 'flow_shift', 'model_base', 'model_type', 
+                     'infer_steps', 'embedded_cfg_scale', 'question_data', 'duration', 
+                     'output_filename', 'fps', 'num_gpus', 'use_cpu_offload']
         for key, value in kwargs.items():
-            if value is not None and key not in ['use_i2v_stability', 'flow_shift']:
+            if value is not None and key not in skip_keys:
                 cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+
+        # Preflight: HunyuanVideo also expects a CLIP-L text encoder/tokenizer at ckpts/text_encoder_2.
+        # If it's missing, inference will fail deep inside Transformers with a confusing error.
+        clip_text_encoder_dir = HUNYUAN_PATH / "ckpts" / "text_encoder_2"
+        if not clip_text_encoder_dir.exists() or not any(clip_text_encoder_dir.iterdir()):
+            raise FileNotFoundError(
+                f"Missing required checkpoint directory: {clip_text_encoder_dir}\n"
+                f"Run: /home/ubuntu/Hokin/VMEvalKit/setup/models/hunyuan-video-i2v/setup.sh"
+            )
         
         try:
+            # Ensure HunyuanVideo resolves ckpt-relative paths (e.g. ./ckpts/text_encoder_i2v)
+            # regardless of the caller's working directory, without modifying the submodule.
+            env = os.environ.copy()
+            env.setdefault("MODEL_BASE", str(HUNYUAN_PATH / "ckpts"))
+            
+            # Enable xDiT parallel inference resizing (per docs)
+            if num_gpus > 1:
+                env["ALLOW_RESIZE_FOR_SP"] = "1"
+
             # Change to HunyuanVideo directory and run inference
             result = subprocess.run(
                 cmd,
                 cwd=str(HUNYUAN_PATH),
+                env=env,
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout for large model
+                timeout=7200  # 120 minute timeout for large model
             )
             
             success = result.returncode == 0
             error_msg = result.stderr if result.returncode != 0 else None
             
+            # Find the generated video file in the output directory
+            output_video = None
+            if success and output_dir.exists():
+                # HunyuanVideo saves videos as .mp4 files in the output directory
+                video_files = list(output_dir.glob("*.mp4"))
+                if video_files:
+                    output_video = str(video_files[0])
+                else:
+                    success = False
+                    error_msg = f"Video generation succeeded but no .mp4 file found in {output_dir}"
+            
         except subprocess.TimeoutExpired:
             success = False
             error_msg = "HunyuanVideo inference timed out"
+            output_video = None
         except Exception as e:
             success = False
             error_msg = f"HunyuanVideo inference failed: {str(e)}"
+            output_video = None
         
         duration = time.time() - start_time
         
         return {
             "success": success,
-            "video_path": str(output_path) if success and output_path.exists() else None,
+            "video_path": output_video,
             "error": error_msg,
             "duration_seconds": duration,
-            "generation_id": f"hunyuan_{int(time.time())}",
+            "generation_id": f"hunyuan_{timestamp}",
             "model": self.model_id,
             "status": "success" if success else "failed",
             "metadata": {
@@ -176,11 +253,14 @@ class HunyuanVideoService:
             Dictionary with generation results and metadata
         """
         # Convert duration to frames (HunyuanVideo uses ~25 FPS)
+        # Per docs: max supported is 129 frames (5 seconds)
         fps = kwargs.get('fps', 25)
         video_length = max(1, int(duration * fps))
         # Ensure odd number of frames (HunyuanVideo requirement)
         if video_length % 2 == 0:
             video_length += 1
+        # Cap to max supported length per documentation
+        video_length = min(video_length, 129)
         
         # Validate inputs
         image_path = Path(image_path)
@@ -236,7 +316,7 @@ class HunyuanVideoWrapper(ModelWrapper):
     ):
         """Initialize HunyuanVideo wrapper."""
         self.model = model
-        self._output_dir = Path(output_dir)
+        self._output_dir = Path(output_dir).expanduser().resolve()
         self._output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
@@ -253,7 +333,7 @@ class HunyuanVideoWrapper(ModelWrapper):
     @output_dir.setter
     def output_dir(self, value: Union[str, Path]):
         """Set the output directory and update the service's output_dir too."""
-        self._output_dir = Path(value)
+        self._output_dir = Path(value).expanduser().resolve()
         self._output_dir.mkdir(exist_ok=True, parents=True)
         # Also update the service's output_dir
         self.hunyuan_service.output_dir = self._output_dir

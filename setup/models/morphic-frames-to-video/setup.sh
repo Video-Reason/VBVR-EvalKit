@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="morphic-frames-to-video"
 
@@ -11,21 +11,42 @@ create_model_venv "$MODEL"
 activate_model_venv "$MODEL"
 
 print_section "Dependencies"
-pip install -q torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1
-# Install flash-attn from prebuilt wheel to avoid cross-device link error during build
-pip install -q https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.2.post1/flash_attn-2.7.2.post1+cu12torch2.5cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-pip install -q diffusers==0.31.0 transformers==4.51.3 accelerate==1.1.1 sentencepiece==0.2.1 xformers==0.0.28.post3 einops==0.8.1 decord==0.6.0 av==14.4.0 omegaconf==2.3.0
-pip install -q opencv-python==4.11.0.86 opencv-contrib-python==4.11.0.86
-pip install -q "numpy>=1.23.5,<2" Pillow==10.4.0 pandas==2.2.3 tqdm==4.67.1 pydantic==2.10.3 pydantic-settings==2.6.1 python-dotenv==1.0.1 requests==2.32.3 httpx==0.28.1
-pip install -q imageio==2.36.0 imageio-ffmpeg==0.5.1 matplotlib==3.9.2 moviepy==1.0.3 cairosvg==2.7.1 ftfy==6.3.1 aiohttp==3.10.10 tenacity==9.0.0 boto3==1.35.50
-pip install -q peft==0.13.2
-pip install -q -r "${SUBMODULES_DIR}/morphic-frames-to-video/requirements.txt" --no-deps
-pip install -q easydict dashscope librosa "tokenizers>=0.20.3"
+# Follow Morphic's official setup_env.sh exactly
+pip install -q torch==2.5.0 torchvision --index-url https://download.pytorch.org/whl/cu121
 
-deactivate
+# Build flash-attn from source (like original Morphic setup)
+# Install build dependencies required by flash-attn
+pip install -q packaging ninja psutil wheel setuptools
+
+# Install flash-attn with --no-cache-dir to avoid cross-device link errors
+# This can occur when pip cache and temp directories are on different filesystems
+pip install -q --no-cache-dir flash-attn==2.7.0.post2 --no-build-isolation
+
+# Install compatible versions to avoid dependency hell:
+# - transformers<=4.51.3 (required by Morphic, no modeling_layers module)
+# - peft<0.13.0 (peft 0.13.0+ requires transformers.modeling_layers)
+# - diffusers<0.33.0 (diffusers 0.33.0+ requires peft>=0.17.0)
+pip install -q "diffusers>=0.31.0,<0.33.0"
+pip install -q "peft>=0.12.0,<0.13.0"
+
+# Install decord explicitly (sometimes fails silently from requirements.txt)
+pip install -q decord==0.6.0
+
+# Install from requirements.txt (respects version ranges from original)
+pip install -q -r "${SUBMODULES_DIR}/morphic-frames-to-video/requirements.txt"
+
+# Additional utilities for VMEvalKit validation and runtime
+pip install -q Pillow==10.4.0
+pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
+pip install -q requests==2.32.5 httpx==0.28.1
+# Note: This version conflicts with transformers 4.51.3's preference (>=0.30.0)
+# but is pinned for VMEvalKit consistency. The warning is non-critical.
+pip install -q "huggingface_hub[cli]==0.26.2"
 
 print_section "Checkpoints"
 ensure_morphic_assets
+
+deactivate
 
 print_section "Creating Symlinks"
 # Create symlink in submodule directory to access weights

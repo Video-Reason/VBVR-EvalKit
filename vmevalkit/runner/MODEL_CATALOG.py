@@ -54,16 +54,16 @@ VEO_MODELS = {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
-        "model": "veo-3.0-generate-preview",
-        "description": "Google Veo 3.0 - Preview model with advanced capabilities",
+        "model": "veo-3.0-generate-001",
+        "description": "Google Veo 3.0 - Advanced video generation model",
         "family": "Google Veo"
     },
     "veo-3.0-fast-generate": {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
-        "model": "veo-3.0-fast-generate-preview",
-        "description": "Google Veo 3.0 Fast - Preview model for faster generation",
+        "model": "veo-3.0-fast-generate-001",
+        "description": "Google Veo 3.0 Fast - Faster generation model",
         "family": "Google Veo"
     },
     "veo-3.1-generate": {
@@ -402,9 +402,9 @@ MORPHIC_MODELS = {
         "description": "Morphic Frames to Video - High-quality interpolation using Wan2.2",
         "family": "Morphic",
         "args": {
-            "size": "1280*720",
-            "frame_num": 81,
-            "nproc_per_node": 8
+            "size": "480*832",  # Reduced from 1280*720 to lower memory usage
+            "frame_num": 49  # Reduced from 81 to lower memory usage (must be 4n+1)
+            # nproc_per_node auto-detected from available GPUs
         }
     }
 }
@@ -539,20 +539,6 @@ SANA_VIDEO_MODELS = {
             "guidance_scale": 4.5
         },
         "description": "SANA-Video 2B 480p - Efficient text+image to video (480x832)",
-        "family": "SANA-Video"
-    },
-    "sana-video-2b-longlive": {
-        "wrapper_module": "vmevalkit.models.sana_inference",
-        "wrapper_class": "SanaVideoWrapper",
-        "service_class": "SanaVideoService",
-        "model": "Efficient-Large-Model/SANA-Video_2B_480p_LongLive",
-        "args": {
-            "resolution": (480, 832),
-            "num_frames": 161,
-            "fps": 16,
-            "guidance_scale": 4.5
-        },
-        "description": "SANA-Video 2B LongLive - Extended length video generation",
         "family": "SANA-Video"
     }
 }

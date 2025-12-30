@@ -16,7 +16,7 @@ VMEvalKit uses a **clean modular architecture** with dynamic loading, designed f
 2. Create wrapper class inheriting from ModelWrapper
 3. Implement generate() method (usually subprocess-based)
 4. Create setup script at `setup/models/{model-name}/setup.sh`
-5. Register checkpoints in `setup/lib/common.sh`
+5. Register checkpoints in `setup/lib/share.sh`
 6. Initialize git submodule if needed
 
 ### Comparison Table
@@ -82,8 +82,9 @@ setup/
 │   │   └── setup.sh       # Installation script for LTX-Video
 │   └── ...
 ├── lib/
-│   └── common.sh          # Shared utilities and model registry
-└── install_model.sh       # Master installation orchestrator
+│   └── share.sh           # Shared utilities and model registry
+├── install_model.sh       # Master installation orchestrator
+└── test_model.sh          # Centralized testing script
 ```
 
 ### Key Architecture Principles
@@ -209,7 +210,7 @@ class ModelWrapper(ABC):
 ✅ **Setup script**: Create `setup/models/{model-name}/setup.sh`  
 ✅ **Exact versions**: Always use `package==X.Y.Z` format in pip install  
 ✅ **Virtual environment**: One isolated venv per model  
-✅ **Checkpoint registration**: Add to `setup/lib/common.sh`  
+✅ **Checkpoint registration**: Add to `setup/lib/share.sh`  
 ✅ **Submodule management**: Pin to specific commit, not floating HEAD
 
 ## 🚀 Model Installation & Deployment
@@ -251,17 +252,50 @@ The `setup/install_model.sh` script handles all model installations:
 
 ```bash
 # Install single model
-bash setup/install_model.sh dynamicrafter-512
+bash setup/install_model.sh --model dynamicrafter-512
 
-# Install multiple models
-bash setup/install_model.sh ltx-video svd videocrafter2-512
+# Install with validation
+bash setup/install_model.sh --model dynamicrafter-512 --validate
 
 # Install all open-source models
-bash setup/install_model.sh --all-opensource
+bash setup/install_model.sh --opensource
+
+# Install all models (open-source + commercial)
+bash setup/install_model.sh --all
 
 # Validate after installation
-bash setup/install_model.sh dynamicrafter-512 --validate
+bash setup/install_model.sh --opensource --validate
 ```
+
+### Testing Script Master Orchestrator
+
+The `setup/test_model.sh` script handles all model testing:
+
+```bash
+# Test single model
+bash setup/test_model.sh --model ltx-video
+
+# Test all open-source models
+bash setup/test_model.sh --opensource
+
+# Test all commercial models
+bash setup/test_model.sh --commercial
+
+# Test all models
+bash setup/test_model.sh --all
+
+# List models with installation status
+bash setup/test_model.sh --list
+```
+
+**Features:**
+- ✅ Checks if model virtual environments exist
+- ✅ Runs validation tests (generates 2 test videos)
+- ✅ Categorizes results: Passed, Failed, Not Installed
+- ✅ Provides detailed summary at the end
+- ✅ Exit code: 0 for success, 1 if any tests fail
+
+**Test Outputs:** `data/outputs/pilot_experiment/<model>/tests_task/`
 
 ### Directory Structure After Installation
 
@@ -303,28 +337,30 @@ Open-source models require additional setup beyond the wrapper class:
 ```
 your-model-name/
 ├── Setup Components:
-│   ├── setup/models/your-model-name/
-│   │   ├── setup.sh              # Installation script
-│   │   └── test.sh               # Validation script (optional)
-│   └── setup/lib/common.sh       # Register checkpoints here
-├── Runtime Components:
-│   ├── vmevalkit/models/
-│   │   └── yourmodel_inference.py  # Service + Wrapper classes
-│   ├── envs/your-model-name/     # Virtual environment (created by setup)
-│   ├── weights/your-model/       # Model checkpoints (downloaded by setup)
-│   └── submodules/YourModel/     # Git submodule (if needed)
+│   ├── setup/
+│   │   ├── models/your-model-name/
+│   │   │   └── setup.sh          # Installation script
+│   │   ├── lib/share.sh          # Register checkpoints here
+│   │   ├── install_model.sh      # Master installation orchestrator
+│   │   └── test_model.sh         # Centralized testing script
+│   └── Runtime Components:
+│       ├── vmevalkit/models/
+│       │   └── yourmodel_inference.py  # Service + Wrapper classes
+│       ├── envs/your-model-name/ # Virtual environment (created by setup)
+│       ├── weights/your-model/   # Model checkpoints (downloaded by setup)
+│       └── submodules/YourModel/ # Git submodule (if needed)
 ```
 
 ### Creating a Setup Script
 
-Setup scripts follow a standardized pattern using shared utilities from `setup/lib/common.sh`:
+Setup scripts follow a standardized pattern using shared utilities from `setup/lib/share.sh`:
 
 ```bash
 #!/bin/bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="your-model-name"
 
@@ -354,7 +390,7 @@ print_success "${MODEL} setup complete"
 - Keep it consistent with other models (see `dynamicrafter-256`, `svd`, `videocrafter2-512`)
 - Always use exact versions: `package==X.Y.Z`
 
-**Key Functions from `common.sh`:**
+**Key Functions from `share.sh`:**
 - `create_model_venv "$MODEL"`: Creates fresh virtual environment
 - `activate_model_venv "$MODEL"`: Activates virtual environment
 - `download_checkpoint_by_path "$PATH"`: Downloads registered checkpoint
@@ -363,10 +399,10 @@ print_success "${MODEL} setup complete"
 
 ### Registering Model Checkpoints
 
-Add your model's checkpoints to `setup/lib/common.sh`:
+Add your model's checkpoints to `setup/lib/share.sh`:
 
 ```bash
-# In setup/lib/common.sh
+# In setup/lib/share.sh
 
 # 1. Add to CHECKPOINTS array
 declare -a CHECKPOINTS=(
@@ -493,7 +529,10 @@ ls envs/your-model-name/bin/python
 # Verify checkpoints
 ls weights/your-model/
 
-# Run validation
+# Run validation using centralized test script
+bash setup/test_model.sh --model your-model-name
+
+# Or test manually with examples script
 python examples/generate_videos.py --model your-model-name --task-id tests_0001
 ```
 
@@ -622,13 +661,59 @@ GCP_LOCATION=us-central1
 
 ## ✅ Testing Your Integration
 
-### Testing Open-Source Models
+### Quick Testing (Recommended)
 
-For open-source models, test the setup script first:
+Install and validate in one command:
 
 ```bash
-# 1. Test installation script
-bash setup/models/your-model-name/setup.sh
+# Install and test any model
+bash setup/install_model.sh --model your-model-name --validate
+
+# Test multiple models
+bash setup/install_model.sh --opensource --validate
+bash setup/install_model.sh --all --validate
+```
+
+This runs the full validation:
+1. Installs the model (creates venv, downloads weights)
+2. Generates 2 test videos using `examples/generate_videos.py`
+3. Verifies output quality
+4. Reports pass/fail
+
+### Centralized Testing Script
+
+Test models without reinstalling using the dedicated test script:
+
+```bash
+# Test single model
+bash setup/test_model.sh --model your-model-name
+
+# Test all open-source models
+bash setup/test_model.sh --opensource
+
+# Test all commercial models
+bash setup/test_model.sh --commercial
+
+# Test everything
+bash setup/test_model.sh --all
+
+# List all models and their installation status
+bash setup/test_model.sh --list
+```
+
+The test script:
+- ✅ Checks if virtual environments exist
+- ✅ Runs validation tests (generates 2 test videos)
+- ✅ Provides detailed pass/fail summary
+- ✅ Shows which models are not installed
+
+### Manual Testing Steps
+
+For detailed verification without using `--validate`:
+
+```bash
+# 1. Install the model
+bash setup/install_model.sh --model your-model-name
 
 # 2. Verify virtual environment was created
 ls -la envs/your-model-name/bin/python
@@ -636,13 +721,16 @@ source envs/your-model-name/bin/activate
 python -c "import torch; print(torch.__version__)"
 deactivate
 
-# 3. Verify checkpoints were downloaded
+# 3. Verify checkpoints were downloaded (open-source only)
 ls -lh weights/your-model/
 
 # 4. Verify submodule (if applicable)
 ls -la submodules/YourModel/
 
-# 5. Run built-in validation
+# 5. Run centralized test
+bash setup/test_model.sh --model your-model-name
+
+# Or run manual validation
 python examples/generate_videos.py \
     --model your-model-name \
     --task-id tests_0001 tests_0002
@@ -653,13 +741,19 @@ ls -la data/outputs/pilot_experiment/your-model-name/tests_task/
 
 ### Testing Commercial API Models
 
-For commercial models, test API connectivity first:
+For commercial models, verify API key first:
 
 ```bash
 # 1. Verify API key is set
 echo $YOUR_PROVIDER_API_KEY
 
-# 2. Run quick test
+# 2. Test using centralized script (no installation needed)
+bash setup/test_model.sh --model your-provider-model
+
+# Or install and test together
+bash setup/install_model.sh --model your-provider-model --validate
+
+# Or test manually
 python examples/generate_videos.py \
     --model your-provider-model \
     --task-id tests_0001
@@ -1267,7 +1361,7 @@ class OpenSourceModelWrapper(ModelWrapper):
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../../lib/common.sh"
+source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="opensourcemodel-512"
 
@@ -1291,7 +1385,7 @@ download_checkpoint_by_path "${MODEL_CHECKPOINT_PATHS[$MODEL]}"
 print_success "${MODEL} setup complete"
 ```
 
-**Register in `setup/lib/common.sh`:**
+**Register in `setup/lib/share.sh`:**
 
 ```bash
 # Add to OPENSOURCE_MODELS
@@ -1354,15 +1448,15 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 - [ ] Error handling returns error dict (not raises exception)
 - [ ] Added exports to `vmevalkit/models/__init__.py`
 - [ ] Created `.env` entry for API key
-- [ ] Tested with `examples/generate_videos.py`
+- [ ] Tested with `bash setup/test_model.sh --model your-model`
 - [ ] Validated output format and video quality
 
 ### For Open-Source Models ✅
 
 - [ ] Created `setup/models/{model-name}/setup.sh` script
-- [ ] Script uses functions from `setup/lib/common.sh`
+- [ ] Script uses functions from `setup/lib/share.sh`
 - [ ] All pip packages use exact versions (==X.Y.Z)
-- [ ] Added checkpoint entries to `setup/lib/common.sh` CHECKPOINTS array
+- [ ] Added checkpoint entries to `setup/lib/share.sh` CHECKPOINTS array
 - [ ] Added model to OPENSOURCE_MODELS list
 - [ ] Added checkpoint mapping to MODEL_CHECKPOINT_PATHS
 - [ ] Created inference file `{model}_inference.py` with Service and Wrapper
@@ -1373,8 +1467,8 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 - [ ] Submodule added (if needed) and documented
 - [ ] Added model to `MODEL_CATALOG.py`
 - [ ] Added exports to `vmevalkit/models/__init__.py`
-- [ ] Ran setup script successfully
-- [ ] Tested inference with `examples/generate_videos.py`
+- [ ] Ran setup script successfully: `bash setup/install_model.sh --model {model-name}`
+- [ ] Tested with centralized script: `bash setup/test_model.sh --model {model-name}`
 - [ ] Validated output format and video quality
 
 ---
@@ -1386,7 +1480,7 @@ def _get_model_constraints(self, model: str) -> Dict[str, Any]:
 1. **Start Simple**: Study a commercial API model (e.g., `luma_inference.py`)
 2. **Understand Catalog**: Read `MODEL_CATALOG.py` to see all models
 3. **Read Base Class**: Study `ModelWrapper` in `models/base.py`
-4. **Study Setup**: Look at `setup/lib/common.sh` for open-source utilities
+4. **Study Setup**: Look at `setup/lib/share.sh` for open-source utilities
 5. **Try Integration**: Add a simple commercial model first
 6. **Advanced**: Tackle open-source model with full setup script
 

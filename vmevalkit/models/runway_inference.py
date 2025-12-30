@@ -12,9 +12,13 @@ from pathlib import Path
 import logging
 import io
 from PIL import Image
+from dotenv import load_dotenv
 from .base import ModelWrapper
 
 logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
 
 
 class RunwayService:

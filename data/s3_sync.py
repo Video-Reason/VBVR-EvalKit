@@ -1,5 +1,95 @@
 #!/usr/bin/env python3
-"""S3 sync for VMEvalKit data - upload, download, and list datasets."""
+"""S3 sync for VMEvalKit data - upload, download, and list datasets.
+
+USAGE EXAMPLES
+==============
+
+Prerequisites:
+--------------
+1. Configure AWS credentials (one of the following):
+   - AWS CLI: `aws configure`
+   - Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+   - IAM role (if running on EC2)
+
+2. Set S3 bucket configuration in .env file:
+   AWS_S3_BUCKET=your-bucket-name
+   AWS_S3_USERNAME=your-username  (optional, adds username prefix to paths)
+
+Commands:
+---------
+
+1. UPLOAD files or directory to S3:
+   
+   # Upload a single file
+   python data/s3_sync.py upload path/to/file.txt
+   
+   # Upload a directory
+   python data/s3_sync.py upload path/to/directory
+   
+   # Upload with custom S3 prefix
+   python data/s3_sync.py upload path/to/data --prefix my-project/results
+   
+   # Upload with date prefix (creates YYYYMMDDHHMM/data structure)
+   python data/s3_sync.py upload path/to/data --date 202412151430
+
+2. DOWNLOAD data from S3:
+   
+   # Download using full S3 URI
+   python data/s3_sync.py download s3://bucket-name/prefix/data
+   
+   # Download using just the prefix (uses bucket from environment)
+   python data/s3_sync.py download 202412151430/data
+   
+   # Download to specific local path
+   python data/s3_sync.py download 202412151430/data --output ./my-data
+
+3. LIST available datasets in S3:
+   
+   # List all datasets
+   python data/s3_sync.py list
+   
+   # List datasets with specific prefix
+   python data/s3_sync.py list --prefix username/
+   
+   # List from specific bucket
+   python data/s3_sync.py list --bucket my-bucket
+
+4. SYNC data folder (legacy/default behavior):
+   
+   # Sync current data directory to S3 with auto-generated timestamp
+   python data/s3_sync.py sync
+   
+   # Sync with specific date prefix
+   python data/s3_sync.py sync --date 202412151430
+   
+   # Backward compatible (same as sync)
+   python data/s3_sync.py
+
+Python API:
+-----------
+You can also import and use functions directly:
+
+    from data.s3_sync import upload_to_s3, download_from_s3, list_s3_datasets
+    
+    # Upload
+    s3_uri = upload_to_s3("path/to/data", s3_prefix="my-prefix")
+    
+    # Download
+    local_path = download_from_s3("s3://bucket/prefix")
+    
+    # List
+    datasets = list_s3_datasets(prefix="username/")
+
+S3 Path Structure:
+------------------
+Default structure: {username}/{YYYYMMDDHHMM}/data/
+- username: From AWS_S3_USERNAME env var (optional)
+- YYYYMMDDHHMM: Timestamp of upload
+- data: Default folder name
+
+Custom structure: {prefix}/
+- Use --prefix flag to specify custom S3 path
+"""
 
 import os
 import datetime

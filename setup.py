@@ -22,7 +22,7 @@ setup(
     version="0.1.0",
     author="VMEvalKit Team",
     author_email="hokinxqdeng@gmail.com",
-    description="A comprehensive evaluation framework for video reasoning models",
+    description="A unified inference and evaluation framework for video generation models",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/hokindeng/VMEvalKit",
@@ -44,28 +44,18 @@ setup(
     extras_require={
         "dev": [
             "pytest>=7.4.0",
-            "pytest-asyncio>=0.21.0",
+            "pytest-asyncio>=0.21.0", 
             "pytest-cov>=4.1.0",
             "mypy>=1.7.0",
             "black>=23.0.0",
             "isort>=5.12.0",
             "flake8>=6.1.0",
-        ],
-        "docs": [
-            "sphinx>=7.2.0",
-            "sphinx-rtd-theme>=2.0.0",
-            "sphinx-autodoc-typehints>=1.24.0",
         ]
+        # docs extras removed - no documentation build needed
     },
-    entry_points={
-        "console_scripts": [
-            "vmevalkit=vmevalkit.cli:main",
-        ],
-    },
+    # CLI entry point removed - use examples/ scripts instead
     include_package_data=True,
-    package_data={
-        "vmevalkit": ["data/*.json", "configs/*.yaml"],
-    },
+    # No package data needed - using external data sources only
     project_urls={
         "Bug Reports": "https://github.com/hokindeng/VMEvalKit/issues",
         "Documentation": "https://vmevalkit.readthedocs.io",

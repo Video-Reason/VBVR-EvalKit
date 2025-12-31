@@ -1,17 +1,17 @@
 """
-VMEvalKit - A framework for video generation with text+image inputs.
+VMEvalKit - A unified framework for video model inference and evaluation.
 
-This framework enables video generation models to process both text prompts 
-and image inputs to generate videos.
+This framework provides a unified interface for 40+ video generation models 
+and comprehensive evaluation pipelines for reasoning capabilities.
+
+Focus: Inference and evaluation only. Data generation is handled externally.
 """
 
 __version__ = "0.1.0"
 
-# Loader and task system removed as unused
-
 __all__ = [
     # Runner
-    "run_inference",
+    "run_inference", 
     "InferenceRunner",
     # Models
     "LumaInference",

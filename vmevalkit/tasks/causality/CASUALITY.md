@@ -1,2 +1,0 @@
-## To get started
-

@@ -6,7 +6,7 @@ This script provides flexible video generation with customizable model and task 
 Run on specific models, domains, or individual tasks with full control over the process.
 
 Key Features:
-- Select specific domains or individual task IDs (all domains from TASK_CATALOG are supported)
+- Select specific domains or individual task IDs (auto-discovered from data/questions/)
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
 
@@ -36,9 +36,8 @@ load_dotenv()
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vmevalkit.runner.inference import  InferenceRunner
+from vmevalkit.runner.inference import InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
-from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 
 # Default models for quick testing (can be overridden with --model)
@@ -54,15 +53,25 @@ DEFAULT_TEST_MODELS = [
 QUESTIONS_DIR = Path("data/questions")
 OUTPUT_DIR = Path("data/outputs/pilot_experiment")
 
-# Expected domains (dynamically loaded from TASK_CATALOG)
-EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
+# Discover domains by scanning data/questions/ folder
+def get_available_domains():
+    """Discover available domains from data/questions/ folder."""
+    questions_dir = QUESTIONS_DIR
+    if not questions_dir.exists():
+        return []
+    
+    domains = []
+    for item in questions_dir.iterdir():
+        if item.is_dir() and item.name.endswith('_task'):
+            domain = item.name.replace('_task', '')
+            domains.append(domain)
+    return sorted(domains)
+
+EXPECTED_DOMAINS = get_available_domains()
 
 def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Discover all human-approved tasks by direct file detection.
-    
-    Scans for actual PNG and TXT files, then loads supplemental metadata from JSON.
-    This approach is more robust as it relies on actual files rather than metadata.
+    Discover all tasks by scanning data/questions/ folder directly.
     
     Args:
         questions_dir: Path to questions directory
@@ -70,7 +79,7 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
     Returns:
         Dictionary mapping domain to list of task dictionaries
     """
-    print(f"🔍 Discovering tasks by scanning actual files: {questions_dir}")
+    print(f"🔍 Discovering tasks from: {questions_dir}")
     
     tasks_by_domain = {}
     total_tasks = 0
@@ -85,19 +94,19 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
         
         print(f"   📁 Scanning {domain_dir.name}/")
         
-        # Scan each question folder in this domain  
-        for question_dir in sorted(domain_dir.glob(f"{domain}_*")):
-            if not question_dir.is_dir():
+        # Scan each task folder
+        for task_dir in sorted(domain_dir.iterdir()):
+            if not task_dir.is_dir():
                 continue
                 
-            task_id = question_dir.name
+            task_id = task_dir.name
             
-            # Look for actual files (PNG and TXT) - this is our primary source
-            prompt_file = question_dir / "prompt.txt"
-            first_image = question_dir / "first_frame.png"
-            final_image = question_dir / "final_frame.png"
+            # Check for required files
+            prompt_file = task_dir / "prompt.txt"
+            first_image = task_dir / "first_frame.png"
+            final_image = task_dir / "final_frame.png"
+            ground_truth = task_dir / "ground_truth.mp4"
             
-            # Required files check
             if not prompt_file.exists():
                 print(f"      ⚠️  Skipping {task_id}: Missing prompt.txt")
                 continue
@@ -106,39 +115,28 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
                 print(f"      ⚠️  Skipping {task_id}: Missing first_frame.png")
                 continue
             
-            # Load prompt directly from actual file
+            # Load prompt
             prompt_text = prompt_file.read_text().strip()
             
-            # Create task dictionary from actual detected files
+            # Create task dictionary
             task = {
                 "id": task_id,
                 "domain": domain,
                 "prompt": prompt_text,
                 "first_image_path": str(first_image.absolute()),
-                "final_image_path": str(final_image.absolute()) if final_image.exists() else None
+                "final_image_path": str(final_image.absolute()) if final_image.exists() else None,
+                "ground_truth_video": str(ground_truth.absolute()) if ground_truth.exists() else None
             }
-            
-            # Load supplemental metadata from JSON files if they exist
-            metadata_file = question_dir / "question_metadata.json"
-            if metadata_file.exists():
-                with open(metadata_file, 'r') as f:
-                    supplemental_metadata = json.load(f)
-                
-                # Add supplemental data but don't override core fields
-                for key, value in supplemental_metadata.items():
-                    if key not in task:  # Don't override our detected values
-                        task[key] = value
             
             domain_tasks.append(task)
             
-        print(f"      ✅ Found {len(domain_tasks)} approved tasks in {domain}")
+        print(f"      ✅ Found {len(domain_tasks)} tasks in {domain}")
         tasks_by_domain[domain] = domain_tasks
         total_tasks += len(domain_tasks)
     
-    print(f"\n📊 Discovery Summary:")
-    print(f"   Total approved tasks: {total_tasks}")
+    print(f"\n📊 Discovery Summary: {total_tasks} total tasks")
     for domain, tasks in tasks_by_domain.items():
-        print(f"   {domain.title()}: {len(tasks)} tasks")
+        print(f"   {domain}: {len(tasks)} tasks")
     
     return tasks_by_domain
 
@@ -477,10 +475,9 @@ def main():
     
     parser.add_argument(
         "--task",
-        nargs="+",
-        choices=sorted(list(TASK_REGISTRY.keys())),
+        nargs="+", 
         default=None,
-        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(TASK_REGISTRY.keys())))}. If not specified, runs all domains."
+        help="Specific task domain(s) to run. Available domains discovered from data/questions/ folder. If not specified, runs all domains."
     )
     
     parser.add_argument(

@@ -32,18 +32,15 @@ scipy>=1.11.0
 torch>=2.0.0  # for perceptual metrics
 torchvision>=0.15.0
 
-# Data handling
-pandas>=2.1.0
-matplotlib>=3.7.0
-seaborn>=0.13.0
+# Data handling (minimal - only for evaluation result processing)
+pandas>=2.1.0  # Used for evaluation result processing
+# matplotlib and seaborn removed - analysis moved to external tools
 
-# Evaluation interfaces
-gradio>=4.0.0
+# Evaluation interfaces  
+gradio>=4.0.0  # Used for human evaluation interface
 
-# Maze generation and processing (for submodules)
-jaxtyping>=0.2.0  # for maze-dataset
-muutils>=0.6.0  # for maze-dataset serialization
-networkx>=3.0  # for maze algorithms
+# Note: Task generation dependencies removed - VMEvalKit now focuses on inference/evaluation
+# Maze generation dependencies moved to external data generation repositories
 
 # Logging and monitoring
 loguru>=0.7.2
@@ -58,9 +55,7 @@ pytest-cov>=4.1.0
 mypy>=1.7.0
 types-requests>=2.31.0
 
-# Documentation
-sphinx>=7.2.0
-sphinx-rtd-theme>=2.0.0
+# Documentation dependencies removed
 
 # AWS
 boto3>=1.34.0
@@ -70,18 +65,7 @@ huggingface_hub>=0.24.0
 datasets>=2.18.0  # For structured dataset upload
 pyarrow>=14.0.2  # Required by datasets
 
-# Web framework and dashboard
-Flask>=3.0.0
-Werkzeug>=3.0.1
-Jinja2>=3.1.2
-MarkupSafe>=2.1.3
-click>=8.3.0
-itsdangerous>=2.2.0
-blinker>=1.9.0
-gunicorn>=21.2.0  # Production WSGI server
-Flask-CORS>=4.0.0  # CORS support
-Flask-Talisman>=1.1.0  # Security headers
+# Web dependencies removed - no web dashboard in focused version
 
-ipython>=8.0.0
-zanj>=0.5.1
-transformers>=4.55.2
+# Core inference and evaluation dependencies only
+transformers>=4.55.2  # Used by some model implementations

@@ -130,7 +130,7 @@ class SVDWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "stabilityai/stable-video-diffusion-img2vid-xt",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         self.model = model

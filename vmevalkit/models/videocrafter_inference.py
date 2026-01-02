@@ -53,7 +53,7 @@ class VideoCrafterService:
     def __init__(
         self,
         model_id: str = "videocrafter2-512",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """
@@ -350,7 +350,7 @@ class VideoCrafterWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """

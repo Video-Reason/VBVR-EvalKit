@@ -525,7 +525,7 @@ class WaveSpeedWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize WaveSpeed wrapper."""
@@ -623,7 +623,7 @@ class Veo31Wrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Veo 3.1 wrapper."""
@@ -711,7 +711,7 @@ class Veo31FastWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Veo 3.1 Fast wrapper."""

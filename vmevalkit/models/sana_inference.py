@@ -236,7 +236,7 @@ class SanaVideoWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "Efficient-Large-Model/SANA-Video_2B_480p_diffusers",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize SANA-Video wrapper.

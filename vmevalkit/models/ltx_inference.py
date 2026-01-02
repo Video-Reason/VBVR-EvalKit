@@ -130,7 +130,7 @@ class LTXVideoWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "Lightricks/LTX-Video",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         self.model = model

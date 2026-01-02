@@ -6,7 +6,7 @@ This script provides flexible video generation with customizable model and task 
 Run on specific models, domains, or individual tasks with full control over the process.
 
 Key Features:
-- Select specific domains or individual task IDs (auto-discovered from data/questions/)
+- Select specific domains or individual task IDs (auto-discovered from questions directory)
 - Control number of tasks per domain or run all available tasks
 - Sequential execution with progress tracking and resume capability
 
@@ -14,8 +14,8 @@ Human Curation: Only tasks with existing folders are processed (deleted folders 
 
 Requirements:
 - Relevant API keys configured in environment for selected models
-- Questions available in: ./data/questions/
-- Output directory: ./data/outputs/pilot_experiment/
+- Questions directory with tasks in format: domain_task/task_id/{first_frame.png, prompt.txt}
+- Configurable output directory for inference results
 
 Use --help for detailed usage examples and options.
 """
@@ -50,13 +50,12 @@ DEFAULT_TEST_MODELS = [
     "wavespeed-wan-2.2-i2v-720p",
 ]
 
-QUESTIONS_DIR = Path("data/questions")
-OUTPUT_DIR = Path("data/outputs/pilot_experiment")
+# Paths are now configurable via CLI arguments - no hardcoded defaults
 
-# Discover domains by scanning data/questions/ folder
-def get_available_domains():
-    """Discover available domains from data/questions/ folder."""
-    questions_dir = QUESTIONS_DIR
+# Discover domains by scanning questions directory
+def get_available_domains(questions_dir_path):
+    """Discover available domains from questions directory."""
+    questions_dir = Path(questions_dir_path)
     if not questions_dir.exists():
         return []
     
@@ -67,11 +66,9 @@ def get_available_domains():
             domains.append(domain)
     return sorted(domains)
 
-EXPECTED_DOMAINS = get_available_domains()
-
 def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Discover all tasks by scanning data/questions/ folder directly.
+    Discover all tasks by scanning questions directory.
     
     Args:
         questions_dir: Path to questions directory
@@ -155,14 +152,14 @@ def create_output_structure(base_dir: Path) -> None:
     print(f"   - metadata.json: Complete inference metadata")
 
 
-def create_model_directories(base_dir: Path, models: Dict[str, str]) -> None:
+def create_model_directories(base_dir: Path, models: Dict[str, str], questions_dir: Path) -> None:
     """Create a subfolder per model and mirror questions tree for visibility."""
     # Create per-model root
     for model_name in models.keys():
         model_root = base_dir / model_name
         model_root.mkdir(exist_ok=True, parents=True)
         # Mirror questions directory structure with empty domain/task folders
-        for domain_dir in sorted(QUESTIONS_DIR.glob("*_task")):
+        for domain_dir in sorted(questions_dir.glob("*_task")):
             if not domain_dir.is_dir():
                 continue
             domain_name = domain_dir.name  # e.g., rotation_task
@@ -277,6 +274,7 @@ def run_pilot_experiment(
     tasks_by_domain: Dict[str, List[Dict[str, Any]]],
     models: Dict[str, str],
     output_dir: Path,
+    questions_dir: Path,
     skip_existing: bool = True,
 ) -> Dict[str, Any]:
     """
@@ -312,7 +310,7 @@ def run_pilot_experiment(
     print(f"   Skip existing: {skip_existing}\n")
     
     create_output_structure(output_dir)
-    create_model_directories(output_dir, models)
+    create_model_directories(output_dir, models, questions_dir)
     
     all_results = []
     
@@ -449,20 +447,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
             Examples:
-            # Run 1 task per domain on default models
-            python generate_videos.py
+            # Run 1 task per domain with default paths
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs
             
-            # Run all tasks on default models  
-            python generate_videos.py --all-tasks
+            # Run all tasks on default models with custom paths
+            python generate_videos.py --questions-dir ~/datasets/reasoning --output-dir ~/experiments/run1 --all-tasks
             
             # Run on specific models
-            python generate_videos.py --model luma-ray-2 openai-sora-2
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model luma-ray-2 openai-sora-2
             
             # Run specific tasks/domains
-            python generate_videos.py --task chess maze --pairs-per-domain 3
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --task chess maze --pairs-per-domain 3
             
             # Run specific task IDs
-            python generate_videos.py --task-id chess_0001 maze_0005 --model luma-ray-2
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --task-id chess_0001 maze_0005 --model luma-ray-2
         """
     )
     
@@ -474,10 +472,24 @@ def main():
     )
     
     parser.add_argument(
+        "--questions-dir",
+        type=str,
+        default="./questions",
+        help="Path to questions directory (default: ./questions)"
+    )
+    
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="./outputs",
+        help="Path for inference outputs (default: ./outputs)"
+    )
+    
+    parser.add_argument(
         "--task",
         nargs="+", 
         default=None,
-        help="Specific task domain(s) to run. Available domains discovered from data/questions/ folder. If not specified, runs all domains."
+        help="Specific task domain(s) to run. Available domains discovered from questions directory. If not specified, runs all domains."
     )
     
     parser.add_argument(
@@ -502,7 +514,7 @@ def main():
         "--override",
         dest="override",
         action="store_true",
-        help="Delete data/outputs/pilot_experiment directory before running (override existing outputs)"
+        help="Delete output directory before running (override existing outputs)"
     )
     
     parser.add_argument(
@@ -545,21 +557,23 @@ def main():
         print(f"\nTotal: {len(AVAILABLE_MODELS)} models across {len(families)} families")
         return 
     
+    questions_dir = Path(args.questions_dir)
+    output_dir = Path(args.output_dir)
+    
     if args.override:
-        if OUTPUT_DIR.exists():
-            print(f"🗑️  Override mode: Deleting {OUTPUT_DIR}...")
-            shutil.rmtree(OUTPUT_DIR)
-            print(f"   ✅ Deleted {OUTPUT_DIR}")
+        if output_dir.exists():
+            print(f"🗑️  Override mode: Deleting {output_dir}...")
+            shutil.rmtree(output_dir)
+            print(f"   ✅ Deleted {output_dir}")
         else:
-            print(f"   ℹ️  Output directory does not exist: {OUTPUT_DIR}")
+            print(f"   ℹ️  Output directory does not exist: {output_dir}")
     
     print("🔍 Discovering human-approved tasks from folder structure...")
     
-    if not QUESTIONS_DIR.exists():
-        raise ValueError(f"Questions directory not found at: {QUESTIONS_DIR}. Please ensure the questions directory exists with task folders.")
-    
+    if not questions_dir.exists():
+        raise ValueError(f"Questions directory not found at: {questions_dir}. Please ensure the questions directory exists with task folders.")
 
-    all_tasks_by_domain = discover_all_tasks_from_folders(QUESTIONS_DIR)
+    all_tasks_by_domain = discover_all_tasks_from_folders(questions_dir)
     
     # Select tasks based on arguments
     tasks_by_domain = {}
@@ -644,7 +658,8 @@ def main():
     experiment_results = run_pilot_experiment(
         tasks_by_domain=tasks_by_domain,
         models=selected_models,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
+        questions_dir=questions_dir,
         skip_existing=True,
     )
     
@@ -677,7 +692,7 @@ def main():
             c, f, s = model_stats['completed'], model_stats['failed'], model_stats['skipped']
             print(f"   {model_name}: ✅ {c} | ❌ {f} | ⏭️  {s}")
     
-    print(f"\n📁 All outputs saved to: {OUTPUT_DIR}")
+    print(f"\n📁 All outputs saved to: {output_dir}")
 
 
 if __name__ == "__main__":

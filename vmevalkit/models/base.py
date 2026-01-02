@@ -17,7 +17,7 @@ class ModelWrapper(ABC):
     each implementation to handle their specific service logic.
     """
     
-    def __init__(self, model: str, output_dir: str = "./data/outputs", **kwargs):
+    def __init__(self, model: str, output_dir: str = "./outputs", **kwargs):
         """
         Initialize model wrapper.
         

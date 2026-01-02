@@ -36,18 +36,18 @@ logger = logging.getLogger(__name__)
 class InternVLEvaluator:
     """Automatic evaluation using vision model via OpenAI-compatible API server."""
     
-    def __init__(self, output_dir: str = "data/evaluations/vision-eval",
-                 experiment_name: str = "pilot_experiment",
+    def __init__(self, 
+                 inference_dir: str,
+                 eval_output_dir: str = "./evaluations/internvl-eval",
                  api_key: Optional[str] = None,
                  base_url: str = "http://0.0.0.0:23333/v1",
                  model: Optional[str] = None,
                  temperature: float = 0.0,
                  evaluator_name: Optional[str] = None):
-        self.output_dir = Path(output_dir)
-        self.experiment_name = experiment_name
-        self.experiment_dir = Path("data/outputs") / experiment_name
+        self.eval_output_dir = Path(eval_output_dir)
+        self.inference_dir = Path(inference_dir)
         
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.eval_output_dir.mkdir(parents=True, exist_ok=True)
         self.evaluator_name = evaluator_name or self.__class__.__name__
         
         self.api_key = api_key or os.getenv("VISION_API_KEY", "YOUR_API_KEY")
@@ -64,7 +64,7 @@ class InternVLEvaluator:
     
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated."""
-        eval_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        eval_path = self.eval_output_dir / model_name / task_type / task_id
         eval_file = eval_path / f"{self.evaluator_name}.json"
         return eval_file.exists()
     
@@ -299,7 +299,7 @@ class InternVLEvaluator:
             use_goal_based: If True, use goal-based evaluation (no solution image).
                           If False, use comparison-based evaluation (with solution image).
         """
-        model_dir = self.experiment_dir / model_name
+        model_dir = self.inference_dir / model_name
         if not model_dir.exists():
             raise ValueError(f"Model directory not found: {model_dir}")
         
@@ -379,14 +379,14 @@ class InternVLEvaluator:
                           If False, use comparison-based evaluation (with solution image).
         """
         all_results = {}
-        for model_dir in self.experiment_dir.iterdir():
+        for model_dir in self.inference_dir.iterdir():
             if model_dir.is_dir():
                 model_name = model_dir.name
                 logger.info(f"Evaluating model: {model_name}")
                 all_results[model_name] = await self.evaluate_model_async(model_name, use_goal_based)
         
         # Save combined results
-        output_path = self.output_dir / self.experiment_name / f"{self.evaluator_name}_all_models.json"
+        output_path = self.eval_output_dir / f"{self.evaluator_name}_all_models.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w') as f:
             json.dump({"metadata": {"evaluator": self.evaluator_name, "timestamp": datetime.now().isoformat()},
@@ -404,7 +404,7 @@ class InternVLEvaluator:
     
     def _save_single_result(self, model_name: str, task_type: str, task_id: str, eval_result: Dict[str, Any]):
         """Save a single evaluation result immediately (for resume support)."""
-        task_output_dir = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        task_output_dir = self.eval_output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
         
         with open(task_output_dir / f"{self.evaluator_name}.json", 'w') as f:

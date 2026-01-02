@@ -10,8 +10,10 @@
 
 ## Data Format
 
+Questions should be organized in directories outside VMEvalKit:
+
 ```
-data/questions/{domain}_task/{task_id}/
+questions/{domain}_task/{task_id}/
 ├── first_frame.png          # Initial state image
 ├── final_frame.png          # Target state image  
 ├── prompt.txt              # Text instructions
@@ -29,13 +31,14 @@ pip install -e .
 # 2. Setup models
 bash setup/install_model.sh --model svd --validate
 
-# 3. Put data in data/questions/ (see format above)
+# 3. Organize your questions data (see format above)
+mkdir -p ~/my_research/questions
 
 # 4. Run inference
-python examples/generate_videos.py --model svd --task chess maze
+python examples/generate_videos.py --questions-dir ~/my_research/questions --output-dir ~/my_research/outputs --model svd --task chess maze
 
 # 5. Run evaluation  
-python examples/score_videos.py human
+python examples/score_videos.py human --inference-dir ~/my_research/outputs --eval-output-dir ~/my_research/evaluations
 ```
 
 ## API Keys

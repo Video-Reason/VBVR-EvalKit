@@ -11,13 +11,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def example_human_scoring():
+def example_human_scoring(inference_dir: str, eval_output_dir: str):
     print("\n=== Human Scoring Example ===")
-    print(f"Evaluating ENTIRE pilot experiment")
+    print(f"Evaluating inference results from: {inference_dir}")
     print("Tasks with existing scorings will be automatically skipped")
     
     scorer = HumanEvaluator(
-        experiment_name="pilot_experiment"
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir
     )
     
     print(f"\nLaunching human scoring interface...")
@@ -25,9 +26,9 @@ def example_human_scoring():
     scorer.launch_interface(port=7860, share=True)
 
 
-def example_gpt4o_scoring():
+def example_gpt4o_scoring(inference_dir: str, eval_output_dir: str):
     print("\n=== GPT-4O Scoring Example ===")
-    print("🤖 Evaluating ENTIRE pilot experiment with GPT-4O")
+    print(f"🤖 Evaluating inference results from: {inference_dir}")
     print("⚠️  Note: This will make API calls to OpenAI and may take time/cost money")
     print("✅ Resume-capable: Interrupted scorings can be continued")
     
@@ -35,17 +36,18 @@ def example_gpt4o_scoring():
         raise ValueError("❌ Error: Please set OPENAI_API_KEY environment variable")
     
     scorer = GPT4OEvaluator(
-        experiment_name="pilot_experiment",
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
         temperature=0.0
     )
     
-    eval_dir = Path("data/scorings/gpt4o-score/pilot_experiment")
+    eval_dir = Path(eval_output_dir)
     if eval_dir.exists():
         existing_files = list(eval_dir.rglob("*.json"))
         if existing_files:
             print(f"📊 Found {len(existing_files)} existing GPT-4O scorings - will resume from where left off")
     
-    print(f"\n🚀 Starting GPT-4O scoring on pilot_experiment...")
+    print(f"\n🚀 Starting GPT-4O scoring on inference results...")
     print("💡 Tip: You can interrupt (Ctrl+C) and resume later - progress is saved after each task")
     
     try:
@@ -72,17 +74,17 @@ def example_gpt4o_scoring():
         
         print(f"\n🎉 GPT-4O EVALUATION COMPLETE!")
         print(f"📊 Total: {completed_all}/{total_all} tasks evaluated successfully")
-        print(f"💾 Results saved to: data/scorings/gpt4o-score/pilot_experiment/")
+        print(f"💾 Results saved to: {eval_output_dir}")
         
     except KeyboardInterrupt:
         print(f"\n⚠️  GPT-4O scoring interrupted!")
         print(f"💾 Progress has been saved. Run the same command again to resume.")
-        print(f"📁 Partial results available in: data/scorings/gpt4o-score/pilot_experiment/")
+        print(f"📁 Partial results available in: {eval_output_dir}")
 
 
-def example_internvl_scoring():
+def example_internvl_scoring(inference_dir: str, eval_output_dir: str):
     print("\n=== InternVL Scoring Example ===")
-    print("🤖 Evaluating ENTIRE pilot experiment with InternVL")
+    print(f"🤖 Evaluating inference results from: {inference_dir}")
     print("⚠️  Note: This will make API calls to local InternVL server")
     print("✅ Resume-capable: Interrupted scorings can be continued")
     
@@ -93,19 +95,20 @@ def example_internvl_scoring():
         print("⚠️  Warning: Using default API key. Set VISION_API_KEY if needed.")
     
     scorer = InternVLEvaluator(
-        experiment_name="pilot_experiment",
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
         api_key=api_key,
         base_url=base_url,
         temperature=0.0
     )
     
-    eval_dir = Path("data/evaluations/vision-eval/pilot_experiment")
+    eval_dir = Path(eval_output_dir)
     if eval_dir.exists():
         existing_files = list(eval_dir.rglob("*.json"))
         if existing_files:
             print(f"📊 Found {len(existing_files)} existing InternVL scorings - will resume from where left off")
     
-    print(f"\n🚀 Starting InternVL scoring on pilot_experiment...")
+    print(f"\n🚀 Starting InternVL scoring on inference results...")
     print(f"🌐 Base URL: {base_url}")
     print("💡 Tip: You can interrupt (Ctrl+C) and resume later - progress is saved after each task")
     
@@ -133,12 +136,12 @@ def example_internvl_scoring():
         
         print(f"\n🎉 InternVL EVALUATION COMPLETE!")
         print(f"📊 Total: {completed_all}/{total_all} tasks evaluated successfully")
-        print(f"💾 Results saved to: data/evaluations/vision-eval/pilot_experiment/")
+        print(f"💾 Results saved to: {eval_output_dir}")
         
     except KeyboardInterrupt:
         print(f"\n⚠️  InternVL scoring interrupted!")
         print(f"💾 Progress has been saved. Run the same command again to resume.")
-        print(f"📁 Partial results available in: data/evaluations/vision-eval/pilot_experiment/")
+        print(f"📁 Partial results available in: {eval_output_dir}")
 
 
 def main():
@@ -149,20 +152,18 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
         End-to-End Scoring Examples:
-        # Run human scoring (automatically skips already evaluated tasks)
-        python score_videos.py human
+        # Run human scoring with default paths
+        python score_videos.py human --inference-dir ./outputs --eval-output-dir ./evaluations
         
+        # Run GPT-4O scoring on inference results
+        python score_videos.py gpt4o --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_scores
+        
+        # Run InternVL scoring on inference results  
+        python score_videos.py internvl --inference-dir ./outputs --eval-output-dir ./evaluations
+
         Note: 
         - Tasks with existing scorings are automatically skipped
-        - Annotator name is entered directly in the Gradio interface
-        
-        # Run GPT-4O scoring on ENTIRE pilot experiment
-        python score_videos.py gpt4o
-        
-        # Run InternVL scoring on ENTIRE pilot experiment
-        python score_videos.py internvl
-
-        Note: All methods evaluate the complete pilot experiment (all models, all tasks).
+        - Annotator name is entered directly in the Gradio interface (for human scoring)
         """
     )
     
@@ -172,20 +173,33 @@ def main():
         help='Scoring method to use'
     )
     
+    parser.add_argument(
+        "--inference-dir",
+        type=str,
+        default="./outputs",
+        help="Path to inference outputs to evaluate (default: ./outputs)"
+    )
+    
+    parser.add_argument(
+        "--eval-output-dir",
+        type=str,
+        default="./evaluations",
+        help="Path for evaluation results (default: ./evaluations)"
+    )
     
     args = parser.parse_args()
     
-
-    if not Path("data/outputs/pilot_experiment").exists():
-        print("Error: pilot_experiment not found. Please run inference first.")
+    inference_dir = Path(args.inference_dir)
+    if not inference_dir.exists():
+        print(f"Error: Inference directory not found at {inference_dir}. Please run inference first.")
         return
     
     if args.method == "human":
-        example_human_scoring()
+        example_human_scoring(args.inference_dir, args.eval_output_dir)
     elif args.method == "gpt4o":
-        example_gpt4o_scoring()
+        example_gpt4o_scoring(args.inference_dir, args.eval_output_dir)
     elif args.method == "internvl":
-        example_internvl_scoring()
+        example_internvl_scoring(args.inference_dir, args.eval_output_dir)
 
 
 if __name__ == "__main__":

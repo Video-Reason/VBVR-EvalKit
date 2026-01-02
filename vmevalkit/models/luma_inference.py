@@ -45,7 +45,7 @@ class LumaInference:
         aspect_ratio: str = "16:9",
         model: str = "ray-2",
         verbose: bool = True,
-        output_dir: str = "./data/outputs"
+        output_dir: str = "./outputs"
     ):
         """
         Initialize Luma inference client.
@@ -287,7 +287,7 @@ class LumaWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Luma wrapper."""
@@ -336,7 +336,7 @@ class LumaWrapper(ModelWrapper):
 def generate_video(
     image_path: str,
     text_prompt: str,
-    output_dir: str = "./data/outputs",
+    output_dir: str = "./outputs",
     **kwargs
 ) -> Dict[str, Any]:
     """

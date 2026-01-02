@@ -141,7 +141,7 @@ class WanWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         self.model = model

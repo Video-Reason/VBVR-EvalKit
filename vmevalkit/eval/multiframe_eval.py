@@ -11,12 +11,12 @@ evaluator (GPT4OEvaluator, InternVLEvaluator, etc.) and add multi-frame capabili
 Usage:
     # With GPT-4O
     from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator
-    base = GPT4OEvaluator(experiment_name="pilot_experiment")
+    base = GPT4OEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/gpt4o")
     evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
 
     # With InternVL
     from vmevalkit.eval import MultiFrameEvaluator, InternVLEvaluator
-    base = InternVLEvaluator(experiment_name="pilot_experiment")
+    base = InternVLEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/internvl")
     evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
 """
 
@@ -73,11 +73,11 @@ class MultiFrameEvaluator:
         >>> from vmevalkit.eval import GPT4OEvaluator, InternVLEvaluator
         >>>
         >>> # With GPT-4O
-        >>> base = GPT4OEvaluator(experiment_name="pilot_experiment")
+        >>> base = GPT4OEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/gpt4o")
         >>> evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
         >>>
         >>> # With InternVL
-        >>> base = InternVLEvaluator(experiment_name="pilot_experiment")
+        >>> base = InternVLEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/internvl")
         >>> evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
         >>>
         >>> result = evaluator.evaluate_single(
@@ -151,15 +151,15 @@ class MultiFrameEvaluator:
             self.output_dir = Path(output_dir)
         else:
             # Create parallel directory structure
-            base_output = Path(base_evaluator.output_dir)
+            base_output = Path(base_evaluator.eval_output_dir)
             self.output_dir = base_output.parent / f"multiframe-{base_output.name}"
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.experiment_name = base_evaluator.experiment_name
+        self.inference_dir = base_evaluator.inference_dir
 
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated with multi-frame method."""
-        eval_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        eval_path = self.output_dir / model_name / task_type / task_id
         eval_file = eval_path / f"{self.evaluator_name}.json"
         return eval_file.exists()
 
@@ -395,7 +395,7 @@ class MultiFrameEvaluator:
 
     async def evaluate_model_async(self, model_name: str) -> Dict[str, Any]:
         """Evaluate all tasks for a specific model using multi-frame method."""
-        model_dir = self.base_evaluator.experiment_dir / model_name
+        model_dir = self.inference_dir / model_name
         if not model_dir.exists():
             raise ValueError(f"Model directory not found: {model_dir}")
 
@@ -464,14 +464,14 @@ class MultiFrameEvaluator:
     async def evaluate_all_models_async(self) -> Dict[str, Any]:
         """Evaluate all models in the experiment."""
         all_results = {}
-        for model_dir in self.base_evaluator.experiment_dir.iterdir():
+        for model_dir in self.inference_dir.iterdir():
             if model_dir.is_dir():
                 model_name = model_dir.name
                 logger.info(f"Multi-frame evaluating model: {model_name}")
                 all_results[model_name] = await self.evaluate_model_async(model_name)
 
         # Save combined results
-        output_path = self.output_dir / self.experiment_name / f"{self.evaluator_name}_all_models.json"
+        output_path = self.output_dir / f"{self.evaluator_name}_all_models.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w') as f:
             json.dump({
@@ -505,7 +505,7 @@ class MultiFrameEvaluator:
         eval_result: Dict[str, Any]
     ):
         """Save a single evaluation result immediately (for resume support)."""
-        task_output_dir = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        task_output_dir = self.output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
 
         with open(task_output_dir / f"{self.evaluator_name}.json", 'w') as f:

@@ -171,7 +171,7 @@ class DynamiCrafterService:
     def __init__(
         self,
         model_id: str = "dynamicrafter-512",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         device: str = "cuda",
         **kwargs
     ):
@@ -419,7 +419,7 @@ class DynamiCrafterWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         device: str = "cuda",
         **kwargs
     ):

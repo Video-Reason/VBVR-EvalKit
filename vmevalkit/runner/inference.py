@@ -49,7 +49,7 @@ def run_inference(
     model_name: str,
     image_path: Union[str, Path],
     text_prompt: str,
-    output_dir: str = "./data/outputs",
+    output_dir: str = "./outputs",
     question_data: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
@@ -114,7 +114,7 @@ class InferenceRunner:
     - metadata.json: Complete inference metadata
     """
     
-    def __init__(self, output_dir: str = "./data/outputs"):
+    def __init__(self, output_dir: str = "./outputs"):
         """
         Initialize runner.
         

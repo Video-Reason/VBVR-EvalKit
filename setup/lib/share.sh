@@ -11,7 +11,7 @@ export VMEVAL_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
 export ENVS_DIR="${VMEVAL_ROOT}/envs"
 export SUBMODULES_DIR="${VMEVAL_ROOT}/submodules"
 export LOGS_DIR="${VMEVAL_ROOT}/logs"
-export TESTS_DIR="${VMEVAL_ROOT}/data/questions/test_task"
+export TESTS_DIR="${VMEVAL_ROOT}/setup/test_assets/test_task"
 export WEIGHTS_DIR="${VMEVAL_ROOT}/weights"
 
 # ============================================================================
@@ -243,7 +243,7 @@ load_env_file() {
 
 validate_model() {
     local model="$1"
-    local test_output="${VMEVAL_ROOT}/data/outputs/pilot_experiment"
+    local test_output="${VMEVAL_ROOT}/test_outputs"
     
     # Set timeout based on model complexity
     # High-quality distributed models need more time
@@ -255,6 +255,8 @@ validate_model() {
     activate_model_venv "$model"
     set +e
     timeout "$timeout_seconds" python "${VMEVAL_ROOT}/examples/generate_videos.py" \
+        --questions-dir "${TESTS_DIR}" \
+        --output-dir "$test_output" \
         --model "$model" \
         --task-id test_0001 test_0002
     local exit_code=$?

@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 class HumanEvaluator:
     """Gradio-based interface for human evaluation of generated videos."""
     
-    def __init__(self, output_dir: str = "data/evaluations/human-eval", 
-                 experiment_name: str = "pilot_experiment"):
-        self.output_dir = Path(output_dir)
-        self.experiment_name = experiment_name
-        self.experiment_dir = Path("data/outputs") / experiment_name
+    def __init__(self, 
+                 inference_dir: str,
+                 eval_output_dir: str = "./evaluations/human-eval"):
+        self.eval_output_dir = Path(eval_output_dir)
+        self.inference_dir = Path(inference_dir)
         self.annotator_name = "Anonymous"  # Default, will be set in interface
         self.evaluation_queue = []
         self.current_index = 0
@@ -28,7 +28,7 @@ class HumanEvaluator:
         self.evaluation_queue = []
         skipped_count = 0
         
-        for model_dir in self.experiment_dir.iterdir():
+        for model_dir in self.inference_dir.iterdir():
             if not model_dir.is_dir(): continue
             for task_type_dir in model_dir.iterdir():
                 if not task_type_dir.is_dir(): continue
@@ -36,7 +36,7 @@ class HumanEvaluator:
                     if not task_dir.is_dir(): continue
                     
                     # Check if already evaluated
-                    eval_path = self.output_dir / self.experiment_name / model_dir.name / task_type_dir.name / task_dir.name
+                    eval_path = self.eval_output_dir / model_dir.name / task_type_dir.name / task_dir.name
                     
                     # Look for any existing evaluation files
                     has_evaluation = False
@@ -63,7 +63,7 @@ class HumanEvaluator:
     
     def _get_task_data(self, model_name: str, task_type: str, task_id: str) -> Optional[Dict[str, Any]]:
         """Get data for a specific task."""
-        task_dir = self.experiment_dir / model_name / task_type / task_id
+        task_dir = self.inference_dir / model_name / task_type / task_id
         output_dirs = list(task_dir.iterdir())
         if not output_dirs: return None
         
@@ -84,7 +84,7 @@ class HumanEvaluator:
     
     def _save_evaluation(self, model_name: str, task_type: str, task_id: str, evaluation: Dict[str, Any]):
         """Save evaluation result."""
-        output_dir = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        output_dir = self.eval_output_dir / model_name / task_type / task_id
         output_dir.mkdir(parents=True, exist_ok=True)
         
         result = {
@@ -113,8 +113,8 @@ class HumanEvaluator:
         
         # Count by model
         model_counts = {}
-        eval_dir = self.output_dir / self.experiment_name
-        for model_dir in self.experiment_dir.iterdir():
+        eval_dir = self.eval_output_dir
+        for model_dir in self.inference_dir.iterdir():
             if not model_dir.is_dir():
                 continue
             model_name = model_dir.name

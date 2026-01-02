@@ -9,14 +9,14 @@ This script demonstrates the multi-frame evaluation system that:
 4. Aggregates scores via weighted voting
 
 Usage:
-    # Evaluate entire experiment with GPT-4O (default)
-    python examples/score_multiframe.py
+    # Evaluate inference results with GPT-4O (default)
+    python examples/score_multiframe.py --inference-dir ./outputs --eval-output-dir ./evaluations
 
     # Evaluate with InternVL (local VLM)
-    python examples/score_multiframe.py --evaluator internvl
+    python examples/score_multiframe.py --inference-dir ./outputs --eval-output-dir ./evaluations --evaluator internvl
 
     # Custom settings
-    python examples/score_multiframe.py --n-frames 7 --strategy hybrid --temporal-weight 0.5
+    python examples/score_multiframe.py --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_scores --n-frames 7 --temporal-weight 0.5
 
     # Test on specific video (without API calls)
     python examples/score_multiframe.py --test-only --video path/to/video.mp4
@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 def run_multiframe_evaluation(
-    experiment_name: str = "pilot_experiment",
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/multiframe",
     evaluator_type: str = "gpt4o",
     n_frames: int = 5,
     last_seconds: float = 3.0,
@@ -45,10 +46,11 @@ def run_multiframe_evaluation(
     temporal_weight: float = 0.3,
     temperature: float = 0.0
 ):
-    """Run multi-frame evaluation on entire experiment.
+    """Run multi-frame evaluation on inference results.
 
     Args:
-        experiment_name: Name of the experiment to evaluate
+        inference_dir: Path to inference outputs to evaluate
+        eval_output_dir: Path for evaluation results
         evaluator_type: "gpt4o" or "internvl"
         n_frames: Number of frames to sample per video
         last_seconds: Sample from last N seconds of video
@@ -63,7 +65,8 @@ def run_multiframe_evaluation(
     print("\n" + "=" * 60)
     print(f"MULTI-FRAME {evaluator_type.upper()} EVALUATION")
     print("=" * 60)
-    print(f"Experiment: {experiment_name}")
+    print(f"Inference Dir: {inference_dir}")
+    print(f"Eval Output Dir: {eval_output_dir}")
     print(f"Config:")
     print(f"  - evaluator: {evaluator_type}")
     print(f"  - n_frames: {n_frames}")
@@ -74,10 +77,10 @@ def run_multiframe_evaluation(
     print(f"  - temporal_weight: {temporal_weight}")
     print(f"  - temperature: {temperature}")
 
-    # Check experiment exists
-    experiment_dir = Path("data/outputs") / experiment_name
-    if not experiment_dir.exists():
-        print(f"\nError: Experiment not found: {experiment_dir}")
+    # Check inference directory exists
+    inference_path = Path(inference_dir)
+    if not inference_path.exists():
+        print(f"\nError: Inference directory not found: {inference_path}")
         print("Please run inference first to generate videos.")
         sys.exit(1)
 
@@ -88,25 +91,25 @@ def run_multiframe_evaluation(
             print("Please set it with: export OPENAI_API_KEY=your_api_key")
             sys.exit(1)
         base_evaluator = GPT4OEvaluator(
-            experiment_name=experiment_name,
+            inference_dir=inference_dir,
+            eval_output_dir=f"{eval_output_dir}/gpt4o",
             temperature=temperature
         )
-        output_dir = "data/evaluations/multiframe-gpt4o-eval"
     else:  # internvl
         api_key = os.getenv("VISION_API_KEY", "YOUR_API_KEY")
         base_url = os.getenv("VISION_API_BASE", "http://0.0.0.0:23333/v1")
         base_evaluator = InternVLEvaluator(
-            experiment_name=experiment_name,
+            inference_dir=inference_dir,
+            eval_output_dir=f"{eval_output_dir}/internvl",
             api_key=api_key,
             base_url=base_url,
             temperature=temperature
         )
-        output_dir = "data/evaluations/multiframe-internvl-eval"
 
     # Initialize multi-frame evaluator
     evaluator = MultiFrameEvaluator(
         base_evaluator=base_evaluator,
-        output_dir=output_dir,
+        output_dir=eval_output_dir,
         n_frames=n_frames,
         last_seconds=last_seconds,
         sampling_strategy=strategy,
@@ -116,7 +119,7 @@ def run_multiframe_evaluation(
     )
 
     # Check for existing evaluations
-    eval_dir = Path(output_dir) / experiment_name
+    eval_dir = Path(eval_output_dir)
     if eval_dir.exists():
         existing_files = list(eval_dir.rglob(f"{evaluator.evaluator_name}.json"))
         if existing_files:
@@ -163,7 +166,7 @@ def run_multiframe_evaluation(
         print(f"\nTotal: {completed_all}/{total_all} tasks evaluated")
         if review_all > 0:
             print(f"Tasks needing review: {review_all}")
-        print(f"\nResults saved to: data/evaluations/multiframe-gpt4o-eval/{experiment_name}/")
+        print(f"\nResults saved to: {eval_output_dir}/")
 
     except KeyboardInterrupt:
         print("\n\nEvaluation interrupted!")
@@ -261,14 +264,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Evaluate with GPT-4O (default)
-  python examples/score_multiframe.py
+  # Evaluate with GPT-4O (default paths)
+  python examples/score_multiframe.py --inference-dir ./outputs --eval-output-dir ./evaluations
 
   # Evaluate with InternVL (local VLM)
-  python examples/score_multiframe.py --evaluator internvl
+  python examples/score_multiframe.py --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_scores --evaluator internvl
 
   # Custom evaluation settings
-  python examples/score_multiframe.py --n-frames 7 --temporal-weight 0.5
+  python examples/score_multiframe.py --inference-dir ./outputs --eval-output-dir ./evaluations --n-frames 7 --temporal-weight 0.5
 
   # Test pipeline on single video (no API calls)
   python examples/score_multiframe.py --test-only --video path/to/video.mp4
@@ -276,9 +279,16 @@ Examples:
     )
 
     parser.add_argument(
-        '--experiment', '-e',
-        default='pilot_experiment',
-        help='Name of the experiment to evaluate'
+        '--inference-dir',
+        type=str,
+        default='./outputs',
+        help='Path to inference outputs to evaluate (default: ./outputs)'
+    )
+    parser.add_argument(
+        '--eval-output-dir',
+        type=str,
+        default='./evaluations/multiframe',
+        help='Path for evaluation results (default: ./evaluations/multiframe)'
     )
     parser.add_argument(
         '--evaluator',
@@ -360,7 +370,8 @@ Examples:
     else:
         # Full evaluation mode
         run_multiframe_evaluation(
-            experiment_name=args.experiment,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             evaluator_type=args.evaluator,
             n_frames=args.n_frames,
             last_seconds=args.last_seconds,

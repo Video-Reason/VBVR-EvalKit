@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def run_human_scoring(
-    experiment_name: str = "pilot_experiment",
-    output_dir: str = "data/scorings",
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/human",
     annotator_name: str = "anonymous",
     port: int = 7860,
     share: bool = False
@@ -35,20 +35,20 @@ def run_human_scoring(
     """Run human scoring interface.
 
     Args:
-        experiment_name: Name of the experiment to score
-        output_dir: Directory to save scoring results
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
         annotator_name: Name of the human annotator
         port: Port to run Gradio interface on
         share: Whether to create a public share link
     """
     from vmevalkit.eval import HumanEvaluator
 
-    logger.info(f"Starting human scoring for experiment: {experiment_name}")
+    logger.info(f"Starting human scoring for inference results: {inference_dir}")
     logger.info(f"Annotator: {annotator_name}")
 
     scorer = HumanEvaluator(
-        output_dir=output_dir,
-        experiment_name=experiment_name
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir
     )
     scorer.annotator_name = annotator_name
 
@@ -58,22 +58,22 @@ def run_human_scoring(
 
 
 def run_gpt4o_scoring(
-    experiment_name: str = "pilot_experiment",
-    output_dir: str = "data/scorings",
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/gpt4o",
     max_frames: int = 8,
     temperature: float = 0.1
 ):
-    """Run GPT-4O automatic scoring on entire experiment.
+    """Run GPT-4O automatic scoring on inference results.
 
     Args:
-        experiment_name: Name of the experiment to score
-        output_dir: Directory to save scoring results
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
         max_frames: Maximum frames to extract per video
         temperature: Temperature for GPT-4O responses
     """
     from vmevalkit.eval import GPT4OEvaluator
 
-    logger.info(f"Starting GPT-4O scoring for experiment: {experiment_name}")
+    logger.info(f"Starting GPT-4O scoring for inference results: {inference_dir}")
 
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
@@ -81,8 +81,8 @@ def run_gpt4o_scoring(
         sys.exit(1)
 
     scorer = GPT4OEvaluator(
-        output_dir=output_dir,
-        experiment_name=experiment_name,
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
         temperature=temperature
     )
 
@@ -108,8 +108,8 @@ def run_gpt4o_scoring(
 
 
 def run_multiframe_gpt4o_scoring(
-    experiment_name: str = "pilot_experiment",
-    output_dir: str = "data/evaluations/multiframe-gpt4o-eval",
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/multiframe-gpt4o",
     n_frames: int = 5,
     last_seconds: float = 3.0,
     strategy: str = "hybrid",
@@ -124,8 +124,8 @@ def run_multiframe_gpt4o_scoring(
     For more options, use multiframe-vlm command directly.
 
     Args:
-        experiment_name: Name of the experiment to score
-        output_dir: Directory to save scoring results
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
         n_frames: Number of frames to sample per video
         last_seconds: Sample from last N seconds of video
         strategy: Sampling strategy (uniform/keyframe/hybrid)
@@ -135,8 +135,8 @@ def run_multiframe_gpt4o_scoring(
         temperature: GPT-4O temperature
     """
     run_multiframe_vlm_scoring(
-        experiment_name=experiment_name,
-        output_dir=output_dir,
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
         evaluator_type="gpt4o",
         n_frames=n_frames,
         last_seconds=last_seconds,
@@ -149,8 +149,8 @@ def run_multiframe_gpt4o_scoring(
 
 
 def run_multiframe_vlm_scoring(
-    experiment_name: str = "pilot_experiment",
-    output_dir: Optional[str] = None,
+    inference_dir: str,
+    eval_output_dir: Optional[str] = None,
     evaluator_type: str = "gpt4o",
     n_frames: int = 5,
     last_seconds: float = 3.0,
@@ -168,8 +168,8 @@ def run_multiframe_vlm_scoring(
     evaluator and adds multi-frame capabilities with voting aggregation.
 
     Args:
-        experiment_name: Name of the experiment to score
-        output_dir: Directory to save scoring results (auto-generated if None)
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results (auto-generated if None)
         evaluator_type: Base evaluator type ("gpt4o" or "internvl")
         n_frames: Number of frames to sample per video
         last_seconds: Sample from last N seconds of video
@@ -183,7 +183,7 @@ def run_multiframe_vlm_scoring(
     """
     from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator
 
-    logger.info(f"Starting multi-frame {evaluator_type.upper()} scoring for experiment: {experiment_name}")
+    logger.info(f"Starting multi-frame {evaluator_type.upper()} scoring for inference results: {inference_dir}")
     logger.info(f"Config: n_frames={n_frames}, strategy={strategy}, voting={voting}")
 
     # Create base evaluator based on type
@@ -193,23 +193,24 @@ def run_multiframe_vlm_scoring(
             sys.exit(1)
 
         base_evaluator = GPT4OEvaluator(
-            experiment_name=experiment_name,
-            api_key=api_key,
+            inference_dir=inference_dir,
+            eval_output_dir=f"{eval_output_dir or './evaluations'}/gpt4o",
             temperature=temperature
         )
-        default_output_dir = "data/evaluations/multiframe-gpt4o-eval"
+        default_output_dir = "./evaluations/multiframe-gpt4o"
 
     elif evaluator_type == "internvl":
         resolved_api_key = api_key or os.getenv("VISION_API_KEY", "YOUR_API_KEY")
         resolved_base_url = base_url or os.getenv("VISION_API_BASE", "http://0.0.0.0:23333/v1")
 
         base_evaluator = InternVLEvaluator(
-            experiment_name=experiment_name,
+            inference_dir=inference_dir,
+            eval_output_dir=f"{eval_output_dir or './evaluations'}/internvl",
             api_key=resolved_api_key,
             base_url=resolved_base_url,
             temperature=temperature
         )
-        default_output_dir = "data/evaluations/multiframe-internvl-eval"
+        default_output_dir = "./evaluations/multiframe-internvl"
 
     else:
         logger.error(f"Unknown evaluator type: {evaluator_type}")
@@ -218,7 +219,7 @@ def run_multiframe_vlm_scoring(
     # Create multi-frame evaluator wrapper
     evaluator = MultiFrameEvaluator(
         base_evaluator=base_evaluator,
-        output_dir=output_dir or default_output_dir,
+        output_dir=eval_output_dir or default_output_dir,
         n_frames=n_frames,
         last_seconds=last_seconds,
         sampling_strategy=strategy,
@@ -253,8 +254,8 @@ def run_multiframe_vlm_scoring(
 
 
 def run_multiframe_scoring(
-    experiment_name: str = "pilot_experiment",
-    output_dir: str = "data/scorings/multiframe",
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/multiframe",
     n_frames: int = 5,
     last_seconds: float = 3.0,
     strategy: str = "hybrid",
@@ -264,8 +265,8 @@ def run_multiframe_scoring(
     """Run multi-frame evaluation with voting.
 
     Args:
-        experiment_name: Name of the experiment to score
-        output_dir: Directory to save scoring results
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
         n_frames: Number of frames to sample
         last_seconds: Duration from video end to sample
         strategy: Sampling strategy (uniform/keyframe/hybrid)
@@ -283,7 +284,7 @@ def run_multiframe_scoring(
     import json
     from datetime import datetime
 
-    logger.info(f"Starting multi-frame scoring for experiment: {experiment_name}")
+    logger.info(f"Starting multi-frame scoring for inference results: {inference_dir}")
     logger.info(f"Config: n_frames={n_frames}, strategy={strategy}, voting={voting}")
 
     # Check for API key
@@ -295,17 +296,17 @@ def run_multiframe_scoring(
     sampler = FrameSampler(n_frames=n_frames, last_seconds=last_seconds)
     analyzer = FrameConsistencyAnalyzer(metric=metric)
     voter = VotingAggregator(method=VotingMethod(voting))
-    evaluator = GPT4OEvaluator(output_dir=output_dir, experiment_name=experiment_name)
+    evaluator = GPT4OEvaluator(inference_dir=inference_dir, eval_output_dir=eval_output_dir)
 
-    experiment_dir = Path("data/outputs") / experiment_name
-    output_path = Path(output_dir) / experiment_name
+    inference_path = Path(inference_dir)
+    output_path = Path(eval_output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    if not experiment_dir.exists():
-        logger.error(f"Experiment directory not found: {experiment_dir}")
+    if not inference_path.exists():
+        logger.error(f"Inference directory not found: {inference_path}")
         sys.exit(1)
 
-    for model_dir in experiment_dir.iterdir():
+    for model_dir in inference_path.iterdir():
         if not model_dir.is_dir():
             continue
 
@@ -392,22 +393,22 @@ def main():
         epilog="""
 Examples:
   # Run human scoring
-  python -m vmevalkit.runner.score human --annotator "John Doe" --port 7860
+  python -m vmevalkit.runner.score human --inference-dir ./outputs --annotator "John Doe"
 
   # Run GPT-4O scoring on all models
-  python -m vmevalkit.runner.score gpt4o
+  python -m vmevalkit.runner.score gpt4o --inference-dir ./outputs --eval-output-dir ./evaluations/gpt4o
 
   # Run multi-frame GPT-4O scoring (recommended)
-  python -m vmevalkit.runner.score multiframe-gpt4o --n-frames 5
+  python -m vmevalkit.runner.score multiframe-gpt4o --inference-dir ./outputs --n-frames 5
 
   # Run multi-frame InternVL scoring (local VLM)
-  python -m vmevalkit.runner.score multiframe-vlm --evaluator internvl
+  python -m vmevalkit.runner.score multiframe-vlm --inference-dir ./outputs --evaluator internvl
 
   # Run multi-frame with custom settings
-  python -m vmevalkit.runner.score multiframe-vlm --evaluator gpt4o --n-frames 7 --strategy hybrid
+  python -m vmevalkit.runner.score multiframe-vlm --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_eval --evaluator gpt4o --n-frames 7
 
-  # Run scoring on a different experiment
-  python -m vmevalkit.runner.score gpt4o --experiment my_experiment
+  # Use custom paths
+  python -m vmevalkit.runner.score gpt4o --inference-dir ~/research/outputs --eval-output-dir ~/research/evaluations
         """
     )
 
@@ -417,15 +418,15 @@ Examples:
     # Human scoring subcommand
     human_parser = subparsers.add_parser('human', help='Run human scoring interface')
     human_parser.add_argument(
-        '--experiment', '-e',
+        '--inference-dir', '-i',
         type=str,
-        default='pilot_experiment',
-        help='Name of the experiment to score'
+        required=True,
+        help='Directory containing inference outputs to score'
     )
     human_parser.add_argument(
-        '--output-dir', '-o',
+        '--eval-output-dir', '-o',
         type=str,
-        default='data/scorings',
+        default='./evaluations/human',
         help='Directory to save scoring results'
     )
     human_parser.add_argument(
@@ -449,15 +450,15 @@ Examples:
     # GPT-4O scoring subcommand
     gpt4o_parser = subparsers.add_parser('gpt4o', help='Run GPT-4O automatic scoring')
     gpt4o_parser.add_argument(
-        '--experiment', '-e',
+        '--inference-dir', '-i',
         type=str,
-        default='pilot_experiment',
-        help='Name of the experiment to score'
+        required=True,
+        help='Directory containing inference outputs to score'
     )
     gpt4o_parser.add_argument(
-        '--output-dir', '-o',
+        '--eval-output-dir', '-o',
         type=str,
-        default='data/scorings',
+        default='./evaluations/gpt4o',
         help='Directory to save scoring results'
     )
     gpt4o_parser.add_argument(
@@ -475,8 +476,8 @@ Examples:
 
     # Multi-frame scoring subcommand (legacy - uses mock evaluator)
     multi_parser = subparsers.add_parser('multiframe', help='Run multi-frame scoring with voting')
-    multi_parser.add_argument('--experiment', '-e', default='pilot_experiment')
-    multi_parser.add_argument('--output-dir', '-o', default='data/scorings/multiframe')
+    multi_parser.add_argument('--inference-dir', '-i', required=True, help='Directory containing inference outputs')
+    multi_parser.add_argument('--eval-output-dir', '-o', default='./evaluations/multiframe', help='Directory to save scoring results')
     multi_parser.add_argument('--n-frames', type=int, default=5, help='Number of frames to sample')
     multi_parser.add_argument('--last-seconds', type=float, default=3.0)
     multi_parser.add_argument('--strategy', choices=['uniform', 'keyframe', 'hybrid'], default='hybrid')
@@ -487,9 +488,9 @@ Examples:
     # Multi-frame GPT-4O scoring subcommand (RECOMMENDED)
     mf_gpt4o_parser = subparsers.add_parser('multiframe-gpt4o',
         help='Run multi-frame GPT-4O evaluation with voting (recommended)')
-    mf_gpt4o_parser.add_argument('--experiment', '-e', default='pilot_experiment',
-        help='Name of the experiment to score')
-    mf_gpt4o_parser.add_argument('--output-dir', '-o', default='data/evaluations/multiframe-gpt4o-eval',
+    mf_gpt4o_parser.add_argument('--inference-dir', '-i', required=True,
+        help='Directory containing inference outputs to score')
+    mf_gpt4o_parser.add_argument('--eval-output-dir', '-o', default='./evaluations/multiframe-gpt4o',
         help='Directory to save evaluation results')
     mf_gpt4o_parser.add_argument('--n-frames', type=int, default=5,
         help='Number of frames to sample per video')
@@ -510,9 +511,9 @@ Examples:
     # Multi-frame VLM scoring subcommand (GENERIC - supports GPT-4O and InternVL)
     mf_vlm_parser = subparsers.add_parser('multiframe-vlm',
         help='Run multi-frame evaluation with any VLM (GPT-4O or InternVL)')
-    mf_vlm_parser.add_argument('--experiment', '-e', default='pilot_experiment',
-        help='Name of the experiment to score')
-    mf_vlm_parser.add_argument('--output-dir', '-o', default=None,
+    mf_vlm_parser.add_argument('--inference-dir', '-i', required=True,
+        help='Directory containing inference outputs to score')
+    mf_vlm_parser.add_argument('--eval-output-dir', '-o', default=None,
         help='Directory to save evaluation results (auto-generated based on evaluator)')
     mf_vlm_parser.add_argument('--evaluator', choices=['gpt4o', 'internvl'], default='gpt4o',
         help='Base evaluator type: gpt4o (OpenAI) or internvl (local VLM)')
@@ -545,23 +546,23 @@ Examples:
     # Run the appropriate scoring method
     if args.method == 'human':
         run_human_scoring(
-            experiment_name=args.experiment,
-            output_dir=args.output_dir,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             annotator_name=args.annotator,
             port=args.port,
             share=args.share
         )
     elif args.method == 'gpt4o':
         run_gpt4o_scoring(
-            experiment_name=args.experiment,
-            output_dir=args.output_dir,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             max_frames=args.max_frames,
             temperature=args.temperature
         )
     elif args.method == 'multiframe':
         run_multiframe_scoring(
-            experiment_name=args.experiment,
-            output_dir=args.output_dir,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             n_frames=args.n_frames,
             last_seconds=args.last_seconds,
             strategy=args.strategy,
@@ -570,8 +571,8 @@ Examples:
         )
     elif args.method == 'multiframe-gpt4o':
         run_multiframe_gpt4o_scoring(
-            experiment_name=args.experiment,
-            output_dir=args.output_dir,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             n_frames=args.n_frames,
             last_seconds=args.last_seconds,
             strategy=args.strategy,
@@ -582,8 +583,8 @@ Examples:
         )
     elif args.method == 'multiframe-vlm':
         run_multiframe_vlm_scoring(
-            experiment_name=args.experiment,
-            output_dir=args.output_dir,
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
             evaluator_type=args.evaluator,
             n_frames=args.n_frames,
             last_seconds=args.last_seconds,

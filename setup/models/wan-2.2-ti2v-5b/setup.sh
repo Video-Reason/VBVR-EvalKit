@@ -4,19 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../lib/share.sh"
 
-# Supported WAN model variants
-# WAN_MODELS=(
-#     "wan-2.1-flf2v-720p"
-#     "wan-2.1-i2v-480p"
-#     "wan-2.1-i2v-720p"
-#     "wan-2.1-vace-14b"
-#     "wan-2.1-vace-1.3b"
-#     "wan-2.2-i2v-a14b"
-#     "wan-2.2-ti2v-5b"
-# )
-
-# Get model name from argument or use first one as default
-MODEL="wan-2.2-i2v-a14b"
+# WAN 2.2 TI2V 5B Model (Text + Image to Video)
+MODEL="wan-2.2-ti2v-5b"
+HUGGINGFACE_MODEL="Wan-AI/Wan2.2-TI2V-5B-Diffusers"
 
 print_section "Virtual Environment"
 create_model_venv "$MODEL"
@@ -30,6 +20,7 @@ pip install -q numpy==2.2.6 ftfy==6.1.3 Pillow==12.0.0 pandas==2.3.3 tqdm==4.67.
 deactivate
 
 print_section "Checkpoints"
+print_info "Model: ${HUGGINGFACE_MODEL}"
 print_info "Weights download on first run"
 
 print_success "${MODEL} setup complete"

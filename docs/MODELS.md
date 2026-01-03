@@ -1,7 +1,7 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **39+ video generation models** across **15 provider families**.
+VMEvalKit provides unified access to **29 video generation models** across **14 provider families**.
 
 ## Commercial APIs (12 models)
 
@@ -30,7 +30,7 @@ VMEvalKit provides unified access to **39+ video generation models** across **15
 - `openai-sora-2` - High-quality video generation (4s/8s/12s)
 - `openai-sora-2-pro` - Enhanced model with more resolution options
 
-## Open-Source Models (27+ models)
+## Open-Source Models (17 models)
 
 ### LTX-Video (2 models)
 **VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh ltx-video`
@@ -59,13 +59,10 @@ VMEvalKit provides unified access to **39+ video generation models** across **15
 **VRAM:** 20GB | **Setup:** `bash setup/install_model.sh svd`
 - `svd` - High-quality image-to-video generation
 
-### WAN (Wan-AI) (7 models)
-**VRAM:** 48GB+ | **Setup:** Direct diffusers integration
-- `wan-2.1-flf2v-720p` - First-Last Frame to Video generation
+### WAN (Wan-AI) (4 models)
+**VRAM:** 48GB+ | **Setup:** `bash setup/install_model.sh wan-2.2-ti2v-5b`
 - `wan-2.1-i2v-480p` - Image to Video generation at 480p resolution
 - `wan-2.1-i2v-720p` - Image to Video generation at 720p resolution
-- `wan-2.1-vace-14b` - Video generation with 14B parameters
-- `wan-2.1-vace-1.3b` - Lightweight video generation with 1.3B parameters
 - `wan-2.2-i2v-a14b` - Image to Video generation with 14B parameters
 - `wan-2.2-ti2v-5b` - Text + Image to Video generation with 5B parameters
 
@@ -98,7 +95,7 @@ python examples/generate_videos.py --list-models
 python examples/generate_videos.py --questions-dir ./questions --model luma-ray-2
 
 # Google Veo 3.1 - Latest with 1080p + audio
-python examples/generate_videos.py --questions-dir ./questions --model veo-3.1
+python examples/generate_videos.py --questions-dir ./questions --model veo-3.1-generate
 
 # Runway Gen-4 Turbo - Fast premium quality
 python examples/generate_videos.py --questions-dir ./questions --model runway-gen4-turbo

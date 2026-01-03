@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """
-VMEvalKit Video Generation - Flexible Model and Task Runner
+VMEvalKit Video Generation
 
-This script provides flexible video generation with customizable model and task selection.
-Run on specific models, domains, or individual tasks with full control over the process.
+Generate videos using various models on your question datasets.
 
 Key Features:
-- Select specific domains or individual task IDs (auto-discovered from questions directory)
-- Control number of tasks per domain or run all available tasks
+- Auto-discovers all tasks from questions directory
+- Run specific models or use defaults
 - Sequential execution with progress tracking and resume capability
 
-Human Curation: Only tasks with existing folders are processed (deleted folders = rejected tasks)
-
 Requirements:
-- Relevant API keys configured in environment for selected models
 - Questions directory with tasks in format: domain_task/task_id/{first_frame.png, prompt.txt}
-- Configurable output directory for inference results
+- API keys configured for commercial models
 
-Use --help for detailed usage examples and options.
+Use --help for usage examples.
 """
 
 import sys
@@ -40,15 +36,6 @@ from vmevalkit.runner.inference import InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
 
 
-# Default models for quick testing (can be overridden with --model)
-DEFAULT_TEST_MODELS = [
-    "luma-ray-2",
-    "veo-3.0-generate", 
-    "veo-3.1-720p",
-    "runway-gen4-turbo",
-    "openai-sora-2",
-    "wavespeed-wan-2.2-i2v-720p",
-]
 
 # Paths are now configurable via CLI arguments - no hardcoded defaults
 
@@ -447,35 +434,29 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
             Examples:
-            # Run 1 task per domain with default paths
-            python generate_videos.py --questions-dir ./questions --output-dir ./outputs
-            
-            # Run all tasks on default models with custom paths
-            python generate_videos.py --questions-dir ~/datasets/reasoning --output-dir ~/experiments/run1 --all-tasks
-            
-            # Run on specific models
+            # Run all tasks with specific models
             python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model luma-ray-2 openai-sora-2
             
-            # Run specific tasks/domains
-            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --task chess maze --pairs-per-domain 3
+            # Run with a single model
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model veo-3.0-generate
             
-            # Run specific task IDs
-            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --task-id chess_0001 maze_0005 --model luma-ray-2
+            # Run specific task IDs with models
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model runway-gen4-turbo --task-id chess_0001 maze_0005
         """
     )
     
     parser.add_argument(
         "--model", 
         nargs="+", 
-        default=None,
-        help=f"Specific model(s) to run. Available: {', '.join(list(AVAILABLE_MODELS.keys())[:10])}... (see --list-models for all)"
+        required=True,
+        help=f"Model(s) to run (REQUIRED). Available: {', '.join(list(AVAILABLE_MODELS.keys())[:10])}... (see --list-models for all)"
     )
     
     parser.add_argument(
         "--questions-dir",
         type=str,
         default="./questions",
-        help="Path to questions directory (default: ./questions)"
+        help="Path to questions directory with domain_task/task_id/{first_frame.png, prompt.txt} structure"
     )
     
     parser.add_argument(
@@ -485,12 +466,6 @@ def main():
         help="Path for inference outputs (default: ./outputs)"
     )
     
-    parser.add_argument(
-        "--task",
-        nargs="+", 
-        default=None,
-        help="Specific task domain(s) to run. Available domains discovered from questions directory. If not specified, runs all domains."
-    )
     
     parser.add_argument(
         "--task-id",
@@ -499,14 +474,7 @@ def main():
         help="Specific task ID(s) to run (e.g., chess_0001 maze_0005). Overrides other task selection."
     )
     
-    parser.add_argument(
-        "--pairs-per-domain", 
-        type=int, 
-        default=1, 
-        help="Number of task pairs to run per domain (default: 1)"
-    )
     
-    parser.add_argument("--all-tasks", action="store_true", help="Run ALL available tasks (overrides --pairs-per-domain)")
     
     parser.add_argument("--list-models", action="store_true", help="List all available models and exit")
     
@@ -576,8 +544,6 @@ def main():
     all_tasks_by_domain = discover_all_tasks_from_folders(questions_dir)
     
     # Select tasks based on arguments
-    tasks_by_domain = {}
-    
     if args.task_id:
         # Specific task IDs requested
         print(f"   🎯 Running specific task IDs: {', '.join(args.task_id)}")
@@ -595,41 +561,15 @@ def main():
                         break
             if not found:
                 print(f"   ⚠️  Task ID '{task_id}' not found")
-    
-    elif args.all_tasks:
-        # All tasks requested
-        if args.task:
-            # All tasks from specific domains
-            tasks_by_domain = {domain: tasks for domain, tasks in all_tasks_by_domain.items() if domain in args.task}
-            print(f"   🎯 Running ALL tasks from domains: {', '.join(args.task)}")
-        else:
-            # All tasks from all domains
-            tasks_by_domain = all_tasks_by_domain
-            print(f"   🎯 Running ALL approved tasks")
-    
     else:
-        # Limited number per domain
-        if args.task:
-            # Specific domains
-            selected_domains = args.task
-        else:
-            # All domains
-            selected_domains = list(all_tasks_by_domain.keys())
-        
-        for domain in selected_domains:
-            if domain in all_tasks_by_domain and all_tasks_by_domain[domain]:
-                num_tasks = min(args.pairs_per_domain, len(all_tasks_by_domain[domain]))
-                tasks_by_domain[domain] = all_tasks_by_domain[domain][:num_tasks]
-                task_names = [task['id'] for task in tasks_by_domain[domain]]
-                print(f"   🎯 Running {num_tasks} task(s) from {domain}: {', '.join(task_names)}")
-            else:
-                tasks_by_domain[domain] = []
+        # Run all discovered tasks
+        tasks_by_domain = all_tasks_by_domain
+        print(f"   🎯 Running all discovered tasks")
     
-    model_names = []
-    if args.model:
-        model_names = args.model
-    else:
-        model_names = DEFAULT_TEST_MODELS
+    if not args.model:
+        raise ValueError("Model selection required. Use --model to specify one or more models, or --list-models to see available options.")
+    
+    model_names = args.model
     
     selected_models = {}
     unavailable_models = []

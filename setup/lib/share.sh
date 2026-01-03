@@ -39,8 +39,6 @@ declare -a COMMERCIAL_MODELS=(
     "luma-ray-flash-2"
     "veo-2"
     "veo-3.0-generate"
-    "veo-3.1-fast"
-    "wavespeed-wan-2.1-i2v-480p"
     "runway-gen4-turbo"
     "openai-sora-2"
 )
@@ -50,8 +48,6 @@ declare -A COMMERCIAL_API_KEYS=(
     ["luma-ray-flash-2"]="LUMA_API_KEY"
     ["veo-2"]="GEMINI_API_KEY"
     ["veo-3.0-generate"]="GEMINI_API_KEY"
-    ["veo-3.1-fast"]="WAVESPEED_API_KEY"
-    ["wavespeed-wan-2.1-i2v-480p"]="WAVESPEED_API_KEY"
     ["runway-gen4-turbo"]="RUNWAYML_API_SECRET"
     ["openai-sora-2"]="OPENAI_API_KEY"
 )

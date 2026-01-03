@@ -14,9 +14,9 @@ Questions should be organized in directories outside VMEvalKit:
 
 ```
 questions/{domain}_task/{task_id}/
-├── first_frame.png          # Initial state image
-├── final_frame.png          # Target state image  
-├── prompt.txt              # Text instructions
+├── first_frame.png          # Initial state image (required)
+├── prompt.txt              # Text instructions (required)
+├── final_frame.png          # Target state image (optional)
 └── ground_truth.mp4        # Optional ground truth video
 ```
 

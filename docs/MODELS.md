@@ -1,86 +1,127 @@
 
-## 🎬 Supported Models
+# Supported Models
 
-VMEvalKit provides unified access to **40 video generation models** across **11 provider families**:
+VMEvalKit provides unified access to **39+ video generation models** across **15 provider families**.
 
-For commercial APIs, we support Luma Dream Machine, Google Veo, Google Veo 3.1, WaveSpeed WAN 2.1, WaveSpeed WAN 2.2, Runway ML, OpenAI Sora.
-For open-source models, we support HunyuanVideo, VideoCrafter, DynamiCrafter, Stable Video Diffusion, Morphic, LTX-Video.
+## Commercial APIs (12 models)
 
-### Commercial APIs (32 models)
+### Luma Dream Machine (2 models)
+**API Key:** `LUMA_API_KEY`
+- `luma-ray-2` - Latest model with best quality
+- `luma-ray-flash-2` - Faster generation
 
-| Provider | Models | Key Features | API Required |
-|----------|---------|-------------|--------------|
-| **Luma Dream Machine** | 2 | `luma-ray-2`, `luma-ray-flash-2` | `LUMA_API_KEY` |
-| **Google Veo** | 3 | `veo-2.0-generate`, `veo-3.0-generate`, `veo-3.0-fast-generate` | GCP credentials |
-| **Google Veo 3.1** | 4 | Native 1080p, audio generation (via WaveSpeed) | `WAVESPEED_API_KEY` |
-| **WaveSpeed WAN 2.1** | 8 | 480p/720p variants with LoRA and ultra-fast options | `WAVESPEED_API_KEY` |
-| **WaveSpeed WAN 2.2** | 10 | Enhanced 5B models, improved quality | `WAVESPEED_API_KEY` |
-| **Runway ML** | 3 | Gen-3A Turbo, Gen-4 Turbo, Gen-4 Aleph | `RUNWAYML_API_SECRET` |
-| **OpenAI Sora** | 2 | Sora-2, Sora-2-Pro (4s/8s/12s durations) | `OPENAI_API_KEY` |
-
-### Open-Source Models
-
-| Provider | Models | Key Features | Hardware Requirements |
-|----------|---------|-------------|----------------------|
-| **HunyuanVideo** | 1 | High-quality 720p I2V | GPU with 24GB+ VRAM |
-| **VideoCrafter** | 1 | Text-guided video synthesis | GPU with 16GB+ VRAM |
-| **DynamiCrafter** | 3 | 256p/512p/1024p, image animation | GPU with 12-24GB VRAM |
-| **Stable Video Diffusion** | 1 | Video generation | GPU with 16GB+ VRAM |
-| **Morphic** | 1 | Video generation | GPU with 16GB+ VRAM |
-| **LTX-Video** | 1 | Video generation | GPU with 16GB+ VRAM |
+### Google Veo (5 models) 
+**API Key:** `GEMINI_API_KEY`
+- `veo-2` - GA model for text+image→video
+- `veo-2.0-generate` - GA model for text+image→video
+- `veo-3.0-generate` - Advanced video generation model
+- `veo-3.0-fast-generate` - Faster generation model
+- `veo-3.1-generate` - Latest model with native 1080p and audio
 
 
+### Runway ML (3 models)
+**API Key:** `RUNWAYML_API_SECRET`
+- `runway-gen4-turbo` - Fast high-quality generation (5s or 10s)
+- `runway-gen4-aleph` - Premium quality (5s)
+- `runway-gen3a-turbo` - Proven performance (5s or 10s)
+
+### OpenAI Sora (2 models)
+**API Key:** `OPENAI_API_KEY`
+- `openai-sora-2` - High-quality video generation (4s/8s/12s)
+- `openai-sora-2-pro` - Enhanced model with more resolution options
+
+## Open-Source Models (27+ models)
+
+### LTX-Video (2 models)
+**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh ltx-video`
+- `ltx-video` - High-quality image-to-video generation (704x480, 24fps)
+- `ltx-video-13b-distilled` - Distilled version with 13B parameters
+
+### HunyuanVideo (1 model)
+**VRAM:** 24GB+ | **Setup:** `bash setup/install_model.sh hunyuan-video-i2v`
+- `hunyuan-video-i2v` - High-quality image-to-video up to 720p
+
+### VideoCrafter (1 model)
+**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh videocrafter2-512`
+- `videocrafter2-512` - High-quality text-guided video generation
+
+### DynamiCrafter (3 models)
+**VRAM:** 12-24GB | **Setup:** `bash setup/install_model.sh dynamicrafter-512`
+- `dynamicrafter-512` - Image animation with video diffusion
+- `dynamicrafter-256` - Faster image animation
+- `dynamicrafter-1024` - High-resolution image animation
+
+### Morphic (1 model)
+**VRAM:** 20GB+ | **Setup:** `bash setup/install_model.sh morphic-frames-to-video`
+- `morphic-frames-to-video` - High-quality interpolation using Wan2.2
+
+### Stable Video Diffusion (1 model)
+**VRAM:** 20GB | **Setup:** `bash setup/install_model.sh svd`
+- `svd` - High-quality image-to-video generation
+
+### WAN (Wan-AI) (7 models)
+**VRAM:** 48GB+ | **Setup:** Direct diffusers integration
+- `wan-2.1-flf2v-720p` - First-Last Frame to Video generation
+- `wan-2.1-i2v-480p` - Image to Video generation at 480p resolution
+- `wan-2.1-i2v-720p` - Image to Video generation at 720p resolution
+- `wan-2.1-vace-14b` - Video generation with 14B parameters
+- `wan-2.1-vace-1.3b` - Lightweight video generation with 1.3B parameters
+- `wan-2.2-i2v-a14b` - Image to Video generation with 14B parameters
+- `wan-2.2-ti2v-5b` - Text + Image to Video generation with 5B parameters
+
+### CogVideoX (2 models)
+**VRAM:** 20GB+ | **Setup:** `bash setup/install_model.sh cogvideox-5b-i2v`
+- `cogvideox-5b-i2v` - 6s image+text to video (720x480)
+- `cogvideox1.5-5b-i2v` - 10s image+text to video (1360x768)
+
+### SANA-Video (1 model)
+**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh sana-video-2b-480p`
+- `sana-video-2b-480p` - Efficient text+image to video (480x832)
+
+### Sana (1 model)
+**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh sana`
+- `sana` - Image-to-Video generation with motion control
 
 
+## Usage
 
-## Installation
-
-Install the required dependencies for open-source models:
-
+### List Available Models
 ```bash
-uv pip install transformers diffusers # for diffusers support
+python examples/generate_videos.py --list-models
 ```
 
+### Quick Start Examples
 
-## svd
-
-It takes  20GB vram.
-
+#### Commercial APIs (Instant Setup)
 ```bash
-uv run examples/generate_videos.py --model svd --task chess maze
+# Luma Dream Machine - Best quality
+python examples/generate_videos.py --questions-dir ./questions --model luma-ray-2
+
+# Google Veo 3.1 - Latest with 1080p + audio
+python examples/generate_videos.py --questions-dir ./questions --model veo-3.1
+
+# Runway Gen-4 Turbo - Fast premium quality
+python examples/generate_videos.py --questions-dir ./questions --model runway-gen4-turbo
+
+# OpenAI Sora 2 - High-quality generation
+python examples/generate_videos.py --questions-dir ./questions --model openai-sora-2
 ```
 
-## WAN (Wan-AI)
-
-WAN 2.1 FLF2V (First-Last Frame to Video) is an open-source image-to-video generation model using diffusers. 
-
-The model will be automatically downloaded from HuggingFace when first used. No additional installation steps are required.
-
-### Usage
-
+#### Open-Source Models (Requires Installation)
 ```bash
-# Generate videos using WAN model
-uv run examples/generate_videos.py --model wan --task chess maze # requires more than 48GB vram.
+# LTX-Video - Lightweight, good quality
+bash setup/install_model.sh ltx-video
+python examples/generate_videos.py --questions-dir ./questions --model ltx-video
 
-# Or use the full model name
-uv run examples/generate_videos.py --model wan-2.1-flf2v-720p --task chess maze
-```
+# Stable Video Diffusion - Proven model
+bash setup/install_model.sh svd
+python examples/generate_videos.py --questions-dir ./questions --model svd
 
-### Model Details
+# HunyuanVideo - High-quality up to 720p
+bash setup/install_model.sh hunyuan-video-i2v
+python examples/generate_videos.py --questions-dir ./questions --model hunyuan-video-i2v
 
-- **Model ID**: `Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers`
-- **Resolution**: Up to 720p (automatically resized based on input image aspect ratio)
-- **FPS**: 16 fps
-
-## LTX-Video
-
-refer https://huggingface.co/Lightricks/LTX-Video-0.9.8-13B-distilled 
-
-LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 30 FPS videos at a 1216×704 resolution faster than they can be watched.
-### Usage
-
-```bash
-uv pip install sentencepiece accelerate #  otherwise has error. refer https://huggingface.co/Lightricks/LTX-Video/discussions/96
-# Generate videos using LTX-Video model
-uv run examples/generate_videos.py --model ltx-video --task chess maze
+# CogVideoX - Long-form generation
+bash setup/install_model.sh cogvideox-5b-i2v
+python examples/generate_videos.py --questions-dir ./questions --model cogvideox-5b-i2v
 ```

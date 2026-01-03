@@ -4,7 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../lib/share.sh"
 
-MODEL="wavespeed-wan2.1"
+# WAN 2.1 I2V 720P Model
+MODEL="wan-2.1-i2v-720p"
+HUGGINGFACE_MODEL="Wan-AI/Wan2.1-I2V-14B-720P-Diffusers"
 
 print_section "Virtual Environment"
 create_model_venv "$MODEL"
@@ -18,7 +20,7 @@ pip install -q numpy==2.2.6 ftfy==6.1.3 Pillow==12.0.0 pandas==2.3.3 tqdm==4.67.
 deactivate
 
 print_section "Checkpoints"
+print_info "Model: ${HUGGINGFACE_MODEL}"
 print_info "Weights download on first run"
 
 print_success "${MODEL} setup complete"
-

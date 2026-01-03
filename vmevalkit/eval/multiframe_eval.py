@@ -34,6 +34,7 @@ import numpy as np
 from .frame_sampler import FrameSampler, SampledFrame
 from .consistency import FrameConsistencyAnalyzer, ConsistencyResult
 from .voting import VotingAggregator, VotingMethod, FrameScore, VotingResult
+from .run_selector import select_latest_run
 
 logger = logging.getLogger(__name__)
 
@@ -423,13 +424,11 @@ class MultiFrameEvaluator:
                     skipped_tasks += 1
                     continue
 
-                # Find video file
-                output_dirs = list(task_dir.iterdir())
-                if not output_dirs:
+                run_dir = select_latest_run(task_dir)
+                if not run_dir:
                     continue
 
-                output_dir = output_dirs[0]
-                video_files = list((output_dir / "video").glob("*.mp4"))
+                video_files = sorted((run_dir / "video").glob("*.mp4"))
                 if not video_files:
                     continue
 

@@ -16,6 +16,7 @@ from PIL import Image
 import io
 import httpx
 from .eval_prompt import TASK_PROMPTS
+from .run_selector import select_latest_run
 
 logger = logging.getLogger(__name__)
 
@@ -201,15 +202,14 @@ class GPT4OEvaluator:
                         skipped_tasks += 1
                         continue
                     
-                    output_dirs = list(task_dir.iterdir())
-                    if not output_dirs:
+                    run_dir = select_latest_run(task_dir)
+                    if not run_dir:
                         logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
                         continue
-                    
-                    output_dir = output_dirs[0]
-                    video_files = list((output_dir / "video").glob("*.mp4"))
+
+                    video_files = sorted((run_dir / "video").glob("*.mp4"))
                     if not video_files:
-                        logger.warning(f"No video in {output_dir / 'video'}")
+                        logger.warning(f"No video in {run_dir / 'video'}")
                         continue
                     
                     try:

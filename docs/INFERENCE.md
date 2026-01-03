@@ -7,7 +7,7 @@
 # questions/chess_task/chess_0000/{first_frame.png, prompt.txt}
 
 # 2. Generate videos (runs all discovered tasks)
-python examples/generate_videos.py --questions-dir ./questions --output-dir ./outputs
+python examples/generate_videos.py --questions-dir ./questions --output-dir ./outputs --model svd
 
 # 3. Run with specific models  
 python examples/generate_videos.py --questions-dir ./questions --output-dir ./outputs --model luma-ray-2
@@ -46,7 +46,7 @@ Models receive the initial state + prompt and must generate videos demonstrating
 
 VMEvalKit uses a **modular architecture** with dynamic loading:
 
-- **MODEL_CATALOG**: Registry of 40+ models across 11 families
+- **MODEL_CATALOG**: Registry of 29+ models across 14 families
 - **Dynamic Loading**: Models loaded on-demand via importlib
 - **Unified Interface**: All models inherit from `ModelWrapper`
 - **Two Categories**:

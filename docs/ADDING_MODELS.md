@@ -15,7 +15,7 @@ VMEvalKit supports two model types with different integration approaches:
 2. Create `setup/models/{model-name}/setup.sh` installation script
 3. Register checkpoints in `setup/lib/share.sh`
 4. Add entry to `MODEL_CATALOG.py`
-5. Run `setup/install_model.sh {model-name}` to install
+5. Run `bash setup/install_model.sh --model {model-name}` to install
 
 | Aspect | Commercial APIs | Open-Source |
 |--------|----------------|-------------|
@@ -64,7 +64,7 @@ echo 'YOUR_PROVIDER_API_KEY=your_key' >> .env
 ### Open-Source Models
 ```bash
 # Install model and dependencies
-bash setup/install_model.sh your-model-name
+bash setup/install_model.sh --model your-model-name
 
 # Test installation
 python examples/generate_videos.py --model your-model-name --task-id test_0001
@@ -132,7 +132,7 @@ AVAILABLE_MODELS = {**EXISTING_MODELS, **YOUR_MODELS}
 
 ```bash
 # Test installation
-bash setup/install_model.sh your-model-name
+bash setup/install_model.sh --model your-model-name
 
 # Test inference  
 python examples/generate_videos.py --model your-model-name --task-id test_0001

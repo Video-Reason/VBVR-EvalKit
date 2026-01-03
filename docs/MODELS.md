@@ -1,7 +1,7 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **29 video generation models** across **14 provider families**.
+VMEvalKit provides unified access to **29+ video generation models** across **14 provider families**.
 
 ## Commercial APIs (12 models)
 

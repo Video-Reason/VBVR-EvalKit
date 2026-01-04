@@ -24,8 +24,12 @@ questions/{domain}_task/{task_id}/
 
 ```bash
 # 1. Install
-git clone https://github.com/hokindeng/VMEvalKit.git
+git clone https://github.com/Video-Reason/VMEvalKit.git
 cd VMEvalKit
+
+python -m venv venv
+source venv/bin/activate
+
 pip install -e .
 
 # 2. Setup models

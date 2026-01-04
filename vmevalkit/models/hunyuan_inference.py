@@ -29,6 +29,7 @@ class HunyuanVideoService:
         self,
         model_id: str = "hunyuan-video-i2v",
         output_dir: str = "./outputs",
+        model_python_interpreter: str = None,
         **kwargs
     ):
         """
@@ -37,6 +38,7 @@ class HunyuanVideoService:
         Args:
             model_id: HunyuanVideo model variant (currently only one available)
             output_dir: Directory to save generated videos
+            model_python_interpreter: Python interpreter to use (defaults to sys.executable)
             **kwargs: Additional parameters
         """
         self.model_id = model_id
@@ -44,6 +46,7 @@ class HunyuanVideoService:
         # writes to the same folder we later read from.
         self.output_dir = Path(output_dir).expanduser().resolve()
         self.output_dir.mkdir(exist_ok=True, parents=True)
+        self.model_python_interpreter = model_python_interpreter or sys.executable
         self.kwargs = kwargs
         
         # Check if HunyuanVideo-I2V is available
@@ -101,7 +104,7 @@ class HunyuanVideoService:
         
         # Prepare inference command
         cmd = [
-            sys.executable,
+            self.model_python_interpreter,
             str(HUNYUAN_PATH / "sample_image2video.py"),
         ]
         
@@ -167,6 +170,7 @@ class HunyuanVideoService:
             # Enable xDiT parallel inference resizing (per docs)
             if num_gpus > 1:
                 env["ALLOW_RESIZE_FOR_SP"] = "1"
+
 
             # Change to HunyuanVideo directory and run inference
             result = subprocess.run(
@@ -315,28 +319,17 @@ class HunyuanVideoWrapper(ModelWrapper):
         **kwargs
     ):
         """Initialize HunyuanVideo wrapper."""
-        self.model = model
-        self._output_dir = Path(output_dir).expanduser().resolve()
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-        self.kwargs = kwargs
+        # Properly initialize the base class
+        super().__init__(model, output_dir, **kwargs)
         
-        # Create HunyuanVideoService instance
+        # Create HunyuanVideoService instance with model-specific Python interpreter
         self.hunyuan_service = HunyuanVideoService(
-            model_id=model, output_dir=str(self._output_dir), **kwargs
+            model_id=model, 
+            output_dir=str(self.output_dir), 
+            model_python_interpreter=self.get_model_python_interpreter(),
+            **kwargs
         )
     
-    @property
-    def output_dir(self) -> Path:
-        """Get the current output directory."""
-        return self._output_dir
-    
-    @output_dir.setter
-    def output_dir(self, value: Union[str, Path]):
-        """Set the output directory and update the service's output_dir too."""
-        self._output_dir = Path(value).expanduser().resolve()
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-        # Also update the service's output_dir
-        self.hunyuan_service.output_dir = self._output_dir
     
     def generate(
         self,

@@ -10,15 +10,16 @@
 
 ## Data Format
 
-Questions should be organized in directories outside VMEvalKit:
-
+Organize your questions outside VMEvalKit in folders:
 ```
 questions/{domain}_task/{task_id}/
-├── first_frame.png          # Initial state image (required)
-├── prompt.txt              # Text instructions (required)
-├── final_frame.png          # Target state image (optional)
-└── ground_truth.mp4        # Optional ground truth video
+├── first_frame.png   # required
+├── prompt.txt        # required
+├── final_frame.png   # optional
+└── ground_truth.mp4  # optional
 ```
+
+**Task IDs** use `{domain}_{i:04d}` (e.g., `chess_0064`, `chess_15000`). IDs are zero-padded for sorting and automatically expand beyond 4 digits when needed—no dataset size limit or code change required.
 
 ## Quick Start
 

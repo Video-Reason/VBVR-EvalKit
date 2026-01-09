@@ -10,16 +10,40 @@
 
 ## Data Format
 
-Organize your questions outside VMEvalKit in folders:
+Organize your questions outside VMEvalKit with the following structure:
+
 ```
-questions/{domain}_task/{task_id}/
-├── first_frame.png   # required
-├── prompt.txt        # required
-├── final_frame.png   # optional
-└── ground_truth.mp4  # optional
+questions/
+└── {domain}_task/                    # task folder (e.g., chess_task, matching_object_task)
+    ├── {domain}_0000/                # individual question folder
+    │   ├── first_frame.png           # required: input image for video generation
+    │   ├── prompt.txt                # required: text prompt describing the video
+    │   ├── final_frame.png           # optional: expected final frame for evaluation
+    │   └── ground_truth.mp4          # optional: reference video for evaluation
+    ├── {domain}_0001/
+    │   └── ...
+    └── {domain}_0002/
+        └── ...
 ```
 
-**Task IDs** use `{domain}_{i:04d}` (e.g., `chess_0064`, `chess_15000`). IDs are zero-padded for sorting and automatically expand beyond 4 digits when needed—no dataset size limit or code change required.
+**Example** with domain `chess`:
+```
+questions/
+└── chess_task/
+    ├── chess_0000/
+    │   ├── first_frame.png
+    │   ├── prompt.txt
+    │   ├── final_frame.png
+    │   └── ground_truth.mp4
+    ├── chess_0001/
+    │   └── ...
+    └── chess_0002/
+        └── ...
+```
+
+**Naming Convention:**
+- **Task folder**: `{domain}_task` (e.g., `chess_task`, `matching_object_task`)
+- **Question folders**: `{domain}_{i:04d}` where `i` is zero-padded (e.g., `chess_0000`, `chess_0064`). Padding automatically expands beyond 4 digits when needed—no dataset size limit.
 
 ## Quick Start
 

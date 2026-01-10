@@ -76,197 +76,8 @@ VEO_MODELS = {
     }
 }
 
-# Google Veo 3.1 Models (via WaveSpeed)
-GOOGLE_VEO31_MODELS = {
-    "veo-3.1": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "Veo31Wrapper",
-        "service_class": "Veo31Service",
-        "model": "veo-3.1",
-        "args": {},
-        "description": "Google Veo 3.1 - Native 1080p with audio generation (via WaveSpeed)",
-        "family": "Google Veo 3.1"
-    },
-    "veo-3.1-720p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "Veo31Wrapper",
-        "service_class": "Veo31Service",
-        "model": "veo-3.1-720p",
-        "args": {"resolution": "720p"},
-        "description": "Google Veo 3.1 - 720p with audio generation (via WaveSpeed)",
-        "family": "Google Veo 3.1"
-    },
-    "veo-3.1-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "Veo31FastWrapper",
-        "service_class": "WaveSpeedService", 
-        "model": "veo-3.1-fast",
-        "args": {},
-        "description": "Google Veo 3.1 Fast - 1080p, 30% faster generation (via WaveSpeed)",
-        "family": "Google Veo 3.1"
-    },
-    "veo-3.1-fast-720p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "Veo31FastWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "veo-3.1-fast-720p",
-        "args": {"resolution": "720p"},
-        "description": "Google Veo 3.1 Fast - 720p, 30% faster generation (via WaveSpeed)",
-        "family": "Google Veo 3.1"
-    }
-}
 
-# WaveSpeedAI WAN 2.2 Models
-WAVESPEED_WAN_22_MODELS = {
-    "wavespeed-wan-2.2-i2v-480p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-480p",
-        "description": "WaveSpeed WAN 2.2 I2V 480p - Standard quality",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-480p-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-480p-ultra-fast",
-        "description": "WaveSpeed WAN 2.2 I2V 480p Ultra Fast - Speed optimized",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-480p-lora": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-480p-lora",
-        "description": "WaveSpeed WAN 2.2 I2V 480p LoRA - Enhanced with LoRA",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-480p-lora-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-480p-lora-ultra-fast",
-        "description": "WaveSpeed WAN 2.2 I2V 480p LoRA Ultra Fast - Best speed with LoRA",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-5b-720p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-5b-720p",
-        "description": "WaveSpeed WAN 2.2 I2V 5B 720p - High resolution 5B model",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-5b-720p-lora": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-5b-720p-lora",
-        "description": "WaveSpeed WAN 2.2 I2V 5B 720p LoRA - High-res with LoRA",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-720p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-720p",
-        "description": "WaveSpeed WAN 2.2 I2V 720p - High resolution",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-720p-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-720p-ultra-fast",
-        "description": "WaveSpeed WAN 2.2 I2V 720p Ultra Fast - High-res speed optimized",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-720p-lora": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-720p-lora",
-        "description": "WaveSpeed WAN 2.2 I2V 720p LoRA - High-res with LoRA",
-        "family": "WaveSpeed WAN 2.2"
-    },
-    "wavespeed-wan-2.2-i2v-720p-lora-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.2/i2v-720p-lora-ultra-fast",
-        "description": "WaveSpeed WAN 2.2 I2V 720p LoRA Ultra Fast - Fastest high-res LoRA",
-        "family": "WaveSpeed WAN 2.2"
-    }
-}
 
-# WaveSpeedAI WAN 2.1 Models
-WAVESPEED_WAN_21_MODELS = {
-    "wavespeed-wan-2.1-i2v-480p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-480p",
-        "description": "WaveSpeed WAN 2.1 I2V 480p - Standard quality",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-480p-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-480p-ultra-fast",
-        "description": "WaveSpeed WAN 2.1 I2V 480p Ultra Fast - Speed optimized",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-480p-lora": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-480p-lora",
-        "description": "WaveSpeed WAN 2.1 I2V 480p LoRA - Enhanced with LoRA",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-480p-lora-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-480p-lora-ultra-fast",
-        "description": "WaveSpeed WAN 2.1 I2V 480p LoRA Ultra Fast - Best speed with LoRA",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-720p": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-720p",
-        "description": "WaveSpeed WAN 2.1 I2V 720p - High resolution",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-720p-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-720p-ultra-fast",
-        "description": "WaveSpeed WAN 2.1 I2V 720p Ultra Fast - High-res speed optimized",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-720p-lora": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-720p-lora",
-        "description": "WaveSpeed WAN 2.1 I2V 720p LoRA - High-res with LoRA",
-        "family": "WaveSpeed WAN 2.1"
-    },
-    "wavespeed-wan-2.1-i2v-720p-lora-ultra-fast": {
-        "wrapper_module": "vmevalkit.models.wavespeed_inference",
-        "wrapper_class": "WaveSpeedWrapper",
-        "service_class": "WaveSpeedService",
-        "model": "wan-2.1/i2v-720p-lora-ultra-fast",
-        "description": "WaveSpeed WAN 2.1 I2V 720p LoRA Ultra Fast - Fastest high-res LoRA",
-        "family": "WaveSpeed WAN 2.1"
-    }
-}
 
 # Runway ML Models
 RUNWAY_MODELS = {
@@ -435,14 +246,6 @@ SANA_MODELS = {
 
 # WAN Models (Wan-AI, local diffusers implementation)
 WAN_MODELS = {
-    "wan-2.1-flf2v-720p": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
-        "description": "WAN 2.1 FLF2V 14B 720P - First-Last Frame to Video generation",
-        "family": "WAN (Wan-AI)"
-    },
     "wan-2.1-i2v-480p": {
         "wrapper_module": "vmevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
@@ -457,22 +260,6 @@ WAN_MODELS = {
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.1-I2V-14B-720P-Diffusers",
         "description": "WAN 2.1 I2V 14B 720P - Image to Video generation at 720p resolution",
-        "family": "WAN (Wan-AI)"
-    },
-    "wan-2.1-vace-14b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.1-VACE-14B-diffusers",
-        "description": "WAN 2.1 VACE 14B - Video generation with 14B parameters",
-        "family": "WAN (Wan-AI)"
-    },
-    "wan-2.1-vace-1.3b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
-        "wrapper_class": "WanWrapper",
-        "service_class": "WanService",
-        "model": "Wan-AI/Wan2.1-VACE-1.3B-diffusers",
-        "description": "WAN 2.1 VACE 1.3B - Lightweight video generation with 1.3B parameters",
         "family": "WAN (Wan-AI)"
     },
     "wan-2.2-i2v-a14b": {
@@ -551,9 +338,6 @@ SANA_VIDEO_MODELS = {
 AVAILABLE_MODELS = {
     **LUMA_MODELS,
     **VEO_MODELS,
-    **GOOGLE_VEO31_MODELS,
-    **WAVESPEED_WAN_22_MODELS,
-    **WAVESPEED_WAN_21_MODELS,
     **RUNWAY_MODELS,
     **OPENAI_SORA_MODELS,
     **LTX_VIDEO_MODELS,
@@ -572,9 +356,6 @@ AVAILABLE_MODELS = {
 MODEL_FAMILIES = {
     "Luma Dream Machine": LUMA_MODELS,
     "Google Veo": VEO_MODELS,
-    "Google Veo 3.1": GOOGLE_VEO31_MODELS,
-    "WaveSpeed WAN 2.2": WAVESPEED_WAN_22_MODELS,
-    "WaveSpeed WAN 2.1": WAVESPEED_WAN_21_MODELS,
     "Runway ML": RUNWAY_MODELS,
     "OpenAI Sora": OPENAI_SORA_MODELS,
     "LTX-Video": LTX_VIDEO_MODELS,

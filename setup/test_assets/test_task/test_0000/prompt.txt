@@ -1,0 +1,1 @@
+Rotate the current image around the center point of the scene and generate a scene from the agent's back-facing perspective. Show the agent's back, head, and posture silhouette, and create the environment that would appear in front of the agent based on the direction they were originally facing.

@@ -141,7 +141,7 @@ class WanWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "Wan-AI/Wan2.1-FLF2V-14B-720P-diffusers",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         self.model = model
@@ -165,9 +165,7 @@ class WanWrapper(ModelWrapper):
         fps = kwargs.pop("fps", None)
         
         if not output_filename:
-            timestamp = int(time.time())
-            safe_model = self.model.replace("/", "-").replace("_", "-")
-            output_filename = f"wan_{safe_model}_{timestamp}.mp4"
+            output_filename = "video.mp4"
         
         output_path = self.output_dir / output_filename
         

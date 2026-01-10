@@ -360,7 +360,7 @@ class RunwayWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Runway wrapper."""
@@ -403,10 +403,7 @@ class RunwayWrapper(ModelWrapper):
         
         # Generate output path
         if not output_filename:
-            # Create filename from model and timestamp
-            safe_model = self.model.replace('_', '-')
-            timestamp = int(time.time())
-            output_filename = f"runway_{safe_model}_{timestamp}.mp4"
+            output_filename = "video.mp4"
         
         output_path = self.output_dir / output_filename
         

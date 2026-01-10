@@ -130,7 +130,7 @@ class LTXVideoWrapper(ModelWrapper):
     def __init__(
         self,
         model: str = "Lightricks/LTX-Video",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         self.model = model
@@ -162,9 +162,7 @@ class LTXVideoWrapper(ModelWrapper):
             num_frames = int(duration * fps)
         
         if not output_filename:
-            timestamp = int(time.time())
-            safe_model = self.model.replace("/", "-").replace("_", "-")
-            output_filename = f"ltx_{safe_model}_{timestamp}.mp4"
+            output_filename = "video.mp4"
         
         output_path = self.output_dir / output_filename
         

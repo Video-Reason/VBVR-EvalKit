@@ -8,6 +8,7 @@ unified inference interface. Supports high-quality image-to-video generation up 
 import os
 import sys
 import subprocess
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
@@ -28,7 +29,8 @@ class HunyuanVideoService:
     def __init__(
         self,
         model_id: str = "hunyuan-video-i2v",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
+        model_python_interpreter: str = None,
         **kwargs
     ):
         """
@@ -37,6 +39,7 @@ class HunyuanVideoService:
         Args:
             model_id: HunyuanVideo model variant (currently only one available)
             output_dir: Directory to save generated videos
+            model_python_interpreter: Python interpreter to use (defaults to sys.executable)
             **kwargs: Additional parameters
         """
         self.model_id = model_id
@@ -44,6 +47,7 @@ class HunyuanVideoService:
         # writes to the same folder we later read from.
         self.output_dir = Path(output_dir).expanduser().resolve()
         self.output_dir.mkdir(exist_ok=True, parents=True)
+        self.model_python_interpreter = model_python_interpreter or sys.executable
         self.kwargs = kwargs
         
         # Check if HunyuanVideo-I2V is available
@@ -74,10 +78,11 @@ class HunyuanVideoService:
             Dictionary with inference results and metadata
         """
         start_time = time.time()
+        timestamp = int(start_time)
         
-        # Generate output directory (HunyuanVideo saves to directory, not file)
-        timestamp = int(time.time())
-        output_dir = self.output_dir / f"hunyuan_{timestamp}"
+        # Use output directory directly (no timestamp subfolder)
+        # The InferenceRunner already creates a properly structured directory
+        output_dir = self.output_dir
         output_dir.mkdir(exist_ok=True, parents=True)
         
         # Determine i2v resolution based on height
@@ -101,7 +106,7 @@ class HunyuanVideoService:
         
         # Prepare inference command
         cmd = [
-            sys.executable,
+            self.model_python_interpreter,
             str(HUNYUAN_PATH / "sample_image2video.py"),
         ]
         
@@ -168,6 +173,7 @@ class HunyuanVideoService:
             if num_gpus > 1:
                 env["ALLOW_RESIZE_FOR_SP"] = "1"
 
+
             # Change to HunyuanVideo directory and run inference
             result = subprocess.run(
                 cmd,
@@ -184,10 +190,23 @@ class HunyuanVideoService:
             # Find the generated video file in the output directory
             output_video = None
             if success and output_dir.exists():
-                # HunyuanVideo saves videos as .mp4 files in the output directory
-                video_files = list(output_dir.glob("*.mp4"))
+                # HunyuanVideo may create videos in nested directories
+                # Search recursively and flatten to video.mp4
+                video_files = list(output_dir.glob("**/*.mp4"))
                 if video_files:
-                    output_video = str(video_files[0])
+                    source_video = video_files[0]
+                    final_video_path = output_dir / "video.mp4"
+                    
+                    # Move/rename to simple path
+                    if source_video != final_video_path:
+                        shutil.move(str(source_video), str(final_video_path))
+                    
+                    # Clean up any nested directories created by the model
+                    for item in output_dir.iterdir():
+                        if item.is_dir():
+                            shutil.rmtree(item)
+                    
+                    output_video = str(final_video_path)
                 else:
                     success = False
                     error_msg = f"Video generation succeeded but no .mp4 file found in {output_dir}"
@@ -311,32 +330,21 @@ class HunyuanVideoWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize HunyuanVideo wrapper."""
-        self.model = model
-        self._output_dir = Path(output_dir).expanduser().resolve()
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-        self.kwargs = kwargs
+        # Properly initialize the base class
+        super().__init__(model, output_dir, **kwargs)
         
-        # Create HunyuanVideoService instance
+        # Create HunyuanVideoService instance with model-specific Python interpreter
         self.hunyuan_service = HunyuanVideoService(
-            model_id=model, output_dir=str(self._output_dir), **kwargs
+            model_id=model, 
+            output_dir=str(self.output_dir), 
+            model_python_interpreter=self.get_model_python_interpreter(),
+            **kwargs
         )
     
-    @property
-    def output_dir(self) -> Path:
-        """Get the current output directory."""
-        return self._output_dir
-    
-    @output_dir.setter
-    def output_dir(self, value: Union[str, Path]):
-        """Set the output directory and update the service's output_dir too."""
-        self._output_dir = Path(value).expanduser().resolve()
-        self._output_dir.mkdir(exist_ok=True, parents=True)
-        # Also update the service's output_dir
-        self.hunyuan_service.output_dir = self._output_dir
     
     def generate(
         self,
@@ -359,6 +367,10 @@ class HunyuanVideoWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
+        # Sync service output_dir with wrapper output_dir before each generation
+        # This ensures videos are saved to the correct location when wrapper is cached
+        self.hunyuan_service.output_dir = self.output_dir
+        
         return self.hunyuan_service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

@@ -384,7 +384,7 @@ class VeoWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Veo wrapper."""
@@ -434,7 +434,7 @@ class VeoWrapper(ModelWrapper):
         
         # Determine output path
         if not output_filename:
-            output_filename = f"veo_{int(time.time())}.mp4"
+            output_filename = "video.mp4"
         output_path = self.output_dir / output_filename
         
         # Run async generation in sync context

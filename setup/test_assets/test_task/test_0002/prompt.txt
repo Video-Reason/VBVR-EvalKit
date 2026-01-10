@@ -1,0 +1,1 @@
+Move each colored shape card from the left staging area into its matching outline on the right. Keep the camera fixed in the top-down view, move only one card at a time, and slide the cards smoothly without teleportation. Match the green star card first, followed by the yellow triangle card. Stop the video when every outline is filled exactly.

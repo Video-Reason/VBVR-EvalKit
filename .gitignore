@@ -42,6 +42,7 @@ data/evaluations/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+install_output.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -219,7 +220,7 @@ deprecated/
 
 # VMEvalKit data folder - ignore large datasets but keep scripts and logging
 data/questions/*
-!data/questions/tests_task/
+!data/questions/test_task/
 data/outputs/
 # Keep: data/s3_sync.py, data/data_logging/
 .vscode/

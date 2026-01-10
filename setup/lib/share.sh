@@ -11,7 +11,7 @@ export VMEVAL_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
 export ENVS_DIR="${VMEVAL_ROOT}/envs"
 export SUBMODULES_DIR="${VMEVAL_ROOT}/submodules"
 export LOGS_DIR="${VMEVAL_ROOT}/logs"
-export TESTS_DIR="${VMEVAL_ROOT}/data/questions/tests_task"
+export TESTS_DIR="${VMEVAL_ROOT}/setup/test_assets/test_task"
 export WEIGHTS_DIR="${VMEVAL_ROOT}/weights"
 
 # ============================================================================
@@ -39,8 +39,6 @@ declare -a COMMERCIAL_MODELS=(
     "luma-ray-flash-2"
     "veo-2"
     "veo-3.0-generate"
-    "veo-3.1-fast"
-    "wavespeed-wan-2.1-i2v-480p"
     "runway-gen4-turbo"
     "openai-sora-2"
 )
@@ -50,8 +48,6 @@ declare -A COMMERCIAL_API_KEYS=(
     ["luma-ray-flash-2"]="LUMA_API_KEY"
     ["veo-2"]="GEMINI_API_KEY"
     ["veo-3.0-generate"]="GEMINI_API_KEY"
-    ["veo-3.1-fast"]="WAVESPEED_API_KEY"
-    ["wavespeed-wan-2.1-i2v-480p"]="WAVESPEED_API_KEY"
     ["runway-gen4-turbo"]="RUNWAYML_API_SECRET"
     ["openai-sora-2"]="OPENAI_API_KEY"
 )
@@ -243,7 +239,7 @@ load_env_file() {
 
 validate_model() {
     local model="$1"
-    local test_output="${VMEVAL_ROOT}/data/outputs/pilot_experiment"
+    local test_output="${VMEVAL_ROOT}/test_outputs"
     
     # Set timeout based on model complexity
     # High-quality distributed models need more time
@@ -255,20 +251,22 @@ validate_model() {
     activate_model_venv "$model"
     set +e
     timeout "$timeout_seconds" python "${VMEVAL_ROOT}/examples/generate_videos.py" \
+        --questions-dir "${TESTS_DIR}" \
+        --output-dir "$test_output" \
         --model "$model" \
-        --task-id tests_0001 tests_0002
+        --task-id test_0001 test_0002
     local exit_code=$?
     set -e
     deactivate
     
     local video_count
-    local validation_output="${test_output}/${model}/tests_task"
+    local validation_output="${test_output}/${model}/test_task"
     local model_output_dir="${test_output}/${model}"
     video_count=$(find "$validation_output" \( -name "*.mp4" -o -name "*.webm" \) 2>/dev/null | wc -l)
     
     # Clean up all task directories except tests_task
     if [[ -d "$model_output_dir" ]]; then
-        find "$model_output_dir" -mindepth 1 -maxdepth 1 -type d ! -name 'tests_task' -exec rm -rf {} +
+        find "$model_output_dir" -mindepth 1 -maxdepth 1 -type d ! -name 'test_task' -exec rm -rf {} +
     fi
     
     if [[ $exit_code -eq 0 ]] && [[ $video_count -ge 2 ]]; then

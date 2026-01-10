@@ -1,1 +1,0 @@
-This is Raven's Progressive Matrices like task. Complete the missing pattern in this 3x3 matrix.

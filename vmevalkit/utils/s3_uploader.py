@@ -172,12 +172,13 @@ class S3ImageUploader:
                 except Exception as e:
                     print(f"[S3] Failed to upload {relative_path}: {e}")
         
-        # Create index URL for the metadata.json if it exists
-        if 'metadata.json' in uploaded_files:
-            print(f"\n✅ Inference folder uploaded to S3")
-            print(f"   Metadata: {uploaded_files['metadata.json']}")
-            if any('video/' in path for path in uploaded_files):
-                video_urls = [url for path, url in uploaded_files.items() if 'video/' in path]
-                print(f"   Videos: {len(video_urls)} file(s) uploaded")
+        # Print upload summary
+        print(f"\n✅ Inference folder uploaded to S3")
+        if any('video/' in path for path in uploaded_files):
+            video_urls = [url for path, url in uploaded_files.items() if 'video/' in path]
+            print(f"   Videos: {len(video_urls)} file(s) uploaded")
+        if any('question/' in path for path in uploaded_files):
+            question_files = [path for path in uploaded_files if 'question/' in path]
+            print(f"   Question files: {len(question_files)} file(s) uploaded")
         
         return uploaded_files

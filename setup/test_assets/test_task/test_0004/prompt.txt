@@ -1,0 +1,1 @@
+Solve this challenging 3x3 Sudoku puzzle. Only a few numbers are given - use constraint satisfaction to find the solution.

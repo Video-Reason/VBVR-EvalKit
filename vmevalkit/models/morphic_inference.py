@@ -26,7 +26,7 @@ class MorphicService:
     def __init__(
         self,
         model_id: str = "morphic-frames-to-video",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """
@@ -146,8 +146,7 @@ class MorphicService:
         start_time = time.time()
         
         # Generate output filename
-        timestamp = int(time.time())
-        output_filename = f"morphic_{timestamp}.mp4"
+        output_filename = "video.mp4"
         output_path = (self.output_dir / output_filename).resolve()  # Convert to absolute path
         
         use_distributed = self.nproc_per_node > 1
@@ -298,7 +297,7 @@ class MorphicWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         **kwargs
     ):
         """Initialize Morphic wrapper."""

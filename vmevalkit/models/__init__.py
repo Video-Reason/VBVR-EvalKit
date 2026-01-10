@@ -6,7 +6,6 @@ __all__ = [
     # Commercial API services
     "LumaInference", "LumaWrapper", "luma_generate", 
     "VeoService", "VeoWrapper", 
-    "WaveSpeedService", "Veo31Service", "WaveSpeedModel", "WaveSpeedWrapper", "Veo31Wrapper", "Veo31FastWrapper",
     "RunwayService", "RunwayWrapper", 
     "SoraService", "OpenAIWrapper",
     
@@ -28,7 +27,6 @@ _MODULE_MAP = {
     "ltx_inference": ["LTXVideoService", "LTXVideoWrapper"],
     "hunyuan_inference": ["HunyuanVideoService", "HunyuanVideoWrapper"],
     "veo_inference": ["VeoService", "VeoWrapper"],
-    "wavespeed_inference": ["WaveSpeedService", "Veo31Service", "WaveSpeedModel", "WaveSpeedWrapper", "Veo31Wrapper", "Veo31FastWrapper"],
     "runway_inference": ["RunwayService", "RunwayWrapper"],
     "openai_inference": ["SoraService", "OpenAIWrapper"],
     "videocrafter_inference": ["VideoCrafterService", "VideoCrafterWrapper"],

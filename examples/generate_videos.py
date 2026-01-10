@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """
-VMEvalKit Video Generation - Flexible Model and Task Runner
+VMEvalKit Video Generation
 
-This script provides flexible video generation with customizable model and task selection.
-Run on specific models, domains, or individual tasks with full control over the process.
+Generate videos using various models on your question datasets.
 
 Key Features:
-- Select specific domains or individual task IDs (all domains from TASK_CATALOG are supported)
-- Control number of tasks per domain or run all available tasks
+- Auto-discovers all tasks from questions directory
+- Run specific models or use defaults
 - Sequential execution with progress tracking and resume capability
 
-Human Curation: Only tasks with existing folders are processed (deleted folders = rejected tasks)
-
 Requirements:
-- Relevant API keys configured in environment for selected models
-- Questions available in: ./data/questions/
-- Output directory: ./data/outputs/pilot_experiment/
+- Questions directory with tasks in format: domain_task/task_id/{first_frame.png, prompt.txt}
+- API keys configured for commercial models
 
-Use --help for detailed usage examples and options.
+Use --help for usage examples.
 """
 
 import sys
@@ -36,33 +32,30 @@ load_dotenv()
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from vmevalkit.runner.inference import  InferenceRunner
+from vmevalkit.runner.inference import InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
-from vmevalkit.runner.TASK_CATALOG import TASK_REGISTRY
 
 
-# Default models for quick testing (can be overridden with --model)
-DEFAULT_TEST_MODELS = [
-    "luma-ray-2",
-    "veo-3.0-generate", 
-    "veo-3.1-720p",
-    "runway-gen4-turbo",
-    "openai-sora-2",
-    "wavespeed-wan-2.2-i2v-720p",
-]
 
-QUESTIONS_DIR = Path("data/questions")
-OUTPUT_DIR = Path("data/outputs/pilot_experiment")
+# Paths are now configurable via CLI arguments - no hardcoded defaults
 
-# Expected domains (dynamically loaded from TASK_CATALOG)
-EXPECTED_DOMAINS = sorted(list(TASK_REGISTRY.keys()))
+# Discover domains by scanning questions directory
+def get_available_domains(questions_dir_path):
+    """Discover available domains from questions directory."""
+    questions_dir = Path(questions_dir_path)
+    if not questions_dir.exists():
+        return []
+    
+    domains = []
+    for item in questions_dir.iterdir():
+        if item.is_dir() and item.name.endswith('_task'):
+            domain = item.name.replace('_task', '')
+            domains.append(domain)
+    return sorted(domains)
 
 def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Discover all human-approved tasks by direct file detection.
-    
-    Scans for actual PNG and TXT files, then loads supplemental metadata from JSON.
-    This approach is more robust as it relies on actual files rather than metadata.
+    Discover all tasks by scanning questions directory.
     
     Args:
         questions_dir: Path to questions directory
@@ -70,7 +63,7 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
     Returns:
         Dictionary mapping domain to list of task dictionaries
     """
-    print(f"🔍 Discovering tasks by scanning actual files: {questions_dir}")
+    print(f"🔍 Discovering tasks from: {questions_dir}")
     
     tasks_by_domain = {}
     total_tasks = 0
@@ -85,19 +78,19 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
         
         print(f"   📁 Scanning {domain_dir.name}/")
         
-        # Scan each question folder in this domain  
-        for question_dir in sorted(domain_dir.glob(f"{domain}_*")):
-            if not question_dir.is_dir():
+        # Scan each task folder
+        for task_dir in sorted(domain_dir.iterdir()):
+            if not task_dir.is_dir():
                 continue
                 
-            task_id = question_dir.name
+            task_id = task_dir.name
             
-            # Look for actual files (PNG and TXT) - this is our primary source
-            prompt_file = question_dir / "prompt.txt"
-            first_image = question_dir / "first_frame.png"
-            final_image = question_dir / "final_frame.png"
+            # Check for required files
+            prompt_file = task_dir / "prompt.txt"
+            first_image = task_dir / "first_frame.png"
+            final_image = task_dir / "final_frame.png"
+            ground_truth = task_dir / "ground_truth.mp4"
             
-            # Required files check
             if not prompt_file.exists():
                 print(f"      ⚠️  Skipping {task_id}: Missing prompt.txt")
                 continue
@@ -106,39 +99,28 @@ def discover_all_tasks_from_folders(questions_dir: Path) -> Dict[str, List[Dict[
                 print(f"      ⚠️  Skipping {task_id}: Missing first_frame.png")
                 continue
             
-            # Load prompt directly from actual file
+            # Load prompt
             prompt_text = prompt_file.read_text().strip()
             
-            # Create task dictionary from actual detected files
+            # Create task dictionary
             task = {
                 "id": task_id,
                 "domain": domain,
                 "prompt": prompt_text,
                 "first_image_path": str(first_image.absolute()),
-                "final_image_path": str(final_image.absolute()) if final_image.exists() else None
+                "final_image_path": str(final_image.absolute()) if final_image.exists() else None,
+                "ground_truth_video": str(ground_truth.absolute()) if ground_truth.exists() else None
             }
-            
-            # Load supplemental metadata from JSON files if they exist
-            metadata_file = question_dir / "question_metadata.json"
-            if metadata_file.exists():
-                with open(metadata_file, 'r') as f:
-                    supplemental_metadata = json.load(f)
-                
-                # Add supplemental data but don't override core fields
-                for key, value in supplemental_metadata.items():
-                    if key not in task:  # Don't override our detected values
-                        task[key] = value
             
             domain_tasks.append(task)
             
-        print(f"      ✅ Found {len(domain_tasks)} approved tasks in {domain}")
+        print(f"      ✅ Found {len(domain_tasks)} tasks in {domain}")
         tasks_by_domain[domain] = domain_tasks
         total_tasks += len(domain_tasks)
     
-    print(f"\n📊 Discovery Summary:")
-    print(f"   Total approved tasks: {total_tasks}")
+    print(f"\n📊 Discovery Summary: {total_tasks} total tasks")
     for domain, tasks in tasks_by_domain.items():
-        print(f"   {domain.title()}: {len(tasks)} tasks")
+        print(f"   {domain}: {len(tasks)} tasks")
     
     return tasks_by_domain
 
@@ -157,14 +139,14 @@ def create_output_structure(base_dir: Path) -> None:
     print(f"   - metadata.json: Complete inference metadata")
 
 
-def create_model_directories(base_dir: Path, models: Dict[str, str]) -> None:
+def create_model_directories(base_dir: Path, models: Dict[str, str], questions_dir: Path) -> None:
     """Create a subfolder per model and mirror questions tree for visibility."""
     # Create per-model root
     for model_name in models.keys():
         model_root = base_dir / model_name
         model_root.mkdir(exist_ok=True, parents=True)
         # Mirror questions directory structure with empty domain/task folders
-        for domain_dir in sorted(QUESTIONS_DIR.glob("*_task")):
+        for domain_dir in sorted(questions_dir.glob("*_task")):
             if not domain_dir.is_dir():
                 continue
             domain_name = domain_dir.name  # e.g., rotation_task
@@ -228,8 +210,6 @@ def run_single_inference(
     task_id = task["id"]
     image_path = task["first_image_path"]
     prompt = task["prompt"]
-
-    run_id = f"{model_name}_{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     print(f"\n  🎬 Generating: {task_id} with {model_name}")
     print(f"     Image: {image_path}")
@@ -252,7 +232,6 @@ def run_single_inference(
         model_name=model_name,
         image_path=image_path,
         text_prompt=prompt,
-        run_id=run_id,
         question_data=task,  # Pass full task data for structured output
         **kwargs  # Clean! No API key filtering needed
     )
@@ -279,6 +258,7 @@ def run_pilot_experiment(
     tasks_by_domain: Dict[str, List[Dict[str, Any]]],
     models: Dict[str, str],
     output_dir: Path,
+    questions_dir: Path,
     skip_existing: bool = True,
 ) -> Dict[str, Any]:
     """
@@ -314,7 +294,7 @@ def run_pilot_experiment(
     print(f"   Skip existing: {skip_existing}\n")
     
     create_output_structure(output_dir)
-    create_model_directories(output_dir, models)
+    create_model_directories(output_dir, models, questions_dir)
     
     all_results = []
     
@@ -365,29 +345,33 @@ def run_pilot_experiment(
                 print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
                 
                 # Check if inference folder already exists WITH actual video file
-                # Check inside mirrored domain/task folder for existing runs
-                run_id_pattern = f"{model_name}_{task_id}_*"
+                # Check flat structure: task_folder directly contains video/
                 domain_dir_name = f"{domain}_task"
                 task_folder = model_output_dir / domain_dir_name / task_id
-                existing_dirs = list(task_folder.glob(run_id_pattern))
                 
-                # Verify the run folder actually contains a video file
+                # Check if video exists in flat structure
                 has_valid_output = False
-                if existing_dirs:
-                    for run_dir in existing_dirs:
-                        video_dir = run_dir / "video"
-                        if video_dir.exists():
-                            video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
-                            if video_files:
-                                has_valid_output = True
-                                break
+                video_file = task_folder / "video" / "video.mp4"
+                if video_file.exists():
+                    has_valid_output = True
+                else:
+                    # Backward compatibility: check for old nested structure
+                    if task_folder.exists():
+                        for run_dir in task_folder.iterdir():
+                            if run_dir.is_dir():
+                                video_dir = run_dir / "video"
+                                if video_dir.exists():
+                                    video_files = list(video_dir.glob("*.mp4")) + list(video_dir.glob("*.webm"))
+                                    if video_files:
+                                        has_valid_output = True
+                                        break
                 
                 if skip_existing and has_valid_output:
                     statistics["skipped"] += 1
                     statistics["by_model"][model_name]["skipped"] += 1
                     statistics["by_domain"][domain]["skipped"] += 1
                     model_skipped += 1
-                    print(f"      ⏭️  Skipped (existing output: {existing_dirs[0].name})")
+                    print(f"      ⏭️  Skipped (existing output found)")
                     continue
                 
                 result = run_single_inference(
@@ -451,37 +435,38 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
             Examples:
-            # Run 1 task per domain on default models
-            python generate_videos.py
+            # Run all tasks with specific models
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model luma-ray-2 openai-sora-2
             
-            # Run all tasks on default models  
-            python generate_videos.py --all-tasks
+            # Run with a single model
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model veo-3.0-generate
             
-            # Run on specific models
-            python generate_videos.py --model luma-ray-2 openai-sora-2
-            
-            # Run specific tasks/domains
-            python generate_videos.py --task chess maze --pairs-per-domain 3
-            
-            # Run specific task IDs
-            python generate_videos.py --task-id chess_0001 maze_0005 --model luma-ray-2
+            # Run specific task IDs with models
+            python generate_videos.py --questions-dir ./questions --output-dir ./outputs --model runway-gen4-turbo --task-id chess_0001 maze_0005
         """
     )
     
     parser.add_argument(
         "--model", 
         nargs="+", 
-        default=None,
-        help=f"Specific model(s) to run. Available: {', '.join(list(AVAILABLE_MODELS.keys())[:10])}... (see --list-models for all)"
+        required=True,
+        help=f"Model(s) to run (REQUIRED). Available: {', '.join(list(AVAILABLE_MODELS.keys())[:10])}... (see --list-models for all)"
     )
     
     parser.add_argument(
-        "--task",
-        nargs="+",
-        choices=sorted(list(TASK_REGISTRY.keys())),
-        default=None,
-        help=f"Specific task domain(s) to run. Available: {', '.join(sorted(list(TASK_REGISTRY.keys())))}. If not specified, runs all domains."
+        "--questions-dir",
+        type=str,
+        default="./questions",
+        help="Path to questions directory with domain_task/task_id/{first_frame.png, prompt.txt} structure"
     )
+    
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="./outputs",
+        help="Path for inference outputs (default: ./outputs)"
+    )
+    
     
     parser.add_argument(
         "--task-id",
@@ -490,14 +475,7 @@ def main():
         help="Specific task ID(s) to run (e.g., chess_0001 maze_0005). Overrides other task selection."
     )
     
-    parser.add_argument(
-        "--pairs-per-domain", 
-        type=int, 
-        default=1, 
-        help="Number of task pairs to run per domain (default: 1)"
-    )
     
-    parser.add_argument("--all-tasks", action="store_true", help="Run ALL available tasks (overrides --pairs-per-domain)")
     
     parser.add_argument("--list-models", action="store_true", help="List all available models and exit")
     
@@ -505,7 +483,7 @@ def main():
         "--override",
         dest="override",
         action="store_true",
-        help="Delete data/outputs/pilot_experiment directory before running (override existing outputs)"
+        help="Delete output directory before running (override existing outputs)"
     )
     
     parser.add_argument(
@@ -548,25 +526,25 @@ def main():
         print(f"\nTotal: {len(AVAILABLE_MODELS)} models across {len(families)} families")
         return 
     
+    questions_dir = Path(args.questions_dir)
+    output_dir = Path(args.output_dir)
+    
     if args.override:
-        if OUTPUT_DIR.exists():
-            print(f"🗑️  Override mode: Deleting {OUTPUT_DIR}...")
-            shutil.rmtree(OUTPUT_DIR)
-            print(f"   ✅ Deleted {OUTPUT_DIR}")
+        if output_dir.exists():
+            print(f"🗑️  Override mode: Deleting {output_dir}...")
+            shutil.rmtree(output_dir)
+            print(f"   ✅ Deleted {output_dir}")
         else:
-            print(f"   ℹ️  Output directory does not exist: {OUTPUT_DIR}")
+            print(f"   ℹ️  Output directory does not exist: {output_dir}")
     
     print("🔍 Discovering human-approved tasks from folder structure...")
     
-    if not QUESTIONS_DIR.exists():
-        raise ValueError(f"Questions directory not found at: {QUESTIONS_DIR}. Please ensure the questions directory exists with task folders.")
-    
+    if not questions_dir.exists():
+        raise ValueError(f"Questions directory not found at: {questions_dir}. Please ensure the questions directory exists with task folders.")
 
-    all_tasks_by_domain = discover_all_tasks_from_folders(QUESTIONS_DIR)
+    all_tasks_by_domain = discover_all_tasks_from_folders(questions_dir)
     
     # Select tasks based on arguments
-    tasks_by_domain = {}
-    
     if args.task_id:
         # Specific task IDs requested
         print(f"   🎯 Running specific task IDs: {', '.join(args.task_id)}")
@@ -584,41 +562,15 @@ def main():
                         break
             if not found:
                 print(f"   ⚠️  Task ID '{task_id}' not found")
-    
-    elif args.all_tasks:
-        # All tasks requested
-        if args.task:
-            # All tasks from specific domains
-            tasks_by_domain = {domain: tasks for domain, tasks in all_tasks_by_domain.items() if domain in args.task}
-            print(f"   🎯 Running ALL tasks from domains: {', '.join(args.task)}")
-        else:
-            # All tasks from all domains
-            tasks_by_domain = all_tasks_by_domain
-            print(f"   🎯 Running ALL approved tasks")
-    
     else:
-        # Limited number per domain
-        if args.task:
-            # Specific domains
-            selected_domains = args.task
-        else:
-            # All domains
-            selected_domains = list(all_tasks_by_domain.keys())
-        
-        for domain in selected_domains:
-            if domain in all_tasks_by_domain and all_tasks_by_domain[domain]:
-                num_tasks = min(args.pairs_per_domain, len(all_tasks_by_domain[domain]))
-                tasks_by_domain[domain] = all_tasks_by_domain[domain][:num_tasks]
-                task_names = [task['id'] for task in tasks_by_domain[domain]]
-                print(f"   🎯 Running {num_tasks} task(s) from {domain}: {', '.join(task_names)}")
-            else:
-                tasks_by_domain[domain] = []
+        # Run all discovered tasks
+        tasks_by_domain = all_tasks_by_domain
+        print(f"   🎯 Running all discovered tasks")
     
-    model_names = []
-    if args.model:
-        model_names = args.model
-    else:
-        model_names = DEFAULT_TEST_MODELS
+    if not args.model:
+        raise ValueError("Model selection required. Use --model to specify one or more models, or --list-models to see available options.")
+    
+    model_names = args.model
     
     selected_models = {}
     unavailable_models = []
@@ -647,7 +599,8 @@ def main():
     experiment_results = run_pilot_experiment(
         tasks_by_domain=tasks_by_domain,
         models=selected_models,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
+        questions_dir=questions_dir,
         skip_existing=True,
     )
     
@@ -680,7 +633,7 @@ def main():
             c, f, s = model_stats['completed'], model_stats['failed'], model_stats['skipped']
             print(f"   {model_name}: ✅ {c} | ❌ {f} | ⏭️  {s}")
     
-    print(f"\n📁 All outputs saved to: {OUTPUT_DIR}")
+    print(f"\n📁 All outputs saved to: {output_dir}")
 
 
 if __name__ == "__main__":

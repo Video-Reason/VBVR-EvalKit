@@ -171,7 +171,7 @@ class DynamiCrafterService:
     def __init__(
         self,
         model_id: str = "dynamicrafter-512",
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         device: str = "cuda",
         **kwargs
     ):
@@ -377,8 +377,7 @@ class DynamiCrafterService:
 
         # Generate output filename
         if output_filename is None:
-            prompt_slug = text_prompt.replace(" ", "_")[:30].replace("/", "_")
-            output_filename = f"{generation_id}_{prompt_slug}.mp4"
+            output_filename = "video.mp4"
 
         output_path = self.output_dir / output_filename
 
@@ -419,7 +418,7 @@ class DynamiCrafterWrapper(ModelWrapper):
     def __init__(
         self,
         model: str,
-        output_dir: str = "./data/outputs",
+        output_dir: str = "./outputs",
         device: str = "cuda",
         **kwargs
     ):

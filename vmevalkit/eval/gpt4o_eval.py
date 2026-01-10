@@ -16,6 +16,7 @@ from PIL import Image
 import io
 import httpx
 from .eval_prompt import TASK_PROMPTS
+from .run_selector import select_latest_run
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +36,16 @@ TASK_GUIDANCE = {
 class GPT4OEvaluator:
     """Automatic evaluation using GPT-4O vision model."""
     
-    def __init__(self, output_dir: str = "data/evaluations/gpt4o-eval",
-                 experiment_name: str = "pilot_experiment",
+    def __init__(self, 
+                 inference_dir: str,
+                 eval_output_dir: str = "./evaluations/gpt4o-eval",
                  api_key: Optional[str] = None,
                  model: str = "gpt-4o",
                  temperature: float = 0.0):
-        self.output_dir = Path(output_dir)
-        self.experiment_name = experiment_name
-        self.experiment_dir = Path("data/outputs") / experiment_name
+        self.eval_output_dir = Path(eval_output_dir)
+        self.inference_dir = Path(inference_dir)
         
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.eval_output_dir.mkdir(parents=True, exist_ok=True)
         
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
@@ -59,7 +60,7 @@ class GPT4OEvaluator:
     
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated."""
-        eval_path = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        eval_path = self.eval_output_dir / model_name / task_type / task_id
         eval_file = eval_path / "GPT4OEvaluator.json"
         return eval_file.exists()
     
@@ -175,7 +176,7 @@ class GPT4OEvaluator:
     async def evaluate_model_async(self, model_name: str, close_client: bool = False) -> Dict[str, Any]:
         """Evaluate all results for a model (async version)."""
         try:
-            model_dir = self.experiment_dir / model_name
+            model_dir = self.inference_dir / model_name
             if not model_dir.exists():
                 raise ValueError(f"Model directory not found: {model_dir}")
             
@@ -201,15 +202,14 @@ class GPT4OEvaluator:
                         skipped_tasks += 1
                         continue
                     
-                    output_dirs = list(task_dir.iterdir())
-                    if not output_dirs:
+                    run_dir = select_latest_run(task_dir)
+                    if not run_dir:
                         logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
                         continue
-                    
-                    output_dir = output_dirs[0]
-                    video_files = list((output_dir / "video").glob("*.mp4"))
+
+                    video_files = sorted((run_dir / "video").glob("*.mp4"))
                     if not video_files:
-                        logger.warning(f"No video in {output_dir / 'video'}")
+                        logger.warning(f"No video in {run_dir / 'video'}")
                         continue
                     
                     try:
@@ -245,14 +245,14 @@ class GPT4OEvaluator:
         """Evaluate all models in experiment (async version)."""
         try:
             all_results = {}
-            for model_dir in self.experiment_dir.iterdir():
+            for model_dir in self.inference_dir.iterdir():
                 if model_dir.is_dir():
                     model_name = model_dir.name
                     logger.info(f"Evaluating model: {model_name}")
                     all_results[model_name] = await self.evaluate_model_async(model_name)
             
             # Save combined results
-            output_path = self.output_dir / self.experiment_name / "GPT4OEvaluator_all_models.json"
+            output_path = self.eval_output_dir / "GPT4OEvaluator_all_models.json"
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w') as f:
                 json.dump({"metadata": {"evaluator": "GPT4OEvaluator", "timestamp": datetime.now().isoformat()},
@@ -267,7 +267,7 @@ class GPT4OEvaluator:
     
     def _save_single_result(self, model_name: str, task_type: str, task_id: str, eval_result: Dict[str, Any]):
         """Save a single evaluation result immediately (for resume support)."""
-        task_output_dir = self.output_dir / self.experiment_name / model_name / task_type / task_id
+        task_output_dir = self.eval_output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
         
         with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:

@@ -49,7 +49,7 @@ def run_inference(
     model_name: str,
     image_path: Union[str, Path],
     text_prompt: str,
-    output_dir: str = "./data/outputs",
+    output_dir: str = "./outputs",
     question_data: Optional[Dict[str, Any]] = None,
     **kwargs
 ) -> Dict[str, Any]:
@@ -109,12 +109,11 @@ class InferenceRunner:
     Enhanced inference runner with dynamic model loading.
     
     Each inference creates a self-contained folder with:
-    - video/: Generated video file(s)
-    - question/: Input images and prompt
-    - metadata.json: Complete inference metadata
+    - video/: Generated video as video.mp4
+    - question/: Input images, prompt, and metadata
     """
     
-    def __init__(self, output_dir: str = "./data/outputs"):
+    def __init__(self, output_dir: str = "./outputs"):
         """
         Initialize runner.
         
@@ -135,7 +134,6 @@ class InferenceRunner:
         model_name: str,
         image_path: Union[str, Path],
         text_prompt: str,
-        run_id: Optional[str] = None,
         question_data: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Dict[str, Any]:
@@ -146,7 +144,6 @@ class InferenceRunner:
             model_name: Model to use (from MODEL_CATALOG)
             image_path: Input image (first frame)
             text_prompt: Text instructions
-            run_id: Optional run identifier
             question_data: Optional question metadata
             **kwargs: Additional parameters
             
@@ -154,11 +151,6 @@ class InferenceRunner:
             Dictionary with results
         """
         start_time = datetime.now()
-        
-        # Generate run ID if not provided
-        if not run_id:
-            question_id = question_data.get('id', 'unknown') if question_data else 'unknown'
-            run_id = f"{model_name}_{question_id}_{start_time.strftime('%Y%m%d_%H%M%S')}"
         
         # Create structured output directory mirroring questions structure
         domain = None
@@ -168,8 +160,8 @@ class InferenceRunner:
             task_id = question_data.get("id", task_id)
         domain_dir_name = f"{domain}_task" if domain else "unknown_task"
 
-        task_base_dir = self.output_dir / domain_dir_name / task_id
-        inference_dir = task_base_dir / run_id
+        # Use flat structure: no run timestamp folder
+        inference_dir = self.output_dir / domain_dir_name / task_id
         inference_dir.mkdir(parents=True, exist_ok=True)
         
         # Get or create cached wrapper for this model
@@ -179,7 +171,7 @@ class InferenceRunner:
             
             init_kwargs = {
                 "model": model_config["model"],
-                "output_dir": str(task_base_dir),  # Will be updated to specific inference_dir/video later
+                "output_dir": str(self.output_dir),  # Will be updated to specific inference_dir/video later
             }
             
             if "args" in model_config:
@@ -201,25 +193,21 @@ class InferenceRunner:
         
         result = wrapper.generate(image_path, text_prompt, **kwargs)
         
-        # Add metadata
-        result["run_id"] = run_id
-        result["timestamp"] = start_time.isoformat()
-        result["inference_dir"] = str(inference_dir)
-        
         # Create question folder and copy images
         self._setup_question_folder(inference_dir, image_path, text_prompt, question_data)
-        self._save_metadata(inference_dir, result, question_data)
+        
+        # Rename video to video.mp4
+        self._rename_video_to_standard(video_dir, result)
         
         print(f"\n✅ Inference complete! Output saved to: {inference_dir}")
-        print(f"   - Video: {inference_dir}/video/")
-        print(f"   - Question data: {inference_dir}/question/")
-        print(f"   - Metadata: {inference_dir}/metadata.json")
+        print(f"   - Generated: {inference_dir}/video/video.mp4")
+        print(f"   - Question: {inference_dir}/question/")
         
         return result
     
     def _setup_question_folder(self, inference_dir: Path, first_image: Union[str, Path], 
                                prompt: str, question_data: Optional[Dict[str, Any]]):
-        """Create question folder with input images and prompt."""
+        """Create question folder with input images, prompt, and ground truth video."""
         question_dir = inference_dir / "question"
         question_dir.mkdir(exist_ok=True)
         
@@ -236,68 +224,33 @@ class InferenceRunner:
                 dest_final = question_dir / f"final_frame{final_image_path.suffix}"
                 shutil.copy2(final_image_path, dest_final)
         
+        # Copy ground truth video if available
+        if question_data and 'ground_truth_video' in question_data and question_data['ground_truth_video'] is not None:
+            gt_video_path = Path(question_data['ground_truth_video'])
+            if gt_video_path.exists():
+                dest_gt = question_dir / "ground_truth.mp4"
+                shutil.copy2(gt_video_path, dest_gt)
+        
+        # Save prompt
         prompt_file = question_dir / "prompt.txt"
         with open(prompt_file, 'w') as f:
             f.write(prompt)
-        
-        if question_data:
-            question_metadata_file = question_dir / "question_metadata.json"
-            with open(question_metadata_file, 'w') as f:
-                json.dump(question_data, f, indent=2)
     
-    def _save_metadata(self, inference_dir: Path, result: Dict[str, Any], 
-                      question_data: Optional[Dict[str, Any]]):
-        """Save complete metadata for the inference."""
-        metadata = {
-            "inference": {
-                "run_id": result.get("run_id"),
-                "model": result.get("model"),
-                "timestamp": result.get("timestamp"),
-                "status": result.get("status", "unknown"),
-                "duration_seconds": result.get("duration_seconds"),
-                "error": result.get("error")
-            },
-            "input": {
-                "prompt": result.get("metadata", {}).get("prompt", ""),
-                "image_path": result.get("metadata", {}).get("image_path", ""),
-                "question_id": question_data.get("id") if question_data else None,
-                "task_category": question_data.get("task_category") if question_data else None
-            },
-            "output": {
-                "video_path": result.get("video_path"),
-                "video_url": result.get("metadata", {}).get("video_url"),
-                "generation_id": result.get("generation_id")
-            },
-            "paths": {
-                "inference_dir": str(inference_dir),
-                "video_dir": str(inference_dir / "video"),
-                "question_dir": str(inference_dir / "question")
-            },
-            "question_data": question_data
-        }
+    def _rename_video_to_standard(self, video_dir: Path, result: Dict[str, Any]):
+        """Rename generated video to video.mp4."""
+        video_path = result.get("video_path")
+        if not video_path:
+            return
         
-        # Remove None values for cleaner output
-        metadata = self._remove_none_values(metadata)
+        video_path = Path(video_path)
+        if not video_path.exists():
+            return
         
-        metadata_file = inference_dir / "metadata.json"
-        with open(metadata_file, 'w') as f:
-            json.dump(metadata, f, indent=2)
-    
-    def _remove_none_values(self, d: Dict[str, Any]) -> Dict[str, Any]:
-        """Recursively remove None values from a dictionary."""
-        if not isinstance(d, dict):
-            return d
-        
-        clean = {}
-        for key, value in d.items():
-            if value is not None:
-                if isinstance(value, dict):
-                    nested = self._remove_none_values(value)
-                    if nested:
-                        clean[key] = nested
-                else:
-                    clean[key] = value
-        return clean
+        # Rename to video.mp4
+        target_path = video_dir / "video.mp4"
+        if video_path != target_path:
+            video_path.rename(target_path)
+            result["video_path"] = str(target_path)
     
     def _cleanup_failed_folder(self, inference_dir: Path):
         """Clean up folder if video generation failed."""

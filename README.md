@@ -60,12 +60,12 @@ pip install -e .
 # 2. Setup models
 bash setup/install_model.sh --model svd --validate
 
-# 3. Organize your questions data (see format above)
-mkdir -p ~/my_research/questions
+# # 3. Organize your questions data (see format above)
+# mkdir -p ~/my_research/questions
 
 # 4. Run inference
-python examples/generate_videos.py --questions-dir ~/my_research/questions --output-dir ~/my_research/outputs --model svd
-
+python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
+python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model LTX-2
 # 5. Run evaluation  
 # Create eval_config.json first:
 echo '{"method": "human", "inference_dir": "~/my_research/outputs", "eval_output_dir": "~/my_research/evaluations"}' > eval_config.json

@@ -148,6 +148,14 @@ LTX_VIDEO_MODELS = {
         "model": "Lightricks/LTX-Video-0.9.8-13B-distilled",
         "description": "LTX-Video 0.9.8 13B Distilled - Distilled version with 13B parameters",
         "family": "LTX-Video"
+    },
+    "LTX-2": {
+        "wrapper_module": "vmevalkit.models.ltx2_inference",
+        "wrapper_class": "LTX2Wrapper",
+        "service_class": "LTX2Service",
+        "model": "LTX-2",
+        "description": "LTX-2 19B FP8 - Text/image-to-video with audio generation (~40GB VRAM)",
+        "family": "LTX-Video"
     }
 }
 

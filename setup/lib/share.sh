@@ -21,6 +21,7 @@ export WEIGHTS_DIR="${VMEVAL_ROOT}/weights"
 declare -a OPENSOURCE_MODELS=(
     "ltx-video"
     "ltx-video-13b-distilled"
+    "LTX-2"
     "svd"
     "morphic-frames-to-video"
     "hunyuan-video-i2v"

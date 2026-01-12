@@ -1,0 +1,393 @@
+"""
+LTX-2 Inference Service for VMEvalKit
+
+Wrapper for the LTX-2 model to integrate with VMEvalKit's unified inference interface.
+Supports text-to-video and image-to-video generation using the LTX-2 19B model.
+
+The model is downloaded to LTX-2 directory at project root.
+Requires ~40GB VRAM, inference takes ~6 minutes on a single A6000.
+"""
+
+import os
+import sys
+import time
+import uuid
+import subprocess
+from pathlib import Path
+from typing import Dict, Any, Optional, Union, List, Tuple
+
+import torch
+from PIL import Image
+
+from .base import ModelWrapper
+
+# Paths
+VMEVAL_ROOT = Path(__file__).parent.parent.parent
+LTX2_PATH = VMEVAL_ROOT / "LTX-2"
+
+
+def ensure_ltx2_installed() -> bool:
+    """
+    Ensure LTX-2 is cloned and available in the project root directory.
+    
+    Returns:
+        True if LTX-2 is ready, False otherwise.
+    """
+    if LTX2_PATH.exists() and (LTX2_PATH / "packages").exists():
+        print(f"LTX-2 repository found at {LTX2_PATH}")
+        return True
+    
+    print(f"LTX-2 not found at {LTX2_PATH}")
+    print("Please clone LTX-2 repository:")
+    print(f"  git clone https://github.com/Lightricks/LTX-2.git {LTX2_PATH}")
+    return False
+
+
+def ensure_checkpoints_downloaded(checkpoint_path: Path, gemma_path: Path) -> bool:
+    """
+    Check if model checkpoints are already downloaded.
+    
+    Args:
+        checkpoint_path: Path to the main model checkpoint
+        gemma_path: Path to the Gemma model directory
+        
+    Returns:
+        True if all checkpoints exist, False otherwise.
+    """
+    checkpoint_exists = checkpoint_path.exists()
+    gemma_exists = gemma_path.exists() and any(gemma_path.iterdir())
+    
+    if checkpoint_exists:
+        print(f"Checkpoint found: {checkpoint_path.name}")
+    else:
+        print(f"Checkpoint missing: {checkpoint_path}")
+        
+    if gemma_exists:
+        print(f"Gemma model found: {gemma_path.name}")
+    else:
+        print(f"Gemma model missing: {gemma_path}")
+        
+    return checkpoint_exists and gemma_exists
+
+
+def add_ltx2_to_path():
+    """Add LTX-2 packages to Python path."""
+    ltx_core_path = LTX2_PATH / "packages" / "ltx-core" / "src"
+    ltx_pipelines_path = LTX2_PATH / "packages" / "ltx-pipelines" / "src"
+    
+    for path in [ltx_core_path, ltx_pipelines_path]:
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.insert(0, path_str)
+
+
+class LTX2Service:
+    """
+    Service class for LTX-2 inference integration.
+    Loads the model once and runs inference in-process.
+    """
+
+    # Model configuration mapping
+    CONFIG_MAPPING = {
+        "LTX-2": {
+            "checkpoint": "ltx-2-19b-distilled-fp8.safetensors",
+            "gemma_dir": "gemma3-12b-it-qat-q4_0-unquantized",
+            "resolution": (768, 512),  # (height, width)
+            "num_frames": 97,  # LTX-2 default
+            "frame_rate": 24.0,
+        },
+    }
+
+    def __init__(
+        self,
+        model_id: str = "LTX-2",
+        output_dir: str = "./outputs",
+        device: str = "cuda",
+        enable_fp8: bool = True,
+        **kwargs
+    ):
+        """
+        Initialize LTX-2 service and load model.
+
+        Args:
+            model_id: LTX-2 model variant
+            output_dir: Directory to save generated videos
+            device: Device to run inference on
+            enable_fp8: Enable FP8 transformer for memory efficiency
+            **kwargs: Additional parameters
+        """
+        self.model_id = model_id
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True, parents=True)
+        self.device = torch.device(device)
+        self.enable_fp8 = enable_fp8
+        self.kwargs = kwargs
+
+        # Validate model_id
+        assert model_id in self.CONFIG_MAPPING, (
+            f"Unknown model_id: {model_id}. "
+            f"Available: {list(self.CONFIG_MAPPING.keys())}"
+        )
+
+        self.model_config = self.CONFIG_MAPPING[model_id]
+        self.resolution = self.model_config["resolution"]  # (H, W)
+        self.num_frames = self.model_config["num_frames"]
+        self.frame_rate = self.model_config["frame_rate"]
+
+        # Ensure LTX-2 is installed and add to path
+        if not ensure_ltx2_installed():
+            raise RuntimeError("LTX-2 is not installed. Please run the setup script.")
+        
+        add_ltx2_to_path()
+
+        # Build checkpoint paths
+        self.checkpoint_path = str(LTX2_PATH / self.model_config["checkpoint"])
+        self.gemma_root = str(LTX2_PATH / self.model_config["gemma_dir"])
+
+        assert Path(self.checkpoint_path).exists(), (
+            f"Checkpoint not found: {self.checkpoint_path}\n"
+            f"Please run the setup script to download model weights."
+        )
+        assert Path(self.gemma_root).exists(), (
+            f"Gemma model not found: {self.gemma_root}\n"
+            f"Please run the setup script to download Gemma weights."
+        )
+
+        # Lazy load the pipeline
+        self._pipeline = None
+        print(f"LTX-2 service initialized: {model_id} @ {self.resolution}")
+
+    def _load_pipeline(self):
+        """Lazily load the LTX-2 pipeline."""
+        if self._pipeline is not None:
+            return self._pipeline
+
+        print("Loading LTX-2 pipeline...")
+        from ltx_pipelines.ti2vid_one_stage import TI2VidOneStagePipeline
+
+        self._pipeline = TI2VidOneStagePipeline(
+            checkpoint_path=self.checkpoint_path,
+            gemma_root=self.gemma_root,
+            loras=[],  # No LoRAs by default
+            device=self.device,
+            fp8transformer=self.enable_fp8,
+        )
+        print("LTX-2 pipeline loaded.")
+        return self._pipeline
+
+    @torch.inference_mode()
+    def generate(
+        self,
+        image_path: Optional[Union[str, Path]] = None,
+        text_prompt: str = "",
+        duration: float = 4.0,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        num_frames: Optional[int] = None,
+        frame_rate: Optional[float] = None,
+        seed: Optional[int] = None,
+        num_inference_steps: int = 30,
+        cfg_guidance_scale: float = 3.0,
+        negative_prompt: str = "",
+        enhance_prompt: bool = False,
+        output_filename: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate video from text prompt and optional image using LTX-2.
+
+        Args:
+            image_path: Optional path to input image for image-to-video
+            text_prompt: Text prompt for video generation
+            duration: Video duration in seconds (used to compute num_frames if not set)
+            height: Video height (uses model default if None)
+            width: Video width (uses model default if None)
+            num_frames: Number of frames to generate
+            frame_rate: Frames per second for output video
+            seed: Random seed for reproducibility
+            num_inference_steps: Number of diffusion sampling steps
+            cfg_guidance_scale: Classifier-free guidance scale
+            negative_prompt: Negative prompt for generation
+            enhance_prompt: Whether to enhance the prompt using Gemma
+            output_filename: Optional output filename (auto-generated if None)
+            **kwargs: Additional parameters
+
+        Returns:
+            Dictionary with generation results and metadata
+        """
+        start_time = time.time()
+        generation_id = f"ltx2_{uuid.uuid4().hex[:8]}"
+
+        # Set defaults
+        h = height if height is not None else self.resolution[0]
+        w = width if width is not None else self.resolution[1]
+        fps = frame_rate if frame_rate is not None else self.frame_rate
+        
+        # Calculate num_frames from duration if not specified
+        if num_frames is None:
+            num_frames = int(duration * fps) + 1  # +1 for initial frame
+            # LTX-2 has specific frame requirements (must be compatible with VAE)
+            num_frames = max(17, min(num_frames, 257))  # Clamp to valid range
+
+        # Set seed
+        if seed is None:
+            seed = int(time.time()) % 2147483647
+
+        # Prepare image conditioning
+        images: List[Tuple[str, int, float]] = []
+        if image_path is not None:
+            image_path = Path(image_path)
+            if image_path.exists():
+                # (image_path, frame_index, strength)
+                images = [(str(image_path), 0, 1.0)]
+            else:
+                print(f"Warning: Image not found: {image_path}")
+
+        # Load pipeline
+        pipeline = self._load_pipeline()
+
+        try:
+            # Run generation
+            video, audio = pipeline(
+                prompt=text_prompt,
+                negative_prompt=negative_prompt,
+                seed=seed,
+                height=h,
+                width=w,
+                num_frames=num_frames,
+                frame_rate=fps,
+                num_inference_steps=num_inference_steps,
+                cfg_guidance_scale=cfg_guidance_scale,
+                images=images,
+                enhance_prompt=enhance_prompt,
+            )
+
+            # Generate output filename
+            if output_filename is None:
+                output_filename = f"ltx2_{generation_id}.mp4"
+
+            output_path = self.output_dir / output_filename
+
+            # Import and use LTX-2's encode_video function
+            from ltx_pipelines.utils.media_io import encode_video
+            from ltx_pipelines.utils.constants import AUDIO_SAMPLE_RATE
+
+            encode_video(
+                video=video,
+                fps=fps,
+                audio=audio,
+                audio_sample_rate=AUDIO_SAMPLE_RATE,
+                output_path=str(output_path),
+                video_chunks_number=1,
+            )
+
+            duration_seconds = time.time() - start_time
+
+            return {
+                "success": True,
+                "video_path": str(output_path),
+                "error": None,
+                "duration_seconds": duration_seconds,
+                "generation_id": generation_id,
+                "model": self.model_id,
+                "status": "success",
+                "metadata": {
+                    "text_prompt": text_prompt,
+                    "negative_prompt": negative_prompt,
+                    "image_path": str(image_path) if image_path else None,
+                    "height": h,
+                    "width": w,
+                    "num_frames": num_frames,
+                    "frame_rate": fps,
+                    "seed": seed,
+                    "num_inference_steps": num_inference_steps,
+                    "cfg_guidance_scale": cfg_guidance_scale,
+                    "enhance_prompt": enhance_prompt,
+                }
+            }
+
+        except Exception as e:
+            duration_seconds = time.time() - start_time
+            return {
+                "success": False,
+                "video_path": None,
+                "error": str(e),
+                "duration_seconds": duration_seconds,
+                "generation_id": generation_id,
+                "model": self.model_id,
+                "status": "failed",
+                "metadata": {
+                    "text_prompt": text_prompt,
+                    "image_path": str(image_path) if image_path else None,
+                }
+            }
+
+
+class LTX2Wrapper(ModelWrapper):
+    """
+    Wrapper for LTX2Service to match VMEvalKit's standard interface.
+    """
+
+    def __init__(
+        self,
+        model: str = "LTX-2",
+        output_dir: str = "./outputs",
+        device: str = "cuda",
+        enable_fp8: bool = True,
+        **kwargs
+    ):
+        """Initialize LTX-2 wrapper."""
+        self.model = model
+        self._output_dir = Path(output_dir)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
+        self.kwargs = kwargs
+
+        # Create LTX2Service instance
+        self.service = LTX2Service(
+            model_id=model,
+            output_dir=str(self._output_dir),
+            device=device,
+            enable_fp8=enable_fp8,
+            **kwargs
+        )
+
+    @property
+    def output_dir(self) -> Path:
+        """Get the current output directory."""
+        return self._output_dir
+
+    @output_dir.setter
+    def output_dir(self, value: Union[str, Path]):
+        """Set the output directory and update the service's output_dir too."""
+        self._output_dir = Path(value)
+        self._output_dir.mkdir(exist_ok=True, parents=True)
+        self.service.output_dir = self._output_dir
+
+    def generate(
+        self,
+        image_path: Union[str, Path],
+        text_prompt: str,
+        duration: float = 4.0,
+        output_filename: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate video using LTX-2 (matches VMEvalKit interface).
+
+        Args:
+            image_path: Path to input image (optional for LTX-2, can be None)
+            text_prompt: Text prompt for video generation
+            duration: Video duration in seconds
+            output_filename: Optional output filename
+            **kwargs: Additional parameters (num_inference_steps, cfg_guidance_scale, seed, etc.)
+
+        Returns:
+            Dictionary with generation results
+        """
+        return self.service.generate(
+            image_path=image_path,
+            text_prompt=text_prompt,
+            duration=duration,
+            output_filename=output_filename,
+            **kwargs
+        )

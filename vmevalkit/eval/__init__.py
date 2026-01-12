@@ -5,7 +5,7 @@ reasoning capabilities.
 
 Core evaluators (lazy-loaded due to heavy dependencies):
 - HumanEvaluator: Gradio-based human evaluation interface
-- LastFrameGPT4OEvaluator: Last-frame evaluation using GPT-4O vision
+- GPT4OEvaluator: Single-frame evaluation using GPT-4O vision
 - InternVLEvaluator: Automated evaluation using local VLM
 - MultiFrameEvaluator: Generic multi-frame evaluator wrapper (works with any base evaluator)
 

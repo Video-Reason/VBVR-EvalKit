@@ -81,6 +81,61 @@ def add_ltx2_to_path():
             sys.path.insert(0, path_str)
 
 
+def preprocess_image_for_ltx2(
+    image_path: Path, 
+    target_width: int, 
+    target_height: int,
+    output_dir: Path
+) -> Path:
+    """
+    Preprocess image for LTX-2: scale proportionally to target width (no cropping).
+    
+    The image is scaled so that its width matches target_width, maintaining aspect ratio.
+    Height is then padded or cropped to match target_height if needed.
+    
+    Args:
+        image_path: Path to input image
+        target_width: Target width in pixels
+        target_height: Target height in pixels  
+        output_dir: Directory to save preprocessed image
+        
+    Returns:
+        Path to preprocessed image
+    """
+    img = Image.open(image_path).convert("RGB")
+    orig_w, orig_h = img.size
+    
+    # Scale proportionally based on target width
+    scale = target_width / orig_w
+    new_w = target_width
+    new_h = int(orig_h * scale)
+    
+    # Resize image proportionally
+    img_resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    
+    # Handle height: pad or crop to match target_height
+    if new_h < target_height:
+        # Pad with black bars (letterbox)
+        result = Image.new("RGB", (target_width, target_height), (0, 0, 0))
+        paste_y = (target_height - new_h) // 2
+        result.paste(img_resized, (0, paste_y))
+    elif new_h > target_height:
+        # Crop from center
+        crop_y = (new_h - target_height) // 2
+        result = img_resized.crop((0, crop_y, target_width, crop_y + target_height))
+    else:
+        result = img_resized
+    
+    # Save preprocessed image
+    output_dir.mkdir(parents=True, exist_ok=True)
+    preprocessed_path = output_dir / f"preprocessed_{image_path.name}"
+    result.save(preprocessed_path)
+    
+    print(f"Preprocessed image: {orig_w}x{orig_h} -> {target_width}x{target_height} (saved to {preprocessed_path})")
+    
+    return preprocessed_path
+
+
 class LTX2Service:
     """
     Service class for LTX-2 inference integration.
@@ -233,13 +288,20 @@ class LTX2Service:
         if seed is None:
             seed = int(time.time()) % 2147483647
 
-        # Prepare image conditioning
+        # Prepare image conditioning with preprocessing
         images: List[Tuple[str, int, float]] = []
         if image_path is not None:
             image_path = Path(image_path)
             if image_path.exists():
+                # Preprocess image: scale proportionally to target width (no left/right cropping)
+                preprocessed_path = preprocess_image_for_ltx2(
+                    image_path=image_path,
+                    target_width=w,
+                    target_height=h,
+                    output_dir=self.output_dir / "_preprocessed"
+                )
                 # (image_path, frame_index, strength)
-                images = [(str(image_path), 0, 1.0)]
+                images = [(str(preprocessed_path), 0, 1.0)]
             else:
                 print(f"Warning: Image not found: {image_path}")
 

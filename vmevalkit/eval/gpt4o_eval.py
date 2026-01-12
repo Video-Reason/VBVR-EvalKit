@@ -65,7 +65,7 @@ class GPT4OEvaluator:
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated."""
         eval_path = self.eval_output_dir / model_name / task_type / task_id
-        eval_file = eval_path / "GPT4OEvaluator.json"
+        eval_file = eval_path / "LastFrameGPT4OEvaluator.json"
         return eval_file.exists()
     
     def extract_final_frame(self, video_path: str) -> np.ndarray:
@@ -259,7 +259,7 @@ class GPT4OEvaluator:
             output_path = self.eval_output_dir / "GPT4OEvaluator_summary.json"
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w') as f:
-                json.dump({"metadata": {"evaluator": "GPT4OEvaluator", "timestamp": datetime.now().isoformat()},
+                json.dump({"metadata": {"evaluator": "LastFrameGPT4OEvaluator", "timestamp": datetime.now().isoformat()},
                           "results": all_results}, f, indent=2)
             return all_results
         finally:
@@ -274,10 +274,10 @@ class GPT4OEvaluator:
         task_output_dir = self.eval_output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
         
-        with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:
+        with open(task_output_dir / "LastFrameGPT4OEvaluator.json", 'w') as f:
             json.dump({
                 "metadata": {
-                    "evaluator": "GPT4OEvaluator",
+                    "evaluator": "LastFrameGPT4OEvaluator",
                     "timestamp": datetime.now().isoformat(),
                     "model_name": model_name,
                     "task_type": task_type,

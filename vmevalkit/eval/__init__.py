@@ -40,7 +40,7 @@ from .voting import (
 # Type hints for lazy-loaded classes
 if TYPE_CHECKING:
     from .human_eval import HumanEvaluator
-    from .gpt4o_eval import LastFrameGPT4OEvaluator
+    from .gpt4o_eval import GPT4OEvaluator
     from .internvl import InternVLEvaluator
     from .multiframe_eval import MultiFrameEvaluator
 
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 # Lazy loading for evaluators with heavy dependencies
 _LAZY_MODULES = {
     'HumanEvaluator': '.human_eval',
-    'LastFrameGPT4OEvaluator': '.gpt4o_eval',
+    'GPT4OEvaluator': '.gpt4o_eval',
     'InternVLEvaluator': '.internvl',
     'MultiFrameEvaluator': '.multiframe_eval',
 }
@@ -65,7 +65,7 @@ def __getattr__(name: str):
 __all__ = [
     # Core evaluators (lazy-loaded)
     'HumanEvaluator',
-    'LastFrameGPT4OEvaluator',
+    'GPT4OEvaluator',
     'InternVLEvaluator',
     'MultiFrameEvaluator',
     # Frame sampling

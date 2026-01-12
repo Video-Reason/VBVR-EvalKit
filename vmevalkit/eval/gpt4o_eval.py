@@ -1,7 +1,7 @@
-"""Last-frame evaluation using GPT-4O for VMEvalKit.
+"""GPT-4O vision model evaluator for VMEvalKit.
 
-MODIFIED: Renamed from GPT4OEvaluator to LastFrameGPT4OEvaluator
-for better clarity and consistency with MultiFrameGPT4OEvaluator naming.
+Provides single-frame evaluation using OpenAI's GPT-4O vision model.
+Can be used standalone or wrapped by MultiFrameEvaluator for multi-frame evaluation.
 """
 
 import json
@@ -37,8 +37,8 @@ TASK_GUIDANCE = {
 }
 
 
-class LastFrameGPT4OEvaluator:
-    """Last-frame evaluation using GPT-4O vision model."""
+class GPT4OEvaluator:
+    """GPT-4O vision model evaluator for single-frame evaluation."""
     
     def __init__(self, 
                  inference_dir: str,
@@ -65,7 +65,7 @@ class LastFrameGPT4OEvaluator:
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated."""
         eval_path = self.eval_output_dir / model_name / task_type / task_id
-        eval_file = eval_path / "LastFrameGPT4OEvaluator.json"
+        eval_file = eval_path / "GPT4OEvaluator.json"
         return eval_file.exists()
     
     def extract_final_frame(self, video_path: str) -> np.ndarray:
@@ -256,10 +256,10 @@ class LastFrameGPT4OEvaluator:
                     all_results[model_name] = await self.evaluate_model_async(model_name)
             
             # Save combined results
-            output_path = self.eval_output_dir / "LastFrameGPT4OEvaluator_all_models.json"
+            output_path = self.eval_output_dir / "GPT4OEvaluator_summary.json"
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w') as f:
-                json.dump({"metadata": {"evaluator": "LastFrameGPT4OEvaluator", "timestamp": datetime.now().isoformat()},
+                json.dump({"metadata": {"evaluator": "GPT4OEvaluator", "timestamp": datetime.now().isoformat()},
                           "results": all_results}, f, indent=2)
             return all_results
         finally:
@@ -274,10 +274,10 @@ class LastFrameGPT4OEvaluator:
         task_output_dir = self.eval_output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
         
-        with open(task_output_dir / "LastFrameGPT4OEvaluator.json", 'w') as f:
+        with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:
             json.dump({
                 "metadata": {
-                    "evaluator": "LastFrameGPT4OEvaluator",
+                    "evaluator": "GPT4OEvaluator",
                     "timestamp": datetime.now().isoformat(),
                     "model_name": model_name,
                     "task_type": task_type,

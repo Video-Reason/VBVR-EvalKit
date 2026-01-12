@@ -118,9 +118,8 @@ class MultiFrameEvaluator:
         """
         self.base_evaluator = base_evaluator
 
-        # Determine evaluator type for naming
-        base_class_name = base_evaluator.__class__.__name__
-        self.evaluator_name = f"MultiFrame{base_class_name}"
+        # Use base evaluator's name directly (evaluation method is indicated by directory path)
+        self.evaluator_name = base_evaluator.__class__.__name__
 
         # Multi-frame configuration
         self.n_frames = n_frames
@@ -470,7 +469,7 @@ class MultiFrameEvaluator:
                 all_results[model_name] = await self.evaluate_model_async(model_name)
 
         # Save combined results
-        output_path = self.output_dir / f"{self.evaluator_name}_all_models.json"
+        output_path = self.output_dir / f"{self.evaluator_name}_summary.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, 'w') as f:
             json.dump({

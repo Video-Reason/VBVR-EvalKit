@@ -126,7 +126,7 @@ def run_human_evaluation(config: EvalConfig):
 
 def run_gpt4o_evaluation(config: EvalConfig):
     """Run single-frame GPT-4O evaluation."""
-    from vmevalkit.eval import LastFrameGPT4OEvaluator
+    from vmevalkit.eval import GPT4OEvaluator
     
     print("\n" + "=" * 60)
     print("GPT-4O EVALUATION")
@@ -141,7 +141,7 @@ def run_gpt4o_evaluation(config: EvalConfig):
         print("\nError: OPENAI_API_KEY not set in config or environment!")
         sys.exit(1)
     
-    scorer = LastFrameGPT4OEvaluator(
+    scorer = GPT4OEvaluator(
         inference_dir=config.inference_dir,
         eval_output_dir=config.eval_output_dir,
         temperature=config.temperature
@@ -184,7 +184,7 @@ def run_internvl_evaluation(config: EvalConfig):
 
 def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     """Run multi-frame evaluation with voting aggregation."""
-    from vmevalkit.eval import MultiFrameEvaluator, LastFrameGPT4OEvaluator, InternVLEvaluator
+    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator
     
     mf = config.multiframe
     
@@ -211,7 +211,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             sys.exit(1)
         base_evaluator = GPT4OEvaluator(
             inference_dir=config.inference_dir,
-            eval_output_dir=f"{config.eval_output_dir}/gpt4o",
+            eval_output_dir=config.eval_output_dir,
             temperature=config.temperature
         )
     else:  # internvl
@@ -220,7 +220,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
         print(f"  - base_url: {base_url}")
         base_evaluator = InternVLEvaluator(
             inference_dir=config.inference_dir,
-            eval_output_dir=f"{config.eval_output_dir}/internvl",
+            eval_output_dir=config.eval_output_dir,
             api_key=api_key,
             base_url=base_url,
             temperature=config.temperature

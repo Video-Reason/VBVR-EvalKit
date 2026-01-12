@@ -190,45 +190,107 @@ class GPT4OEvaluator:
             evaluated_tasks = 0
             failed_tasks = 0
             
-            for task_type_dir in model_dir.iterdir():
-                if not task_type_dir.is_dir(): continue
-                task_type = task_type_dir.name
-                results["evaluations"][task_type] = {}
+            # Support both 2-layer and 3-layer directory structures
+            # 2-layer: model/task_type/task_id
+            # 3-layer: model/generator/task_type/task_id
+            
+            for first_level_dir in model_dir.iterdir():
+                if not first_level_dir.is_dir(): continue
                 
-                for task_dir in task_type_dir.iterdir():
-                    if not task_dir.is_dir(): continue
-                    task_id = task_dir.name
-                    total_tasks += 1
+                # Check if this is a generator directory (3-layer) or task_type directory (2-layer)
+                # Generator directories typically have names like "G-1_task-generator"
+                is_generator_dir = first_level_dir.name.startswith("G-") and "_data-generator" in first_level_dir.name
+                
+                if is_generator_dir:
+                    # 3-layer structure: model/generator/task_type/task_id
+                    generator_name = first_level_dir.name
+                    logger.info(f"Processing generator: {generator_name}")
                     
-                    # Check if already evaluated (RESUME MECHANISM)
-                    if self._has_evaluation(model_name, task_type, task_id):
-                        logger.debug(f"Skipping {model_name}/{task_type}/{task_id} - already evaluated")
-                        skipped_tasks += 1
-                        continue
-                    
-                    run_dir = select_latest_run(task_dir)
-                    if not run_dir:
-                        logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
-                        continue
+                    for task_type_dir in first_level_dir.iterdir():
+                        if not task_type_dir.is_dir(): continue
+                        task_type = task_type_dir.name
+                        
+                        # Use full path as task_type to keep generator info
+                        full_task_type = f"{generator_name}/{task_type}"
+                        results["evaluations"][full_task_type] = {}
+                        
+                        for task_dir in task_type_dir.iterdir():
+                            if not task_dir.is_dir(): continue
+                            task_id = task_dir.name
+                            total_tasks += 1
+                            
+                            # Check if already evaluated
+                            if self._has_evaluation(model_name, full_task_type, task_id):
+                                logger.debug(f"Skipping {model_name}/{full_task_type}/{task_id} - already evaluated")
+                                skipped_tasks += 1
+                                continue
+                            
+                            run_dir = select_latest_run(task_dir)
+                            if not run_dir:
+                                logger.warning(f"No output for {model_name}/{full_task_type}/{task_id}")
+                                continue
 
-                    video_files = sorted((run_dir / "video").glob("*.mp4"))
-                    if not video_files:
-                        logger.warning(f"No video in {run_dir / 'video'}")
-                        continue
+                            video_files = sorted((run_dir / "video").glob("*.mp4"))
+                            if not video_files:
+                                logger.warning(f"No video in {run_dir / 'video'}")
+                                continue
+                            
+                            try:
+                                logger.info(f"Evaluating {model_name}/{full_task_type}/{task_id}")
+                                eval_result = await self.evaluate_single_async(model_name, full_task_type, task_id, str(video_files[0]))
+                                results["evaluations"][full_task_type][task_id] = eval_result
+                                
+                                # Save immediately after each evaluation
+                                self._save_single_result(model_name, full_task_type, task_id, eval_result)
+                                evaluated_tasks += 1
+                                
+                            except Exception as e:
+                                logger.error(f"Error evaluating {model_name}/{full_task_type}/{task_id}: {e}")
+                                failed_tasks += 1
+                                results["evaluations"][full_task_type][task_id] = {
+                                    "status": "failed",
+                                    "error": str(e)
+                                }
+                else:
+                    # 2-layer structure: model/task_type/task_id (backward compatibility)
+                    task_type_dir = first_level_dir
+                    task_type = task_type_dir.name
+                    results["evaluations"][task_type] = {}
                     
-                    try:
-                        logger.info(f"Evaluating {model_name}/{task_type}/{task_id}")
-                        eval_result = await self.evaluate_single_async(model_name, task_type, task_id, str(video_files[0]))
-                        results["evaluations"][task_type][task_id] = eval_result
+                    for task_dir in task_type_dir.iterdir():
+                        if not task_dir.is_dir(): continue
+                        task_id = task_dir.name
+                        total_tasks += 1
                         
-                        # Save immediately after each evaluation (RESUME SUPPORT)
-                        self._save_single_result(model_name, task_type, task_id, eval_result)
-                        evaluated_tasks += 1
+                        # Check if already evaluated
+                        if self._has_evaluation(model_name, task_type, task_id):
+                            logger.debug(f"Skipping {model_name}/{task_type}/{task_id} - already evaluated")
+                            skipped_tasks += 1
+                            continue
                         
-                    except Exception as e:
-                        logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
-                        results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
-                        failed_tasks += 1
+                        run_dir = select_latest_run(task_dir)
+                        if not run_dir:
+                            logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
+                            continue
+
+                        video_files = sorted((run_dir / "video").glob("*.mp4"))
+                        if not video_files:
+                            logger.warning(f"No video in {run_dir / 'video'}")
+                            continue
+                        
+                        try:
+                            logger.info(f"Evaluating {model_name}/{task_type}/{task_id}")
+                            eval_result = await self.evaluate_single_async(model_name, task_type, task_id, str(video_files[0]))
+                            results["evaluations"][task_type][task_id] = eval_result
+                            
+                            # Save immediately after each evaluation
+                            self._save_single_result(model_name, task_type, task_id, eval_result)
+                            evaluated_tasks += 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
+                            results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
+                            failed_tasks += 1
             
             logger.info(f"GPT-4O Evaluation Summary for {model_name}:")
             logger.info(f"  - Total tasks: {total_tasks}")

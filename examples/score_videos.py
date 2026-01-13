@@ -46,7 +46,7 @@ class EvalMethod(str, Enum):
 
 class SamplingStrategy(str, Enum):
     """Frame sampling strategies for video evaluation."""
-    SINGLE_FRAME = "single_frame"  # Single-frame evaluation (last frame)
+    LAST_FRAME = "last_frame"      # Single-frame evaluation (last frame)
     UNIFORM = "uniform"             # Multi-frame: uniform sampling
     KEYFRAME = "keyframe"           # Multi-frame: keyframe detection
     HYBRID = "hybrid"               # Multi-frame: hybrid strategy
@@ -555,9 +555,9 @@ Available methods:
         sampling_strategy = SamplingStrategy(multiframe_strategy)
         logger.info(f"Inferred multi-frame sampling strategy: {sampling_strategy.value}")
     else:
-        # Default to single-frame
-        sampling_strategy = SamplingStrategy.SINGLE_FRAME
-        logger.info("Defaulting to single-frame sampling strategy")
+        # Default to single-frame (last frame)
+        sampling_strategy = SamplingStrategy.LAST_FRAME
+        logger.info("Defaulting to last-frame sampling strategy")
     
     # 2. Determine evaluator
     if args.evaluator:
@@ -630,7 +630,7 @@ Available methods:
     # Run evaluation based on sampling strategy and evaluator
     logger.info(f"Starting evaluation: {sampling_strategy.value} + {evaluator.value}")
     
-    if sampling_strategy == SamplingStrategy.SINGLE_FRAME:
+    if sampling_strategy == SamplingStrategy.LAST_FRAME:
         # Single-frame evaluation
         if evaluator == Evaluator.HUMAN:
             run_human_evaluation(config)

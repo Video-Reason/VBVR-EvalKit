@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,11 +23,38 @@ fi
 
 cd "${LTX2_DIR}"
 
-# Install dependencies using uv sync
-print_info "Installing dependencies..."
-uv sync
+# Install dependencies using pip (based on uv.lock requirements)
+print_info "Installing PyTorch stack..."
+pip install -q "torch~=2.7" "torchaudio>=2.5.0" "torchvision>=0.21.0"
 
-source .venv/bin/activate
+print_info "Installing core dependencies..."
+pip install -q einops numpy transformers safetensors "accelerate>=1.2.1" "scipy>=1.14"
+pip install -q "av>=14.2.1" tqdm "pillow>=10.0.0"
+pip install -q xformers
+pip install -q python-dotenv
+
+print_info "Installing additional LTX-2 dependencies..."
+# Image/video processing
+pip install -q "imageio>=2.37.0" "imageio-ffmpeg>=0.6.0" "opencv-python>=4.11.0.86"
+pip install -q "pillow-heif>=0.21.0" "scenedetect>=0.6.5.2"
+
+# ML/quantization tools
+pip install -q "optimum-quanto>=0.2.6" "peft>=0.14.0"
+pip install -q "bitsandbytes>=0.45.2"  # Linux only
+
+# Utilities
+pip install -q "pydantic>=2.10.4" "rich>=13.9.4" "typer>=0.15.1"
+pip install -q "sentencepiece>=0.2.0" "pandas>=2.2.3"
+pip install -q "setuptools>=80.9.0"
+
+# Install local packages in editable mode
+print_info "Installing LTX-2 local packages..."
+pip install -q -e "${LTX2_DIR}/packages/ltx-core"
+pip install -q -e "${LTX2_DIR}/packages/ltx-pipelines"
+
+# Hugging Face Hub with CLI and xet support
+pip install -q "huggingface_hub[cli,hf-xet]>=0.31.4"
+
 
 print_section "Checkpoints"
 cd "${LTX2_DIR}"
@@ -46,7 +74,7 @@ if [ -f "${CHECKPOINT_FILE}" ]; then
     print_skip "LTX-2 checkpoint already downloaded"
 else
     print_info "Downloading LTX-2 checkpoint..."
-    huggingface-cli download Lightricks/LTX-2 ltx-2-19b-distilled-fp8.safetensors --local-dir ./
+    hf download Lightricks/LTX-2 ltx-2-19b-distilled-fp8.safetensors --local-dir ./
 fi
 
 print_success "${MODEL} setup complete"

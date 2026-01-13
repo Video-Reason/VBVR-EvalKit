@@ -53,7 +53,8 @@ dependencies = [
     
     # Progress and logging
     "tqdm>=4.66.0",
-    "rich>=13.7.0"
+    "rich>=13.7.0",
+    "python-dotenv>=1.0.0"
 ]
 
 [project.optional-dependencies]

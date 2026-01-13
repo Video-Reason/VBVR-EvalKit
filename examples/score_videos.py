@@ -45,10 +45,19 @@ class EvalMethod(str, Enum):
 
 
 class SamplingStrategy(str, Enum):
-    """Frame sampling strategies for multi-frame evaluation."""
-    UNIFORM = "uniform"
-    KEYFRAME = "keyframe"
-    HYBRID = "hybrid"
+    """Frame sampling strategies for video evaluation."""
+    SINGLE_FRAME = "single_frame"  # Single-frame evaluation (last frame)
+    UNIFORM = "uniform"             # Multi-frame: uniform sampling
+    KEYFRAME = "keyframe"           # Multi-frame: keyframe detection
+    HYBRID = "hybrid"               # Multi-frame: hybrid strategy
+
+
+class Evaluator(str, Enum):
+    """VLM evaluators for video assessment."""
+    GPT4O = "gpt4o"
+    INTERNVL = "internvl"
+    QWEN = "qwen"
+    HUMAN = "human"
 
 
 class VotingMethod(str, Enum):
@@ -82,7 +91,13 @@ class MultiFrameConfig(BaseModel):
 
 class EvalConfig(BaseModel):
     """Main evaluation configuration."""
-    method: Optional[EvalMethod] = Field(default=None, description="Evaluation method (can be overridden by --evaluator)")
+    # New architecture: separate sampling strategy and evaluator
+    sampling_strategy: Optional[SamplingStrategy] = Field(default=None, description="Frame sampling strategy")
+    evaluator: Optional[Evaluator] = Field(default=None, description="VLM evaluator to use")
+    
+    # Legacy field for backward compatibility (deprecated)
+    method: Optional[EvalMethod] = Field(default=None, description="[DEPRECATED] Use sampling_strategy + evaluator instead")
+    
     inference_dir: str = Field(default="./outputs", description="Path to inference outputs to evaluate")
     eval_output_dir: str = Field(default="./evaluations", description="Path for evaluation results")
     
@@ -526,59 +541,84 @@ Available methods:
     
     config = EvalConfig(**config_dict)
     
-    # Override evaluator from command line if specified
-    if args.evaluator:
-        logger.info(f"Overriding evaluator from command line: {args.evaluator}")
-        
-        # Detect sampling strategy from config
-        is_multiframe = 'multiframe' in config_dict
-        
-        # Map evaluator string to appropriate EvalMethod enum
-        if is_multiframe:
-            # Multi-frame evaluation
-            logger.info("Detected multi-frame configuration")
-            evaluator_map = {
-                'gpt4o': EvalMethod.MULTIFRAME_GPT4O,
-                'internvl': EvalMethod.MULTIFRAME_INTERNVL,
-                'qwen': EvalMethod.MULTIFRAME_QWEN,
-            }
-        else:
-            # Single-frame evaluation
-            logger.info("Detected single-frame configuration")
-            evaluator_map = {
-                'gpt4o': EvalMethod.GPT4O,
-                'internvl': EvalMethod.INTERNVL,
-                'qwen': EvalMethod.QWEN,
-            }
-        
-        if args.evaluator in evaluator_map:
-            config.method = evaluator_map[args.evaluator]
-            logger.info(f"Mapped to EvalMethod: {config.method}")
-        else:
-            print(f"Error: Unknown evaluator: {args.evaluator}")
-            print(f"Available: {list(evaluator_map.keys())}")
-            sys.exit(1)
-        
-        # Resolve dynamic paths (if config file uses placeholders)
-        eval_method_name = config_path.stem  # e.g., 'last_frame'
-        
-        if '{evaluator}' in config.eval_output_dir:
-            config.eval_output_dir = config.eval_output_dir.replace('{evaluator}', args.evaluator)
-        
-        if '{method}' in config.eval_output_dir:
-            config.eval_output_dir = config.eval_output_dir.replace('{method}', eval_method_name)
-        
-        # For multi-frame, also replace {strategy} if present
-        if is_multiframe and '{strategy}' in config.eval_output_dir:
-            strategy = config_dict.get('multiframe', {}).get('strategy', 'unknown')
-            config.eval_output_dir = config.eval_output_dir.replace('{strategy}', strategy)
+    # New architecture: Infer sampling strategy and evaluator
+    logger.info("=== Configuration Processing ===")
     
-    # Validate that an evaluator is specified
-    if config.method is None:
+    # 1. Determine sampling strategy
+    if config.sampling_strategy:
+        # Explicitly specified in config
+        sampling_strategy = config.sampling_strategy
+        logger.info(f"Sampling strategy from config: {sampling_strategy.value}")
+    elif 'multiframe' in config_dict:
+        # Multi-frame configuration detected
+        multiframe_strategy = config_dict['multiframe'].get('strategy', 'uniform')
+        sampling_strategy = SamplingStrategy(multiframe_strategy)
+        logger.info(f"Inferred multi-frame sampling strategy: {sampling_strategy.value}")
+    else:
+        # Default to single-frame
+        sampling_strategy = SamplingStrategy.SINGLE_FRAME
+        logger.info("Defaulting to single-frame sampling strategy")
+    
+    # 2. Determine evaluator
+    if args.evaluator:
+        # Command line override
+        try:
+            evaluator = Evaluator(args.evaluator)
+            logger.info(f"Evaluator from command line: {evaluator.value}")
+        except ValueError:
+            print(f"❌ Error: Unknown evaluator: {args.evaluator}")
+            print(f"   Available: {[e.value for e in Evaluator]}")
+            sys.exit(1)
+    elif config.evaluator:
+        # Explicitly specified in config
+        evaluator = config.evaluator
+        logger.info(f"Evaluator from config: {evaluator.value}")
+    elif config.method:
+        # Legacy method field - map to new architecture
+        logger.warning("Using deprecated 'method' field - please update config to use 'evaluator'")
+        legacy_map = {
+            EvalMethod.HUMAN: Evaluator.HUMAN,
+            EvalMethod.GPT4O: Evaluator.GPT4O,
+            EvalMethod.INTERNVL: Evaluator.INTERNVL,
+            EvalMethod.QWEN: Evaluator.QWEN,
+            EvalMethod.MULTIFRAME_GPT4O: Evaluator.GPT4O,
+            EvalMethod.MULTIFRAME_INTERNVL: Evaluator.INTERNVL,
+            EvalMethod.MULTIFRAME_QWEN: Evaluator.QWEN,
+        }
+        evaluator = legacy_map.get(config.method)
+        if not evaluator:
+            print(f"❌ Error: Unknown method: {config.method}")
+            sys.exit(1)
+        logger.info(f"Mapped legacy method to evaluator: {evaluator.value}")
+    else:
         print("❌ Error: No evaluator specified!")
-        print("   Please specify 'method' in config file OR use --evaluator flag")
+        print("   Please specify 'evaluator' in config file OR use --evaluator flag")
         print("   Example: python score_videos.py --eval-config config.json --evaluator gpt4o")
         sys.exit(1)
+    
+    # 3. Update config with resolved values
+    config.sampling_strategy = sampling_strategy
+    config.evaluator = evaluator
+    
+    # 4. Resolve dynamic paths
+    eval_method_name = config_path.stem  # e.g., 'last_frame'
+    
+    replacements = {
+        '{evaluator}': evaluator.value,
+        '{method}': eval_method_name,
+        '{strategy}': sampling_strategy.value,
+    }
+    
+    for placeholder, value in replacements.items():
+        if placeholder in config.eval_output_dir:
+            config.eval_output_dir = config.eval_output_dir.replace(placeholder, value)
+            logger.info(f"Replaced {placeholder} with {value} in output path")
+    
+    logger.info(f"Final configuration:")
+    logger.info(f"  Sampling Strategy: {sampling_strategy.value}")
+    logger.info(f"  Evaluator: {evaluator.value}")
+    logger.info(f"  Output Directory: {config.eval_output_dir}")
+    logger.info("=" * 40)
     
     # Check inference directory
     inference_path = Path(config.inference_dir)
@@ -587,24 +627,36 @@ Available methods:
         print("Please run inference first to generate videos.")
         sys.exit(1)
     
-    # Run appropriate evaluation method
-    if config.method == EvalMethod.HUMAN:
-        run_human_evaluation(config)
-    elif config.method == EvalMethod.GPT4O:
-        run_gpt4o_evaluation(config)
-    elif config.method == EvalMethod.INTERNVL:
-        run_internvl_evaluation(config)
-    elif config.method == EvalMethod.QWEN:
-        print("❌ Error: Qwen evaluator not yet implemented")
-        print("   Coming soon!")
-        sys.exit(1)
-    elif config.method == EvalMethod.MULTIFRAME_GPT4O:
-        run_multiframe_evaluation(config, "gpt4o")
-    elif config.method == EvalMethod.MULTIFRAME_INTERNVL:
-        run_multiframe_evaluation(config, "internvl")
-    elif config.method == EvalMethod.MULTIFRAME_QWEN:
-        print("❌ Error: Multi-frame Qwen evaluator not yet implemented")
-        print("   Coming soon!")
+    # Run evaluation based on sampling strategy and evaluator
+    logger.info(f"Starting evaluation: {sampling_strategy.value} + {evaluator.value}")
+    
+    if sampling_strategy == SamplingStrategy.SINGLE_FRAME:
+        # Single-frame evaluation
+        if evaluator == Evaluator.HUMAN:
+            run_human_evaluation(config)
+        elif evaluator == Evaluator.GPT4O:
+            run_gpt4o_evaluation(config)
+        elif evaluator == Evaluator.INTERNVL:
+            run_internvl_evaluation(config)
+        elif evaluator == Evaluator.QWEN:
+            print("❌ Error: Qwen evaluator not yet implemented")
+            print("   Coming soon!")
+            sys.exit(1)
+    
+    elif sampling_strategy in [SamplingStrategy.UNIFORM, SamplingStrategy.KEYFRAME, SamplingStrategy.HYBRID]:
+        # Multi-frame evaluation
+        if evaluator == Evaluator.HUMAN:
+            print("❌ Error: Human evaluation not supported for multi-frame")
+            sys.exit(1)
+        elif evaluator in [Evaluator.GPT4O, Evaluator.INTERNVL]:
+            run_multiframe_evaluation(config, evaluator.value)
+        elif evaluator == Evaluator.QWEN:
+            print("❌ Error: Multi-frame Qwen evaluator not yet implemented")
+            print("   Coming soon!")
+            sys.exit(1)
+    
+    else:
+        print(f"❌ Error: Unknown sampling strategy: {sampling_strategy}")
         sys.exit(1)
 
 

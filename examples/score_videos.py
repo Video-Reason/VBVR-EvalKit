@@ -185,9 +185,40 @@ def run_internvl_evaluation(config: EvalConfig):
     _run_vlm_evaluation(scorer, "InternVL", config.eval_output_dir)
 
 
+def run_qwen_evaluation(config: EvalConfig):
+    """Run single-frame Qwen3-VL evaluation."""
+    from vmevalkit.eval import Qwen3VLEvaluator
+    
+    print("\n" + "=" * 60)
+    print("QWEN3-VL EVALUATION")
+    print("=" * 60)
+    print(f"Inference Dir: {config.inference_dir}")
+    print(f"Eval Output Dir: {config.eval_output_dir}")
+    print(f"Temperature: {config.temperature}")
+    
+    api_key = config.api_key or os.getenv("QWEN_API_KEY", "EMPTY")
+    base_url = config.base_url or os.getenv("QWEN_API_BASE", "http://localhost:8000/v1")
+    
+    print(f"Base URL: {base_url}")
+    
+    if api_key == "EMPTY":
+        print("Warning: Using default API key. Set QWEN_API_KEY if needed.")
+    
+    scorer = Qwen3VLEvaluator(
+        inference_dir=config.inference_dir,
+        eval_output_dir=config.eval_output_dir,
+        api_key=api_key,
+        base_url=base_url,
+        temperature=config.temperature
+    )
+    
+    _check_existing_evaluations(config.eval_output_dir)
+    _run_vlm_evaluation(scorer, "Qwen3-VL", config.eval_output_dir)
+
+
 def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     """Run multi-frame evaluation with voting aggregation."""
-    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator
+    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator, Qwen3VLEvaluator
     
     mf = config.multiframe
     
@@ -217,7 +248,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             eval_output_dir=config.eval_output_dir,
             temperature=config.temperature
         )
-    else:  # internvl
+    elif evaluator_type == "internvl":
         api_key = config.api_key or os.getenv("VISION_API_KEY", "YOUR_API_KEY")
         base_url = config.base_url or os.getenv("VISION_API_BASE", "http://0.0.0.0:23333/v1")
         print(f"  - base_url: {base_url}")
@@ -228,6 +259,20 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             base_url=base_url,
             temperature=config.temperature
         )
+    elif evaluator_type == "qwen":
+        api_key = config.api_key or os.getenv("QWEN_API_KEY", "EMPTY")
+        base_url = config.base_url or os.getenv("QWEN_API_BASE", "http://localhost:8000/v1")
+        print(f"  - base_url: {base_url}")
+        base_evaluator = Qwen3VLEvaluator(
+            inference_dir=config.inference_dir,
+            eval_output_dir=config.eval_output_dir,
+            api_key=api_key,
+            base_url=base_url,
+            temperature=config.temperature
+        )
+    else:
+        print(f"\nError: Unknown evaluator type: {evaluator_type}")
+        sys.exit(1)
     
     # Initialize multi-frame evaluator
     evaluator = MultiFrameEvaluator(
@@ -629,21 +674,15 @@ Available methods:
         elif evaluator == Evaluator.INTERNVL:
             run_internvl_evaluation(config)
         elif evaluator == Evaluator.QWEN:
-            print("❌ Error: Qwen evaluator not yet implemented")
-            print("   Coming soon!")
-            sys.exit(1)
+            run_qwen_evaluation(config)
     
     elif sampling_strategy in [SamplingStrategy.UNIFORM, SamplingStrategy.KEYFRAME, SamplingStrategy.HYBRID]:
         # Multi-frame evaluation
         if evaluator == Evaluator.HUMAN:
             print("❌ Error: Human evaluation not supported for multi-frame")
             sys.exit(1)
-        elif evaluator in [Evaluator.GPT4O, Evaluator.INTERNVL]:
+        elif evaluator in [Evaluator.GPT4O, Evaluator.INTERNVL, Evaluator.QWEN]:
             run_multiframe_evaluation(config, evaluator.value)
-        elif evaluator == Evaluator.QWEN:
-            print("❌ Error: Multi-frame Qwen evaluator not yet implemented")
-            print("   Coming soon!")
-            sys.exit(1)
     
     else:
         print(f"❌ Error: Unknown sampling strategy: {sampling_strategy}")

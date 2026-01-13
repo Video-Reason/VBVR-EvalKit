@@ -7,6 +7,7 @@ Core evaluators (lazy-loaded due to heavy dependencies):
 - HumanEvaluator: Gradio-based human evaluation interface
 - GPT4OEvaluator: Single-frame evaluation using GPT-4O vision
 - InternVLEvaluator: Automated evaluation using local VLM
+- Qwen3VLEvaluator: Automated evaluation using Qwen3-VL model
 - MultiFrameEvaluator: Generic multi-frame evaluator wrapper (works with any base evaluator)
 
 Multi-frame evaluation components (always available):
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
     from .human_eval import HumanEvaluator
     from .gpt4o_eval import GPT4OEvaluator
     from .internvl import InternVLEvaluator
+    from .qwen3vl import Qwen3VLEvaluator
     from .multiframe_eval import MultiFrameEvaluator
 
 
@@ -50,6 +52,7 @@ _LAZY_MODULES = {
     'HumanEvaluator': '.human_eval',
     'GPT4OEvaluator': '.gpt4o_eval',
     'InternVLEvaluator': '.internvl',
+    'Qwen3VLEvaluator': '.qwen3vl',
     'MultiFrameEvaluator': '.multiframe_eval',
 }
 
@@ -67,6 +70,7 @@ __all__ = [
     'HumanEvaluator',
     'GPT4OEvaluator',
     'InternVLEvaluator',
+    'Qwen3VLEvaluator',
     'MultiFrameEvaluator',
     # Frame sampling
     'FrameSampler',

@@ -198,10 +198,11 @@ class GPT4OEvaluator:
                 if not first_level_dir.is_dir(): continue
                 
                 # Check if this is a generator directory (3-layer) or task_type directory (2-layer)
-                # Generator directories have names like "G-1_xxx_data-generator" or "G-1_xxx-data-generator"
+                # Generator directories have names like "G-1_xxx_data-generator", "O-1_xxx-data-generator", etc.
                 # Support both underscore and hyphen before "data-generator"
+                # Use regex to match any prefix like G-, O-, K-, etc.
                 is_generator_dir = (
-                    first_level_dir.name.startswith("G-") and 
+                    re.match(r'^[A-Z]-\d+', first_level_dir.name) and  # Match G-1, O-1, K-1, etc.
                     ("_data-generator" in first_level_dir.name or 
                      "-data-generator" in first_level_dir.name)
                 )

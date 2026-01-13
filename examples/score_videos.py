@@ -277,21 +277,42 @@ def _run_vlm_evaluation(scorer, name: str, eval_output_dir: str):
         print(f"\n{name} EVALUATION RESULTS:")
         total_all = 0
         completed_all = 0
-        for model_name, results in all_results.items():
-            if "evaluations" in results:
+        
+        # Adapter for new return format: all_results["models"][model_name]["tasks"]
+        models_data = all_results.get("models", {})
+        if not models_data:
+            # Fallback: try old format for backward compatibility
+            models_data = all_results
+        
+        for model_name, model_data in models_data.items():
+            # New format: model_data["tasks"][task_type]["samples"][task_id]
+            tasks = model_data.get("tasks", {})
+            if not tasks:
+                # Old format: model_data["evaluations"][task_type][task_id]
+                evaluations = model_data.get("evaluations", {})
                 total_tasks = 0
                 evaluated_tasks = 0
-                for task_type, tasks in results["evaluations"].items():
-                    for task_id, result in tasks.items():
+                for task_type, task_samples in evaluations.items():
+                    for task_id, result in task_samples.items():
                         total_tasks += 1
                         if "error" not in result and result.get("status") != "failed":
                             evaluated_tasks += 1
-                
-                total_all += total_tasks
-                completed_all += evaluated_tasks
-                
-                status = "Complete" if evaluated_tasks == total_tasks else f"{evaluated_tasks}/{total_tasks}"
-                print(f"  {model_name}: {status}")
+            else:
+                # New format: iterate through tasks -> samples
+                total_tasks = 0
+                evaluated_tasks = 0
+                for task_type, task_data in tasks.items():
+                    samples = task_data.get("samples", {})
+                    for task_id, sample_data in samples.items():
+                        total_tasks += 1
+                        if "error" not in sample_data and sample_data.get("status") != "failed":
+                            evaluated_tasks += 1
+            
+            total_all += total_tasks
+            completed_all += evaluated_tasks
+            
+            status = "Complete" if evaluated_tasks == total_tasks else f"{evaluated_tasks}/{total_tasks}"
+            print(f"  {model_name}: {status}")
         
         print(f"\nEVALUATION COMPLETE!")
         print(f"Total: {completed_all}/{total_all} tasks evaluated successfully")

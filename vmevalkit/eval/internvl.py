@@ -310,48 +310,112 @@ class InternVLEvaluator:
         evaluated_tasks = 0
         failed_tasks = 0
         
-        for task_type_dir in model_dir.iterdir():
-            if not task_type_dir.is_dir(): continue
-            task_type = task_type_dir.name
-            results["evaluations"][task_type] = {}
+        # Support 3-layer directory structure (from GPT-4O evaluator)
+        # 3-layer: model/generator/task_type/task_id (sample)
+        
+        for first_level_dir in model_dir.iterdir():
+            if not first_level_dir.is_dir(): continue
             
-            for task_dir in task_type_dir.iterdir():
-                if not task_dir.is_dir(): continue
-                task_id = task_dir.name
-                total_tasks += 1
+            # Check if this is a generator directory (3-layer)
+            # Generator directories have names like "G-1_xxx_data-generator" or "G-1_xxx-data-generator"
+            is_generator_dir = (
+                first_level_dir.name.startswith("G-") and 
+                ("_data-generator" in first_level_dir.name or 
+                 "-data-generator" in first_level_dir.name)
+            )
+            
+            if is_generator_dir:
+                # 3-layer structure: model/generator/task_type/task_id
+                generator_name = first_level_dir.name
+                logger.info(f"Processing generator: {generator_name}")
                 
-                # Check if already evaluated (RESUME MECHANISM)
-                if self._has_evaluation(model_name, task_type, task_id):
-                    logger.debug(f"Skipping {model_name}/{task_type}/{task_id} - already evaluated")
-                    skipped_tasks += 1
-                    continue
-                
-                run_dir = select_latest_run(task_dir)
-                if not run_dir:
-                    logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
-                    continue
+                for task_type_dir in first_level_dir.iterdir():
+                    if not task_type_dir.is_dir(): continue
+                    task_type = task_type_dir.name
+                    
+                    # Use full path as task_type to keep generator info
+                    full_task_type = f"{generator_name}/{task_type}"
+                    results["evaluations"][full_task_type] = {}
+                    
+                    for task_dir in task_type_dir.iterdir():
+                        if not task_dir.is_dir(): continue
+                        task_id = task_dir.name
+                        total_tasks += 1
+                        
+                        # Check if already evaluated (RESUME MECHANISM)
+                        if self._has_evaluation(model_name, full_task_type, task_id):
+                            logger.debug(f"Skipping {model_name}/{full_task_type}/{task_id} - already evaluated")
+                            skipped_tasks += 1
+                            continue
+                        
+                        run_dir = select_latest_run(task_dir)
+                        if not run_dir:
+                            logger.warning(f"No output for {model_name}/{full_task_type}/{task_id}")
+                            continue
 
-                video_files = sorted((run_dir / "video").glob("*.mp4"))
-                if not video_files:
-                    logger.warning(f"No video in {run_dir / 'video'}")
-                    continue
+                        video_files = sorted((run_dir / "video").glob("*.mp4"))
+                        if not video_files:
+                            logger.warning(f"No video in {run_dir / 'video'}")
+                            continue
+                        
+                        try:
+                            logger.info(f"Evaluating {model_name}/{full_task_type}/{task_id} (mode: {'goal-based' if use_goal_based else 'comparison'})")
+                            if use_goal_based:
+                                eval_result = await self.evaluate_single_goal_based_async(model_name, full_task_type, task_id, str(video_files[0]))
+                            else:
+                                eval_result = await self.evaluate_single_async(model_name, full_task_type, task_id, str(video_files[0]))
+                            results["evaluations"][full_task_type][task_id] = eval_result
+                            
+                            # Save immediately after each evaluation (RESUME SUPPORT)
+                            self._save_single_result(model_name, full_task_type, task_id, eval_result)
+                            evaluated_tasks += 1
+                            
+                        except Exception as e:
+                            logger.error(f"Error evaluating {model_name}/{full_task_type}/{task_id}: {e}")
+                            results["evaluations"][full_task_type][task_id] = {"error": str(e), "status": "failed"}
+                            failed_tasks += 1
+            else:
+                # Fall back to 2-layer structure: model/task_type/task_id (original logic)
+                task_type = first_level_dir.name
+                results["evaluations"][task_type] = {}
                 
-                try:
-                    logger.info(f"Evaluating {model_name}/{task_type}/{task_id} (mode: {'goal-based' if use_goal_based else 'comparison'})")
-                    if use_goal_based:
-                        eval_result = await self.evaluate_single_goal_based_async(model_name, task_type, task_id, str(video_files[0]))
-                    else:
-                        eval_result = await self.evaluate_single_async(model_name, task_type, task_id, str(video_files[0]))
-                    results["evaluations"][task_type][task_id] = eval_result
+                for task_dir in first_level_dir.iterdir():
+                    if not task_dir.is_dir(): continue
+                    task_id = task_dir.name
+                    total_tasks += 1
                     
-                    # Save immediately after each evaluation (RESUME SUPPORT)
-                    self._save_single_result(model_name, task_type, task_id, eval_result)
-                    evaluated_tasks += 1
+                    # Check if already evaluated
+                    if self._has_evaluation(model_name, task_type, task_id):
+                        logger.debug(f"Skipping {model_name}/{task_type}/{task_id} - already evaluated")
+                        skipped_tasks += 1
+                        continue
                     
-                except Exception as e:
-                    logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
-                    results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
-                    failed_tasks += 1
+                    run_dir = select_latest_run(task_dir)
+                    if not run_dir:
+                        logger.warning(f"No output for {model_name}/{task_type}/{task_id}")
+                        continue
+
+                    video_files = sorted((run_dir / "video").glob("*.mp4"))
+                    if not video_files:
+                        logger.warning(f"No video in {run_dir / 'video'}")
+                        continue
+                    
+                    try:
+                        logger.info(f"Evaluating {model_name}/{task_type}/{task_id} (mode: {'goal-based' if use_goal_based else 'comparison'})")
+                        if use_goal_based:
+                            eval_result = await self.evaluate_single_goal_based_async(model_name, task_type, task_id, str(video_files[0]))
+                        else:
+                            eval_result = await self.evaluate_single_async(model_name, task_type, task_id, str(video_files[0]))
+                        results["evaluations"][task_type][task_id] = eval_result
+                        
+                        # Save immediately after each evaluation
+                        self._save_single_result(model_name, task_type, task_id, eval_result)
+                        evaluated_tasks += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error evaluating {model_name}/{task_type}/{task_id}: {e}")
+                        results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
+                        failed_tasks += 1
         
         logger.info(f"Vision Model Evaluation Summary for {model_name}:")
         logger.info(f"  - Total tasks: {total_tasks}")
@@ -378,19 +442,17 @@ class InternVLEvaluator:
             use_goal_based: If True, use goal-based evaluation (no solution image).
                           If False, use comparison-based evaluation (with solution image).
         """
-        all_results = {}
+        # Run evaluation for all models
         for model_dir in self.inference_dir.iterdir():
             if model_dir.is_dir():
                 model_name = model_dir.name
                 logger.info(f"Evaluating model: {model_name}")
-                all_results[model_name] = await self.evaluate_model_async(model_name, use_goal_based)
+                await self.evaluate_model_async(model_name, use_goal_based)
         
-        # Save combined results
-        output_path = self.eval_output_dir / f"{self.evaluator_name}_all_models.json"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
-            json.dump({"metadata": {"evaluator": self.evaluator_name, "timestamp": datetime.now().isoformat()},
-                      "results": all_results}, f, indent=2)
+        # Rebuild complete summary from all evaluation files
+        logger.info("Rebuilding complete summary from all evaluation files...")
+        all_results = self._rebuild_summary_from_files()
+        
         return all_results
     
     def evaluate_all_models(self, use_goal_based: bool = False) -> Dict[str, Any]:
@@ -431,5 +493,212 @@ class InternVLEvaluator:
                     self._save_single_result(model_name, task_type, task_id, eval_result)
         
         logger.info(f"Completed evaluation results for {model_name}")
+    
+    @staticmethod
+    def _extract_prefix_and_number(text: str):
+        """
+        Extract prefix and number from text for sorting.
+        Supports formats like G-1, O-1, K-1, etc.
+        
+        Args:
+            text: Text to extract from (e.g., "G-1_xxx/task")
+        
+        Returns:
+            tuple: (prefix, number, original_text) for sorting
+                   e.g., "G-1_xxx" -> ('G', 1, 'G-1_xxx')
+        
+        Examples:
+            >>> _extract_prefix_and_number("G-1_task/subtask")
+            ('G', 1, 'G-1_task/subtask')
+            >>> _extract_prefix_and_number("O-5_task/subtask")
+            ('O', 5, 'O-5_task/subtask')
+        """
+        match = re.match(r'([A-Z])-(\d+)', text)
+        if match:
+            prefix = match.group(1)
+            number = int(match.group(2))
+            return (prefix, number, text)
+        # If no match, put at the end (~ comes after all letters)
+        return ('~', 0, text)
+    
+    def _rebuild_summary_from_files(self) -> Dict[str, Any]:
+        """
+        Rebuild complete enhanced summary from all evaluation files.
+        
+        This method scans all InternVLEvaluator.json files and generates an enhanced
+        summary with comprehensive statistics including:
+        - Global statistics (overall performance across all models)
+        - Model-level statistics (per-model performance)
+        - Task-level statistics (per-task performance)
+        - Complete sample data with score distributions
+        
+        Returns:
+            dict: Enhanced summary with statistics and evaluation results
+        """
+        from statistics import mean, median, stdev
+        from collections import Counter
+        
+        logger.info("Rebuilding enhanced summary from all evaluation files...")
+        
+        all_models = {}
+        
+        # Iterate through each model directory
+        for model_dir in self.eval_output_dir.iterdir():
+            if not model_dir.is_dir():
+                continue
+            
+            model_name = model_dir.name
+            evaluations = {}
+            
+            # Scan all InternVLEvaluator.json files
+            eval_files = list(model_dir.rglob(f"{self.evaluator_name}.json"))
+            logger.info(f"Found {len(eval_files)} evaluation files for {model_name}")
+            
+            for eval_file in eval_files:
+                try:
+                    with open(eval_file, 'r') as f:
+                        data = json.load(f)
+                    
+                    # Extract hierarchy from file path
+                    parts = eval_file.relative_to(model_dir).parts
+                    
+                    if len(parts) >= 3:
+                        generator = parts[0]
+                        task_type = parts[1]
+                        task_id = parts[2]
+                        
+                        full_task_type = f"{generator}/{task_type}"
+                        
+                        if full_task_type not in evaluations:
+                            evaluations[full_task_type] = {}
+                        
+                        result = data.get('result', {})
+                        evaluations[full_task_type][task_id] = result
+                        
+                except Exception as e:
+                    logger.warning(f"Could not load {eval_file}: {e}")
+            
+            if evaluations:
+                # Sort by prefix (G, K, O, ...) then by number
+                sorted_evaluations = dict(sorted(
+                    evaluations.items(),
+                    key=lambda x: self._extract_prefix_and_number(x[0])
+                ))
+                
+                # Calculate statistics for each task
+                enhanced_tasks = {}
+                model_all_scores = []
+                
+                for task_type, task_samples in sorted_evaluations.items():
+                    task_scores = []
+                    simplified_samples = {}
+                    
+                    for sample_id, sample_data in task_samples.items():
+                        # Support both goal_achieved_score and solution_correctness_score
+                        score = sample_data.get('goal_achieved_score') or sample_data.get('solution_correctness_score', 0)
+                        task_scores.append(score)
+                        model_all_scores.append(score)
+                        
+                        # Simplified sample data for summary
+                        simplified_samples[sample_id] = {
+                            "score": score,
+                            "status": sample_data.get('status', 'unknown'),
+                            "explanation_preview": sample_data.get('explanation', '')[:100] + "..." 
+                                if len(sample_data.get('explanation', '')) > 100 
+                                else sample_data.get('explanation', '')
+                        }
+                    
+                    # Calculate task statistics
+                    if task_scores:
+                        score_dist = Counter(task_scores)
+                        task_statistics = {
+                            "total_samples": len(task_scores),
+                            "evaluated_samples": len(task_scores),
+                            "completion_rate": 1.0,
+                            "mean_score": round(mean(task_scores), 2),
+                            "median_score": round(median(task_scores), 2),
+                            "std_score": round(stdev(task_scores), 2) if len(task_scores) > 1 else 0.0,
+                            "min_score": min(task_scores),
+                            "max_score": max(task_scores),
+                            "score_distribution": {str(i): score_dist.get(i, 0) for i in range(6)}
+                        }
+                    else:
+                        task_statistics = {
+                            "total_samples": 0,
+                            "evaluated_samples": 0,
+                            "completion_rate": 0.0,
+                            "status": "pending"
+                        }
+                    
+                    enhanced_tasks[task_type] = {
+                        "task_statistics": task_statistics,
+                        "samples": simplified_samples
+                    }
+                
+                # Calculate model-level statistics
+                if model_all_scores:
+                    model_score_dist = Counter(model_all_scores)
+                    model_statistics = {
+                        "total_samples": len(model_all_scores),
+                        "evaluated_samples": len(model_all_scores),
+                        "mean_score": round(mean(model_all_scores), 2),
+                        "median_score": round(median(model_all_scores), 2),
+                        "std_score": round(stdev(model_all_scores), 2) if len(model_all_scores) > 1 else 0.0,
+                        "score_distribution": {str(i): model_score_dist.get(i, 0) for i in range(6)}
+                    }
+                else:
+                    model_statistics = {}
+                
+                all_models[model_name] = {
+                    "model_name": model_name,
+                    "model_statistics": model_statistics,
+                    "tasks": enhanced_tasks
+                }
+        
+        # Calculate global statistics
+        global_all_scores = []
+        for model in all_models.values():
+            for task in model['tasks'].values():
+                for sample in task['samples'].values():
+                    global_all_scores.append(sample['score'])
+        
+        if global_all_scores:
+            global_score_dist = Counter(global_all_scores)
+            global_statistics = {
+                "total_models": len(all_models),
+                "total_tasks": sum(len(m['tasks']) for m in all_models.values()),
+                "total_samples": len(global_all_scores),
+                "evaluated_samples": len(global_all_scores),
+                "mean_score": round(mean(global_all_scores), 2),
+                "median_score": round(median(global_all_scores), 2),
+                "std_score": round(stdev(global_all_scores), 2) if len(global_all_scores) > 1 else 0.0,
+                "min_score": min(global_all_scores),
+                "max_score": max(global_all_scores),
+                "score_distribution": {str(i): global_score_dist.get(i, 0) for i in range(6)}
+            }
+        else:
+            global_statistics = {}
+        
+        # Build enhanced summary structure
+        enhanced_summary = {
+            "metadata": {
+                "evaluator": self.evaluator_name,
+                "timestamp": datetime.now().isoformat(),
+                "enhanced_version": True,
+                "total_samples": len(global_all_scores)
+            },
+            "global_statistics": global_statistics,
+            "models": all_models
+        }
+        
+        # Save enhanced summary
+        output_path = self.eval_output_dir / f"{self.evaluator_name}_summary.json"
+        with open(output_path, 'w') as f:
+            json.dump(enhanced_summary, f, indent=2)
+        
+        logger.info(f"Enhanced summary rebuilt successfully: {len(global_all_scores)} samples from {len(all_models)} model(s)")
+        logger.info(f"Global mean score: {global_statistics.get('mean_score', 'N/A')}")
+        
+        return enhanced_summary
 
 

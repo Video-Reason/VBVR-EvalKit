@@ -211,7 +211,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             sys.exit(1)
         base_evaluator = GPT4OEvaluator(
             inference_dir=config.inference_dir,
-            eval_output_dir=f"{config.eval_output_dir}/gpt4o",
+            eval_output_dir=config.eval_output_dir,
             temperature=config.temperature
         )
     else:  # internvl
@@ -220,7 +220,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
         print(f"  - base_url: {base_url}")
         base_evaluator = InternVLEvaluator(
             inference_dir=config.inference_dir,
-            eval_output_dir=f"{config.eval_output_dir}/internvl",
+            eval_output_dir=config.eval_output_dir,
             api_key=api_key,
             base_url=base_url,
             temperature=config.temperature

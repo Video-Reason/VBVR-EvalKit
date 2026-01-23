@@ -1,7 +1,10 @@
 """
 Runway ML Image-to-Video Generation Service.
 
-Supports text + image → video generation using Runway's Gen-3 and Gen-4 models.
+Supports text + image → video generation using Runway's Gen-3, Gen-4, and Gen-4.5 models.
+
+Image Upload: Uses Runway's ephemeral upload feature (no S3/external hosting required).
+Images are uploaded directly to Runway's storage and get a runway:// URI valid for 24 hours.
 """
 
 import os
@@ -29,7 +32,7 @@ class RunwayService:
         Initialize Runway service.
         
         Args:
-            model: Runway model to use (gen4_turbo, gen4_aleph, gen3a_turbo)
+            model: Runway model to use (gen45, gen4_turbo, gen4_aleph, gen3a_turbo)
         """
         self.api_secret = os.getenv("RUNWAYML_API_SECRET")
         if not self.api_secret:
@@ -43,6 +46,12 @@ class RunwayService:
     def _get_model_constraints(self, model: str) -> Dict[str, Any]:
         """Get model-specific constraints."""
         constraints = {
+            "gen4.5": {
+                "durations": [5, 10],
+                # Gen-4.5 supports same ratios as Gen-4 with enhanced quality
+                "ratios": ["1280:720", "720:1280", "1104:832", "832:1104", "960:960", "1584:672"],
+                "description": "Runway Gen-4.5 - World's top-rated video model with unprecedented visual fidelity"
+            },
             "gen4_turbo": {
                 "durations": [5, 10],
                 # Use actual pixel dimensions required by Runway API
@@ -258,28 +267,41 @@ class RunwayService:
     
     async def _upload_image(self, image_path: Union[str, Path]) -> str:
         """
-        Upload image and return URL. 
-        For now, this is a placeholder - in practice you'd need to upload to a CDN/S3.
+        Upload image using Runway's ephemeral upload feature.
+        
+        Returns a runway:// URI that's valid for 24 hours and works directly
+        with the Runway API - no external hosting (S3/CDN) required.
         """
         path = Path(image_path)
         if not path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
         
-        # TODO: Implement actual image upload to CDN/S3
-        # For now, we'll assume the user provides a publicly accessible image URL
-        # or we could integrate with the existing S3 uploader from Luma
-        from ..utils.s3_uploader import S3ImageUploader
+        try:
+            from runwayml import RunwayML
+        except ImportError:
+            raise ImportError("runwayml package not installed. Run: pip install runwayml")
+        
+        # Run in thread pool since Runway SDK is synchronous
+        def _sync_upload():
+            client = RunwayML()
+            
+            # Use Runway's ephemeral upload - returns UploadCreateEphemeralResponse object
+            # Valid for 24 hours, supports files up to 200 MB
+            with open(path, "rb") as f:
+                response = client.uploads.create_ephemeral(file=f)
+            
+            # Extract the URI string from the response object
+            uri = response.uri
+            logger.info(f"Uploaded image to Runway ephemeral storage: {uri}")
+            return uri
         
         try:
-            s3_uploader = S3ImageUploader()
-            image_url = s3_uploader.upload(str(image_path))
-            if not image_url:
-                raise Exception("Failed to upload image to S3")
-            logger.info(f"Uploaded image to: {image_url}")
-            return image_url
+            loop = asyncio.get_event_loop()
+            image_uri = await loop.run_in_executor(None, _sync_upload)
+            return image_uri
         except Exception as e:
-            logger.error(f"Failed to upload image: {e}")
-            raise Exception(f"Image upload failed: {e}")
+            logger.error(f"Failed to upload image to Runway: {e}")
+            raise Exception(f"Runway ephemeral upload failed: {e}")
     
     async def _generate_with_runway(
         self, 

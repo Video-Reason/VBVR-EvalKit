@@ -150,6 +150,9 @@ class LTXVideoWrapper(ModelWrapper):
     ) -> Dict[str, Any]:
         start_time = time.time()
         
+        # Filter out parameters not used by LTXVideoService
+        kwargs.pop("question_data", None)
+        
         negative_prompt = kwargs.pop("negative_prompt", None)
         width = kwargs.pop("width", None)
         height = kwargs.pop("height", None)

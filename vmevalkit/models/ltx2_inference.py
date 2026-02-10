@@ -146,10 +146,11 @@ class LTX2Service:
     CONFIG_MAPPING = {
         "LTX-2": {
             "checkpoint": "ltx-2-19b-distilled-fp8.safetensors",
-            "gemma_dir": "gemma3-12b-it-qat-q4_0-unquantized",
+            "gemma_dir": "gemma3-12b-it-qat-q4_0-unquantized",  # Local directory name
+            "gemma_hf_name": "gemma-3-12b-it-qat-q4_0-unquantized",  # HuggingFace cache name (with dash)
             "resolution": (768, 512),  # (height, width)
             "num_frames": 97,  # LTX-2 default
-            "frame_rate": 24.0,
+            "frame_rate": 25.0,
         },
     }
 
@@ -195,16 +196,70 @@ class LTX2Service:
         
         add_ltx2_to_path()
 
-        # Build checkpoint paths
-        self.checkpoint_path = str(LTX2_PATH / self.model_config["checkpoint"])
-        self.gemma_root = str(LTX2_PATH / self.model_config["gemma_dir"])
+        # Build checkpoint paths - try HuggingFace cache first, then local LTX-2 directory
+        checkpoint_filename = self.model_config["checkpoint"]
+        gemma_dirname = self.model_config["gemma_dir"]
+        gemma_hf_name = self.model_config.get("gemma_hf_name", gemma_dirname)  # HF cache uses different naming
+        
+        # Get HuggingFace cache base path
+        hf_cache_base = Path(os.environ.get("HF_HOME", "~/.cache/huggingface")).expanduser()
+        
+        # Try to find LTX-2 checkpoint in HuggingFace cache
+        hf_checkpoint_path = hf_cache_base / "models--Lightricks--LTX-2" / "snapshots"
+        
+        self.checkpoint_path = None
+        if hf_checkpoint_path.exists():
+            # Find the latest snapshot directory
+            snapshot_dirs = sorted([d for d in hf_checkpoint_path.iterdir() if d.is_dir()], 
+                                   key=lambda x: x.stat().st_mtime, reverse=True)
+            for snapshot_dir in snapshot_dirs:
+                candidate = snapshot_dir / checkpoint_filename
+                if candidate.exists() or candidate.is_symlink():
+                    self.checkpoint_path = str(candidate)
+                    print(f"Using LTX-2 checkpoint from HuggingFace cache: {self.checkpoint_path}")
+                    break
+        
+        # Fallback to local LTX-2 directory for checkpoint
+        if self.checkpoint_path is None:
+            local_checkpoint = LTX2_PATH / checkpoint_filename
+            if local_checkpoint.exists():
+                self.checkpoint_path = str(local_checkpoint)
+                print(f"Using local LTX-2 checkpoint: {self.checkpoint_path}")
+        
+        # Try to find Gemma model in HuggingFace cache first
+        # Gemma is stored in hub/ subdirectory with format: hub/models--google--gemma-3-12b-it-qat-q4_0-unquantized
+        hf_gemma_path = hf_cache_base / "hub" / f"models--google--{gemma_hf_name}" / "snapshots"
+        
+        self.gemma_root = None
+        if hf_gemma_path.exists():
+            # Find the latest snapshot directory
+            snapshot_dirs = sorted([d for d in hf_gemma_path.iterdir() if d.is_dir()], 
+                                   key=lambda x: x.stat().st_mtime, reverse=True)
+            if snapshot_dirs:
+                self.gemma_root = str(snapshot_dirs[0])
+                print(f"Using Gemma model from HuggingFace cache: {self.gemma_root}")
+        
+        # Fallback to local LTX-2 directory for Gemma
+        if self.gemma_root is None:
+            local_gemma = LTX2_PATH / gemma_dirname
+            if local_gemma.exists():
+                # Check if it has actual model files (not just README)
+                has_model_files = any(
+                    f.suffix in ['.safetensors', '.bin', '.gguf'] 
+                    for f in local_gemma.rglob('*') if f.is_file()
+                )
+                if has_model_files:
+                    self.gemma_root = str(local_gemma)
+                    print(f"Using local Gemma model: {self.gemma_root}")
 
-        assert Path(self.checkpoint_path).exists(), (
-            f"Checkpoint not found: {self.checkpoint_path}\n"
+        assert self.checkpoint_path is not None and Path(self.checkpoint_path).exists(), (
+            f"LTX-2 checkpoint not found: {checkpoint_filename}\n"
+            f"Searched in HuggingFace cache ({hf_cache_base}) and local directory ({LTX2_PATH})\n"
             f"Please run the setup script to download model weights."
         )
-        assert Path(self.gemma_root).exists(), (
-            f"Gemma model not found: {self.gemma_root}\n"
+        assert self.gemma_root is not None and Path(self.gemma_root).exists(), (
+            f"Gemma model not found: {gemma_dirname}\n"
+            f"Searched in HuggingFace cache ({hf_cache_base}/hub/) and local directory ({LTX2_PATH})\n"
             f"Please run the setup script to download Gemma weights."
         )
 
@@ -277,6 +332,16 @@ class LTX2Service:
         h = height if height is not None else self.resolution[0]
         w = width if width is not None else self.resolution[1]
         fps = frame_rate if frame_rate is not None else self.frame_rate
+        
+        # Store original dimensions for logging
+        orig_h, orig_w = h, w
+        
+        # Round height and width to multiples of 32 (required by LTX-2)
+        h = ((h + 31) // 32) * 32
+        w = ((w + 31) // 32) * 32
+        
+        if h != orig_h or w != orig_w:
+            print(f"Resolution: {orig_w}x{orig_h} -> {w}x{h} (rounded to multiple of 32)")
         
         # Calculate num_frames from duration if not specified
         if num_frames is None:
@@ -446,6 +511,9 @@ class LTX2Wrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
+        # Filter out parameters not used by LTX2Service
+        kwargs.pop("question_data", None)
+        
         return self.service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

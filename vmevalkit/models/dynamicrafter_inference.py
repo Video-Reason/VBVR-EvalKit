@@ -469,6 +469,9 @@ class DynamiCrafterWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
+        # Filter out parameters not used by DynamiCrafterService
+        kwargs.pop("question_data", None)
+        
         return self.service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

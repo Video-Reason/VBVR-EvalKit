@@ -77,8 +77,7 @@ def run_gpt4o_scoring(
 
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
-        logger.error("OPENAI_API_KEY environment variable not set!")
-        sys.exit(1)
+        raise ValueError("OPENAI_API_KEY environment variable not set!")
 
     scorer = GPT4OEvaluator(
         inference_dir=inference_dir,
@@ -189,8 +188,7 @@ def run_multiframe_vlm_scoring(
     # Create base evaluator based on type
     if evaluator_type == "gpt4o":
         if not api_key and not os.getenv("OPENAI_API_KEY"):
-            logger.error("OPENAI_API_KEY environment variable not set!")
-            sys.exit(1)
+            raise ValueError("OPENAI_API_KEY environment variable not set!")
 
         base_evaluator = GPT4OEvaluator(
             inference_dir=inference_dir,
@@ -213,8 +211,7 @@ def run_multiframe_vlm_scoring(
         default_output_dir = "./evaluations/multiframe-internvl"
 
     else:
-        logger.error(f"Unknown evaluator type: {evaluator_type}")
-        sys.exit(1)
+        raise ValueError(f"Unknown evaluator type: {evaluator_type}")
 
     # Create multi-frame evaluator wrapper
     evaluator = MultiFrameEvaluator(
@@ -337,8 +334,7 @@ def run_multiframe_scoring(
 
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
-        logger.error("OPENAI_API_KEY environment variable not set!")
-        sys.exit(1)
+        raise ValueError("OPENAI_API_KEY environment variable not set!")
 
     # Initialize components
     sampler = FrameSampler(n_frames=n_frames, last_seconds=last_seconds)
@@ -351,8 +347,7 @@ def run_multiframe_scoring(
     output_path.mkdir(parents=True, exist_ok=True)
 
     if not inference_path.exists():
-        logger.error(f"Inference directory not found: {inference_path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"Inference directory not found: {inference_path}")
 
     for model_dir in inference_path.iterdir():
         if not model_dir.is_dir():
@@ -609,7 +604,7 @@ Examples:
 
     if not args.method:
         parser.print_help()
-        sys.exit(1)
+        return
 
     # Run the appropriate scoring method
     if args.method == 'human':
@@ -673,8 +668,7 @@ Examples:
             task_specific_only=not args.full_score
         )
     else:
-        logger.error(f"Unknown scoring method: {args.method}")
-        sys.exit(1)
+        raise ValueError(f"Unknown scoring method: {args.method}")
 
 
 if __name__ == "__main__":

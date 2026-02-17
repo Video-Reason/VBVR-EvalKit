@@ -71,7 +71,7 @@ evaluations/ (structured JSON with scores, metadata, explanations)
 
 - `vmevalkit/models/` — 17 model wrapper implementations (one file per provider/model family)
 - `vmevalkit/runner/` — `MODEL_CATALOG.py` (registry), `inference.py` (orchestration), `score.py` (scoring)
-- `vmevalkit/eval/` — evaluators (human, gpt4o, internvl, qwen3vl, multiframe), frame sampling, consistency analysis, voting aggregation
+- `vmevalkit/eval/` — evaluators (human, gpt4o, internvl, qwen3vl, multiframe, vbvr_bench_eval), frame sampling, consistency analysis, voting aggregation
 - `vmevalkit/tasks/` — 8 task domain implementations (chess, maze, sudoku, raven, rotation, arc_agi, physical_causality, match3)
 - `setup/` — model installation scripts; `setup/models/{name}/setup.sh` for each open-source model
 - `submodules/` — git submodules for open-source model repos and task data generators
@@ -83,4 +83,5 @@ evaluations/ (structured JSON with scores, metadata, explanations)
 - API keys loaded from `.env` via python-dotenv (see `env.template` for required keys)
 - Open-source models get isolated venvs at `./envs/{model-id}/`; `ModelWrapper.get_model_python_interpreter()` resolves the correct Python binary
 - Model checkpoints stored in `weights/` directory
-- Scoring uses a 1-5 scale, converted to binary: 4-5 = success, 1-3 = failure
+- VLM scoring uses a 1-5 scale, converted to binary: 4-5 = success, 1-3 = failure
+- Rubrics scoring (VBVR-Bench) uses 0-1 continuous scale, rule-based with no API calls

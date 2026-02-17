@@ -653,9 +653,9 @@ Available methods:
     # Check inference directory
     inference_path = Path(config.inference_dir)
     if not inference_path.exists():
-        print(f"Error: Inference directory not found: {inference_path}")
-        print("Please run inference first to generate videos.")
-        sys.exit(1)
+        raise FileNotFoundError(
+            f"Inference directory not found: {inference_path}. Please run inference first to generate videos."
+        )
     
     # Run evaluation based on sampling strategy and evaluator
     logger.info(f"Starting evaluation: {sampling_strategy.value} + {evaluator.value}")
@@ -674,8 +674,7 @@ Available methods:
     else:
         # Multi-frame evaluation (UNIFORM, KEYFRAME, HYBRID)
         if evaluator == Evaluator.HUMAN:
-            print("Error: Human evaluation is not supported for multi-frame sampling")
-            sys.exit(1)
+            raise ValueError("Human evaluation is not supported for multi-frame sampling")
         run_multiframe_evaluation(config, evaluator.value)
 
 

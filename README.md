@@ -5,7 +5,7 @@
 ## Features
 
 - **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
-- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL)  
+- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL) + rule-based scoring (VBVR-Bench Rubrics)
 - **☁️ Cloud Integration**: S3 + HuggingFace Hub support
 
 ## Data Format
@@ -66,10 +66,13 @@ bash setup/install_model.sh --model svd --validate
 # 4. Run inference
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model LTX-2
-# 5. Run evaluation  
+# 5. Run evaluation
 # Create eval_config.json first:
 echo '{"method": "human", "inference_dir": "~/my_research/outputs", "eval_output_dir": "~/my_research/evaluations"}' > eval_config.json
 python examples/score_videos.py --eval-config eval_config.json
+
+# 6. Run VBVR-Bench rule-based (rubrics) evaluation (no API needed)
+python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
 ```
 
 ## API Keys

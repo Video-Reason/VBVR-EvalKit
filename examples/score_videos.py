@@ -141,9 +141,8 @@ def run_gpt4o_evaluation(config: EvalConfig):
     
     api_key = config.api_key or os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("\nError: OPENAI_API_KEY not set in config or environment!")
-        sys.exit(1)
-    
+        raise ValueError("OPENAI_API_KEY not set in config or environment!")
+
     scorer = GPT4OEvaluator(
         inference_dir=config.inference_dir,
         eval_output_dir=config.eval_output_dir,
@@ -241,8 +240,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     if evaluator_type == "gpt4o":
         api_key = config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("\nError: OPENAI_API_KEY not set in config or environment!")
-            sys.exit(1)
+            raise ValueError("OPENAI_API_KEY not set in config or environment!")
         base_evaluator = GPT4OEvaluator(
             inference_dir=config.inference_dir,
             eval_output_dir=config.eval_output_dir,
@@ -271,8 +269,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             temperature=config.temperature
         )
     else:
-        print(f"\nError: Unknown evaluator type: {evaluator_type}")
-        sys.exit(1)
+        raise ValueError(f"Unknown evaluator type: {evaluator_type}")
     
     # Initialize multi-frame evaluator
     evaluator = MultiFrameEvaluator(
@@ -573,24 +570,19 @@ Available methods:
     # Test multi-frame pipeline
     if args.test_multiframe:
         if not args.video:
-            print("Error: --video is required when using --test-multiframe")
-            sys.exit(1)
+            parser.error("--video is required when using --test-multiframe")
         if not Path(args.video).exists():
-            print(f"Error: Video not found: {args.video}")
-            sys.exit(1)
+            raise FileNotFoundError(f"Video not found: {args.video}")
         test_multiframe_pipeline(args.video, args.output)
         return
     
     # Main evaluation mode
     if not args.eval_config:
-        print("Error: --eval-config is required for evaluation")
-        print("Use --help for more options")
-        sys.exit(1)
-    
+        parser.error("--eval-config is required for evaluation. Use --help for more options")
+
     config_path = Path(args.eval_config)
     if not config_path.exists():
-        print(f"Error: Config file not found: {config_path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"Config file not found: {config_path}")
     
     # Load and validate config
     with open(config_path) as f:
@@ -623,18 +615,16 @@ Available methods:
             evaluator = Evaluator(args.evaluator)
             logger.info(f"Evaluator from command line: {evaluator.value}")
         except ValueError:
-            print(f"Error: Unknown evaluator: {args.evaluator}")
-            print(f"  Available: {[e.value for e in Evaluator]}")
-            sys.exit(1)
+            raise ValueError(f"Unknown evaluator: {args.evaluator}. Available: {[e.value for e in Evaluator]}")
     elif config.evaluator:
         # Explicitly specified in config
         evaluator = config.evaluator
         logger.info(f"Evaluator from config: {evaluator.value}")
     else:
-        print("Error: No evaluator specified!")
-        print("  Please specify 'evaluator' in config file OR use --evaluator flag")
-        print("  Example: python score_videos.py --eval-config config.json --evaluator gpt4o")
-        sys.exit(1)
+        raise ValueError(
+            "No evaluator specified! Please specify 'evaluator' in config file OR use --evaluator flag. "
+            "Example: python score_videos.py --eval-config config.json --evaluator gpt4o"
+        )
     
     # 3. Update config with resolved values
     config.sampling_strategy = sampling_strategy

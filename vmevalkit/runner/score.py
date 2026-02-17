@@ -253,6 +253,54 @@ def run_multiframe_vlm_scoring(
             logger.info(f"  Needs review: {review_needed}")
 
 
+def run_rubrics_scoring(
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/rubrics",
+    gt_base_path: str = None,
+    device: str = "cuda",
+    task_specific_only: bool = True
+):
+    """Run VBVR-Bench rule-based evaluation (no API calls needed).
+
+    Args:
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
+        gt_base_path: Optional path to VBVR-Bench GT data (for ground_truth.mp4)
+        device: Device for computation ('cuda' or 'cpu')
+        task_specific_only: If True, use only task-specific dimension score
+    """
+    from vmevalkit.eval.vbvr_bench_eval import VBVRBenchEvaluator
+
+    logger.info(f"Starting VBVR-Bench rubrics scoring for: {inference_dir}")
+    logger.info(f"Device: {device}, task_specific_only: {task_specific_only}")
+
+    scorer = VBVRBenchEvaluator(
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
+        gt_base_path=gt_base_path,
+        device=device,
+        task_specific_only=task_specific_only,
+    )
+
+    results = scorer.evaluate_all_models()
+    logger.info("Completed rubrics scoring for all models")
+
+    # Print summary
+    for model_name, model_data in results.get("models", {}).items():
+        stats = model_data.get("model_statistics", {})
+        logger.info(f"\n{model_name}:")
+        logger.info(f"  Total samples: {stats.get('total_samples', 0)}")
+        logger.info(f"  Mean score: {stats.get('mean_score', 'N/A')}")
+
+        by_split = model_data.get("by_split", {})
+        for split_name, split_data in by_split.items():
+            logger.info(f"  {split_name}: {split_data.get('mean_score', 'N/A')} ({split_data.get('num_samples', 0)} samples)")
+
+        by_cat = model_data.get("by_category", {})
+        for cat, cat_data in by_cat.items():
+            logger.info(f"  {cat}: {cat_data.get('mean_score', 'N/A')} ({cat_data.get('num_samples', 0)} samples)")
+
+
 def run_multiframe_scoring(
     inference_dir: str,
     eval_output_dir: str = "./evaluations/multiframe",
@@ -409,6 +457,12 @@ Examples:
 
   # Use custom paths
   python -m vmevalkit.runner.score gpt4o --inference-dir ~/research/outputs --eval-output-dir ~/research/evaluations
+
+  # Run VBVR-Bench rule-based (rubrics) scoring (no API needed)
+  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+
+  # Rubrics with GT data and full 5-dimension score
+  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --full-score
         """
     )
 
@@ -537,6 +591,20 @@ Examples:
     mf_vlm_parser.add_argument('--base-url', default=None,
         help='Base URL for VLM API (only for internvl, fallback: VISION_API_BASE)')
 
+    # VBVR-Bench rule-based (rubrics) scoring subcommand
+    rubrics_parser = subparsers.add_parser('rubrics',
+        help='Run VBVR-Bench rule-based evaluation (no API calls needed)')
+    rubrics_parser.add_argument('--inference-dir', '-i', required=True,
+        help='Directory containing inference outputs to score')
+    rubrics_parser.add_argument('--eval-output-dir', '-o', default='./evaluations/rubrics',
+        help='Directory to save evaluation results')
+    rubrics_parser.add_argument('--gt-base-path', '-g', default=None,
+        help='Path to VBVR-Bench GT data (for ground_truth.mp4, optional)')
+    rubrics_parser.add_argument('--device', choices=['cuda', 'cpu'], default='cuda',
+        help='Device for computation')
+    rubrics_parser.add_argument('--full-score', action='store_true',
+        help='Use full 5-dimension weighted score (default: task_specific only)')
+
     args = parser.parse_args()
 
     if not args.method:
@@ -595,6 +663,14 @@ Examples:
             temperature=args.temperature,
             api_key=args.api_key,
             base_url=args.base_url
+        )
+    elif args.method == 'rubrics':
+        run_rubrics_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            gt_base_path=args.gt_base_path,
+            device=args.device,
+            task_specific_only=not args.full_score
         )
     else:
         logger.error(f"Unknown scoring method: {args.method}")

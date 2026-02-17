@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from .internvl import InternVLEvaluator
     from .qwen3vl import Qwen3VLEvaluator
     from .multiframe_eval import MultiFrameEvaluator
+    from ..vbvr_bench_eval import VBVRBenchEvaluator
 
 
 # Lazy loading for evaluators with heavy dependencies
@@ -56,11 +57,19 @@ _LAZY_MODULES = {
     'MultiFrameEvaluator': '.multiframe_eval',
 }
 
+# Evaluators outside VLMasjudge (different parent package)
+_EXTERNAL_MODULES = {
+    'VBVRBenchEvaluator': 'vmevalkit.eval.vbvr_bench_eval',
+}
+
 
 def __getattr__(name: str):
     """Lazy load evaluators with heavy dependencies."""
     if name in _LAZY_MODULES:
         module = importlib.import_module(_LAZY_MODULES[name], __package__)
+        return getattr(module, name)
+    if name in _EXTERNAL_MODULES:
+        module = importlib.import_module(_EXTERNAL_MODULES[name])
         return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -72,6 +81,8 @@ __all__ = [
     'InternVLEvaluator',
     'Qwen3VLEvaluator',
     'MultiFrameEvaluator',
+    # Rule-based evaluator
+    'VBVRBenchEvaluator',
     # Frame sampling
     'FrameSampler',
     'SampledFrame',

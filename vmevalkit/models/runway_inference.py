@@ -417,9 +417,8 @@ class RunwayWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
-        import time
         start_time = time.time()
-        
+
         # Convert duration to int (Runway expects int)
         duration_int = int(duration)
         

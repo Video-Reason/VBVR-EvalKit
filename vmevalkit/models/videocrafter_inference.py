@@ -125,7 +125,7 @@ class VideoCrafterService:
         self.channels = self.model.channels
         self.temporal_length = self.model.temporal_length
         
-        print(f"✓ VideoCrafter model loaded successfully")
+        print(f"VideoCrafter model loaded successfully")
         print(f"  - Temporal length: {self.temporal_length} frames")
         print(f"  - Channels: {self.channels}")
 

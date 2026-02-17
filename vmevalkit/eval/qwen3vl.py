@@ -31,6 +31,7 @@ TASK_GUIDANCE = {
     "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
     "sequence_completion_task": "Verify that the sequence is correctly completed with the next element that follows the pattern. The final frame should show the complete sequence with the correct answer element."
 }
+
 logger = logging.getLogger(__name__)
 
 
@@ -600,13 +601,12 @@ class Qwen3VLEvaluator:
                         task_scores.append(score)
                         model_all_scores.append(score)
                         
-                        # Simplified sample data for summary
+                        explanation = sample_data.get('explanation', '')
+                        preview = explanation[:100] + "..." if len(explanation) > 100 else explanation
                         simplified_samples[sample_id] = {
                             "score": score,
                             "status": sample_data.get('status', 'unknown'),
-                            "explanation_preview": sample_data.get('explanation', '')[:100] + "..." 
-                                if len(sample_data.get('explanation', '')) > 100 
-                                else sample_data.get('explanation', '')
+                            "explanation_preview": preview
                         }
                     
                     # Calculate task statistics

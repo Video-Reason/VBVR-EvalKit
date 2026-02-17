@@ -31,6 +31,7 @@ TASK_GUIDANCE = {
     "light_sequence_task": "Verify that the correct lights are on and all other lights are off in the final frame.",
     "sequence_completion_task": "Verify that the sequence is correctly completed with the next element that follows the pattern. The final frame should show the complete sequence with the correct answer element."
 }
+
 logger = logging.getLogger(__name__)
 
 
@@ -317,10 +318,11 @@ class InternVLEvaluator:
             if not first_level_dir.is_dir(): continue
             
             # Check if this is a generator directory (3-layer)
-            # Generator directories have names like "G-1_xxx_data-generator" or "G-1_xxx-data-generator"
+            # Generator directories have names like "G-1_xxx_data-generator", "O-1_xxx-data-generator", etc.
+            # Support G-, O-, K- and other single-letter prefixes
             is_generator_dir = (
-                first_level_dir.name.startswith("G-") and 
-                ("_data-generator" in first_level_dir.name or 
+                re.match(r'^[A-Z]-\d+', first_level_dir.name) and
+                ("_data-generator" in first_level_dir.name or
                  "-data-generator" in first_level_dir.name)
             )
             
@@ -599,13 +601,12 @@ class InternVLEvaluator:
                         task_scores.append(score)
                         model_all_scores.append(score)
                         
-                        # Simplified sample data for summary
+                        explanation = sample_data.get('explanation', '')
+                        preview = explanation[:100] + "..." if len(explanation) > 100 else explanation
                         simplified_samples[sample_id] = {
                             "score": score,
                             "status": sample_data.get('status', 'unknown'),
-                            "explanation_preview": sample_data.get('explanation', '')[:100] + "..." 
-                                if len(sample_data.get('explanation', '')) > 100 
-                                else sample_data.get('explanation', '')
+                            "explanation_preview": preview
                         }
                     
                     # Calculate task statistics

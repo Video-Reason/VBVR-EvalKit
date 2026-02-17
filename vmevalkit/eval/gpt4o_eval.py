@@ -39,18 +39,20 @@ TASK_GUIDANCE = {
 
 class GPT4OEvaluator:
     """GPT-4O vision model evaluator for single-frame evaluation."""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  inference_dir: str,
                  eval_output_dir: str = "./evaluations/gpt4o-eval",
                  api_key: Optional[str] = None,
                  model: str = "gpt-4o",
-                 temperature: float = 0.0):
+                 temperature: float = 0.0,
+                 evaluator_name: Optional[str] = None):
         self.eval_output_dir = Path(eval_output_dir)
         self.inference_dir = Path(inference_dir)
-        
+
         self.eval_output_dir.mkdir(parents=True, exist_ok=True)
-        
+        self.evaluator_name = evaluator_name or self.__class__.__name__
+
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY env var.")
@@ -65,7 +67,7 @@ class GPT4OEvaluator:
     def _has_evaluation(self, model_name: str, task_type: str, task_id: str) -> bool:
         """Check if task has already been evaluated."""
         eval_path = self.eval_output_dir / model_name / task_type / task_id
-        eval_file = eval_path / "GPT4OEvaluator.json"
+        eval_file = eval_path / f"{self.evaluator_name}.json"
         return eval_file.exists()
     
     def extract_final_frame(self, video_path: str) -> np.ndarray:
@@ -339,11 +341,11 @@ class GPT4OEvaluator:
         """Save a single evaluation result immediately (for resume support)."""
         task_output_dir = self.eval_output_dir / model_name / task_type / task_id
         task_output_dir.mkdir(parents=True, exist_ok=True)
-        
-        with open(task_output_dir / "GPT4OEvaluator.json", 'w') as f:
+
+        with open(task_output_dir / f"{self.evaluator_name}.json", 'w') as f:
             json.dump({
                 "metadata": {
-                    "evaluator": "GPT4OEvaluator",
+                    "evaluator": self.evaluator_name,
                     "timestamp": datetime.now().isoformat(),
                     "model_name": model_name,
                     "task_type": task_type,
@@ -351,7 +353,7 @@ class GPT4OEvaluator:
                 },
                 "result": eval_result
             }, f, indent=2)
-        
+
         logger.debug(f"Saved evaluation for {model_name}/{task_type}/{task_id}")
     
     def _save_results(self, model_name: str, results: Dict[str, Any]):
@@ -421,8 +423,7 @@ class GPT4OEvaluator:
             model_name = model_dir.name
             evaluations = {}
             
-            # Scan all GPT4OEvaluator.json files
-            eval_files = list(model_dir.rglob("GPT4OEvaluator.json"))
+            eval_files = list(model_dir.rglob(f"{self.evaluator_name}.json"))
             logger.info(f"Found {len(eval_files)} evaluation files for {model_name}")
             
             for eval_file in eval_files:
@@ -468,14 +469,13 @@ class GPT4OEvaluator:
                         score = sample_data.get('solution_correctness_score', 0)
                         task_scores.append(score)
                         model_all_scores.append(score)
-                        
-                        # Simplified sample data for summary
+
+                        explanation = sample_data.get('explanation', '')
+                        preview = explanation[:100] + "..." if len(explanation) > 100 else explanation
                         simplified_samples[sample_id] = {
                             "score": score,
                             "status": sample_data.get('status', 'unknown'),
-                            "explanation_preview": sample_data.get('explanation', '')[:100] + "..." 
-                                if len(sample_data.get('explanation', '')) > 100 
-                                else sample_data.get('explanation', '')
+                            "explanation_preview": preview
                         }
                     
                     # Calculate task statistics
@@ -549,10 +549,9 @@ class GPT4OEvaluator:
         else:
             global_statistics = {}
         
-        # Build enhanced summary structure
         enhanced_summary = {
             "metadata": {
-                "evaluator": "GPT4OEvaluator",
+                "evaluator": self.evaluator_name,
                 "timestamp": datetime.now().isoformat(),
                 "enhanced_version": True,
                 "total_samples": len(global_all_scores)
@@ -560,9 +559,8 @@ class GPT4OEvaluator:
             "global_statistics": global_statistics,
             "models": all_models
         }
-        
-        # Save enhanced summary
-        output_path = self.eval_output_dir / "GPT4OEvaluator_summary.json"
+
+        output_path = self.eval_output_dir / f"{self.evaluator_name}_summary.json"
         with open(output_path, 'w') as f:
             json.dump(enhanced_summary, f, indent=2)
         

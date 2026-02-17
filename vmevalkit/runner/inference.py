@@ -175,32 +175,5 @@ class InferenceRunner:
         }
 
 
-def get_models_by_family(family_name: str) -> Dict[str, Dict[str, Any]]:
-    """Get all models from a specific family."""
-    if family_name not in MODEL_FAMILIES:
-        raise ValueError(f"Unknown family: {family_name}. Available: {list(MODEL_FAMILIES.keys())}")
-    return MODEL_FAMILIES[family_name]
-
-
-def get_model_family(model_name: str) -> str:
-    """Get the family name for a specific model."""
-    if model_name not in AVAILABLE_MODELS:
-        raise ValueError(f"Unknown model: {model_name}")
-    return AVAILABLE_MODELS[model_name]["family"]
-
-
-def list_all_families() -> Dict[str, int]:
-    """List all model families and their counts."""
-    return {
-        family_name: len(family_models)
-        for family_name, family_models in MODEL_FAMILIES.items()
-    }
-
-
-def add_model_family(family_name: str, models: Dict[str, Dict[str, Any]]) -> None:
-    """Add a new model family to the registry."""
-    for model_config in models.values():
-        model_config["family"] = family_name
-    
-    MODEL_FAMILIES[family_name] = models
-    AVAILABLE_MODELS.update(models)
+# Re-export catalog utility functions for backward compatibility
+from .MODEL_CATALOG import get_models_by_family, get_model_family, list_all_families, add_model_family

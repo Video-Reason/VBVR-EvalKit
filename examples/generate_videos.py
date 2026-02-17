@@ -293,9 +293,8 @@ def run_pilot_experiment(
         statistics["by_domain"][domain] = {"completed": 0, "failed": 0, "skipped": 0}
     
     experiment_start = datetime.now()
-    
-    total_jobs = sum(len(tasks) for tasks in tasks_by_domain.values()) * len(models)
-    print(f"Total jobs: {total_jobs}")
+
+    print(f"Total jobs: {total_generations}")
     print("Starting sequential execution...\n")
     
     job_counter = 0
@@ -316,20 +315,14 @@ def run_pilot_experiment(
             for task in tasks:
                 job_counter += 1
                 task_id = task["id"]
-                job_id = f"{model_name}_{task_id}"
-                
-                print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
-                
+
+                print(f"    [{job_counter}/{total_generations}] Processing: {task_id}")
+
                 domain_dir_name = task.get("domain_dir", domain)
                 domain_folder = model_output_dir / domain_dir_name
-                
-                # Check if {task_id}.mp4 exists in domain folder
-                has_valid_output = False
+
                 video_file = domain_folder / f"{task_id}.mp4"
-                if video_file.exists():
-                    has_valid_output = True
-                
-                if skip_existing and has_valid_output:
+                if skip_existing and video_file.exists():
                     statistics["skipped"] += 1
                     statistics["by_model"][model_name]["skipped"] += 1
                     statistics["by_domain"][domain]["skipped"] += 1

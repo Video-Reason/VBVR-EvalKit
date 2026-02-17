@@ -256,14 +256,7 @@ class CogVideoXService:
         
         duration_taken = time.time() - start_time
         logger.info(f"Video saved to: {output_path} (took {duration_taken:.2f}s)")
-        
-        # Get actual resolution used (from prepared image or config)
-        actual_resolution = (
-            (target_width, target_height) 
-            if target_width is not None and target_height is not None 
-            else self.config.resolution
-        )
-        
+
         return {
             "video_path": str(output_path),
             "frames": frames,
@@ -275,7 +268,7 @@ class CogVideoXService:
             "metadata": {
                 "prompt": text_prompt,
                 "image_path": str(image_path),
-                "resolution": actual_resolution,
+                "resolution": (target_width, target_height),
                 "guidance_scale": self.config.guidance_scale,
                 "num_inference_steps": self.config.num_inference_steps,
                 "seed": seed

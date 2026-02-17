@@ -2,6 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<<<<<<< HEAD
 
 
 Apply KISS, YAGNI, and SOLID principles.
@@ -19,13 +20,18 @@ don't write redundant code in markdown, keep it concise.
 安装模型环境时，必须先用 WebSearch 搜索 HuggingFace 和 GitHub 上该模型的官方页面，了解最新的安装方式和用法，再编写 setup 脚本或 wrapper 代码。每个模型都要单独搜索。
 
 
+=======
+>>>>>>> e759317 (update doc)
 ## Project Overview
 
 VMEvalKit is a unified inference and evaluation framework for 29+ video generation models. It evaluates video models' reasoning capabilities through task pairs — visual reasoning problems (chess, maze, sudoku, raven puzzles, arc-agi, rotation, physical causality, match3). Models receive an initial state image + text prompt and must generate videos demonstrating the reasoning process.
 
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> e759317 (update doc)
 ## Common Commands
 
 ```bash

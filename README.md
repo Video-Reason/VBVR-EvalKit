@@ -1,10 +1,10 @@
 # VMEvalKit 🎥🧠
 
-**Unified inference and evaluation framework for 29+ video generation models.**
+**Unified inference and evaluation framework for 37 video generation models.**
 
 ## Features
 
-- **🚀 29+ Models**: Unified interface for commercial APIs (Luma, Veo, Sora, Runway) + open-source (LTX-Video, HunyuanVideo, DynamiCrafter, SVD, etc.)
+- **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
 - **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL)  
 - **☁️ Cloud Integration**: S3 + HuggingFace Hub support
 
@@ -79,8 +79,10 @@ Set in `.env` file:
 cp env.template .env
 # Edit .env with your API keys:
 # LUMA_API_KEY=...
-# OPENAI_API_KEY=...  
+# OPENAI_API_KEY=...
 # GEMINI_API_KEY=...
+# KLING_API_KEY=...
+# RUNWAYML_API_SECRET=...
 ```
 
 ## Adding Models

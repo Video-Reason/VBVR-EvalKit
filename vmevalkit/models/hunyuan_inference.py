@@ -1,9 +1,4 @@
-"""
-HunyuanVideo-I2V Inference Service for VMEvalKit
-
-Wrapper for the HunyuanVideo-I2V model (submodules/HunyuanVideo-I2V) to integrate with VMEvalKit's
-unified inference interface. Supports high-quality image-to-video generation up to 720p.
-"""
+"""HunyuanVideo-I2V Inference Service for VMEvalKit"""
 
 import os
 import sys
@@ -16,15 +11,31 @@ from .base import ModelWrapper
 import json
 import time
 
-# Add HunyuanVideo-I2V submodule to path
 HUNYUAN_PATH = Path(__file__).parent.parent.parent / "submodules" / "HunyuanVideo-I2V"
 sys.path.insert(0, str(HUNYUAN_PATH))
 
+# HuggingFace cache paths for shared checkpoints
+HF_HOME = os.environ.get("HF_HOME", "/mnt/aigc/shared_env/huggingface")
+HF_HUB_CACHE = Path(HF_HOME) / "hub"
+
+
+def _get_hf_snapshot_path(repo_id: str) -> Optional[Path]:
+    """Get the snapshot path for a HuggingFace model from cache."""
+    model_dir = HF_HUB_CACHE / f"models--{repo_id.replace('/', '--')}"
+    if not model_dir.exists():
+        return None
+    snapshots_dir = model_dir / "snapshots"
+    if not snapshots_dir.exists():
+        return None
+    # Get the first (usually only) snapshot
+    snapshots = list(snapshots_dir.iterdir())
+    if snapshots:
+        return snapshots[0]
+    return None
+
 
 class HunyuanVideoService:
-    """
-    Service class for HunyuanVideo-I2V inference integration.
-    """
+    """Service class for HunyuanVideo-I2V inference integration."""
     
     def __init__(
         self,
@@ -33,24 +44,12 @@ class HunyuanVideoService:
         model_python_interpreter: str = None,
         **kwargs
     ):
-        """
-        Initialize HunyuanVideo-I2V service.
-        
-        Args:
-            model_id: HunyuanVideo model variant (currently only one available)
-            output_dir: Directory to save generated videos
-            model_python_interpreter: Python interpreter to use (defaults to sys.executable)
-            **kwargs: Additional parameters
-        """
         self.model_id = model_id
-        # Resolve to an absolute path so the subprocess (running from the submodule dir)
-        # writes to the same folder we later read from.
         self.output_dir = Path(output_dir).expanduser().resolve()
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.model_python_interpreter = model_python_interpreter or sys.executable
         self.kwargs = kwargs
         
-        # Check if HunyuanVideo-I2V is available
         self.inference_script = HUNYUAN_PATH / "sample_image2video.py"
         if not self.inference_script.exists():
             raise FileNotFoundError(
@@ -65,27 +64,19 @@ class HunyuanVideoService:
         text_prompt: str,
         height: int = 720,
         width: int = 1280,
-        video_length: int = 129,  # HunyuanVideo uses frame counts
+        video_length: int = 129,
         seed: Optional[int] = None,
         use_i2v_stability: bool = True,
         flow_shift: float = 7.0,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Run HunyuanVideo-I2V inference using subprocess.
-        
-        Returns:
-            Dictionary with inference results and metadata
-        """
+        """Run HunyuanVideo-I2V inference using subprocess."""
         start_time = time.time()
         timestamp = int(start_time)
         
-        # Use output directory directly (no timestamp subfolder)
-        # The InferenceRunner already creates a properly structured directory
         output_dir = self.output_dir
         output_dir.mkdir(exist_ok=True, parents=True)
         
-        # Determine i2v resolution based on height
         if height >= 720:
             i2v_resolution = "720p"
         elif height >= 540:
@@ -93,24 +84,36 @@ class HunyuanVideoService:
         else:
             i2v_resolution = "360p"
         
-        # Get model base path from kwargs or use default
-        model_base = kwargs.get('model_base', str(HUNYUAN_PATH / "ckpts" / "hunyuan-video-i2v-720p"))
+        # Try to get model_base from HuggingFace cache first, fallback to local ckpts
+        default_model_base = None
+        hf_model_path = _get_hf_snapshot_path("tencent/HunyuanVideo-I2V")
+        if hf_model_path and (hf_model_path / "hunyuan-video-i2v-720p").exists():
+            default_model_base = str(hf_model_path / "hunyuan-video-i2v-720p")
+            print(f"Using HunyuanVideo model from HF cache: {default_model_base}")
+        else:
+            default_model_base = str(HUNYUAN_PATH / "ckpts" / "hunyuan-video-i2v-720p")
+            print(f"Using HunyuanVideo model from local path: {default_model_base}")
+        
+        model_base = kwargs.get('model_base', default_model_base)
         model_type = kwargs.get('model_type', 'HYVideo-T/2')
         infer_steps = kwargs.get('infer_steps', 50)
         embedded_cfg_scale = kwargs.get('embedded_cfg_scale', 6.0)
         
-        # Single GPU mode (default) - xfuser not required
-        # For multi-GPU, set num_gpus > 1 and ensure xfuser is installed
-        num_gpus = kwargs.get('num_gpus', 1)  # Default to single GPU
-        use_cpu_offload = kwargs.get('use_cpu_offload', True)  # Recommended for single GPU
+        # Get the absolute path for i2v-dit-weight
+        # HunyuanVideo expects the transformer weights path
+        i2v_dit_weight = Path(model_base) / "transformers" / "mp_rank_00_model_states.pt"
+        if not i2v_dit_weight.exists():
+            # Try alternative path structure
+            i2v_dit_weight = Path(model_base).parent / "hunyuan-video-i2v-720p" / "transformers" / "mp_rank_00_model_states.pt"
         
-        # Prepare inference command
+        num_gpus = kwargs.get('num_gpus', 1)
+        use_cpu_offload = kwargs.get('use_cpu_offload', True)
+        
         cmd = [
             self.model_python_interpreter,
             str(HUNYUAN_PATH / "sample_image2video.py"),
         ]
         
-        # Add common arguments
         cmd.extend([
             "--prompt", text_prompt,
             "--i2v-image-path", str(image_path),
@@ -119,89 +122,126 @@ class HunyuanVideoService:
             "--save-path", str(output_dir),
             "--model", model_type,
             "--model-base", model_base,
+            "--i2v-dit-weight", str(i2v_dit_weight),
             "--i2v-mode",
             "--i2v-resolution", i2v_resolution,
             "--infer-steps", str(infer_steps),
             "--embedded-cfg-scale", str(embedded_cfg_scale),
         ])
         
-        # Add CPU offload for single GPU (reduces memory usage)
         if use_cpu_offload and num_gpus == 1:
             cmd.append("--use-cpu-offload")
         
-        # Add stability parameter
         if use_i2v_stability:
             cmd.append("--i2v-stability")
         
-        # Add flow shift parameter
         if flow_shift:
             cmd.extend(["--flow-shift", str(flow_shift)])
         
-        # Add flow-reverse (recommended by docs)
         cmd.append("--flow-reverse")
         
-        # Add seed
         if seed is not None:
             cmd.extend(["--seed", str(seed)])
         else:
-            cmd.extend(["--seed", "0"])  # Use deterministic seed by default
+            cmd.extend(["--seed", "0"])
             
-        # Add any additional parameters (skip already handled ones and metadata)
         skip_keys = ['use_i2v_stability', 'flow_shift', 'model_base', 'model_type', 
                      'infer_steps', 'embedded_cfg_scale', 'question_data', 'duration', 
-                     'output_filename', 'fps', 'num_gpus', 'use_cpu_offload']
+                     'output_filename', 'fps', 'num_gpus', 'use_cpu_offload',
+                     'num_frames', 'height', 'width']
         for key, value in kwargs.items():
             if value is not None and key not in skip_keys:
                 cmd.extend([f"--{key.replace('_', '-')}", str(value)])
 
-        # Preflight: HunyuanVideo also expects a CLIP-L text encoder/tokenizer at ckpts/text_encoder_2.
-        # If it's missing, inference will fail deep inside Transformers with a confusing error.
-        clip_text_encoder_dir = HUNYUAN_PATH / "ckpts" / "text_encoder_2"
+        # Check for CLIP text encoder (text_encoder_2) - try HF cache first, then local ckpts
+        clip_text_encoder_dir = _get_hf_snapshot_path("openai/clip-vit-large-patch14")
+        if clip_text_encoder_dir is None or not clip_text_encoder_dir.exists():
+            # Fallback to local ckpts directory
+            clip_text_encoder_dir = HUNYUAN_PATH / "ckpts" / "text_encoder_2"
+        
         if not clip_text_encoder_dir.exists() or not any(clip_text_encoder_dir.iterdir()):
             raise FileNotFoundError(
-                f"Missing required checkpoint directory: {clip_text_encoder_dir}\n"
-                f"Run: /home/ubuntu/Hokin/VMEvalKit/setup/models/hunyuan-video-i2v/setup.sh"
+                f"Missing CLIP text encoder. Expected at HF cache (openai/clip-vit-large-patch14) "
+                f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_2'}\n"
+                f"Run: huggingface-cli download openai/clip-vit-large-patch14"
             )
         
+        # Check for LLaVA text encoder (text_encoder_i2v) - try HF cache first, then local ckpts
+        llava_text_encoder_dir = _get_hf_snapshot_path("xtuner/llava-llama-3-8b-v1_1-transformers")
+        if llava_text_encoder_dir is None or not llava_text_encoder_dir.exists():
+            # Fallback to local ckpts directory
+            llava_text_encoder_dir = HUNYUAN_PATH / "ckpts" / "text_encoder_i2v"
+        
+        if not llava_text_encoder_dir.exists():
+            raise FileNotFoundError(
+                f"Missing LLaVA text encoder. Expected at HF cache (xtuner/llava-llama-3-8b-v1_1-transformers) "
+                f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_i2v'}\n"
+                f"Run: huggingface-cli download xtuner/llava-llama-3-8b-v1_1-transformers"
+            )
+        
+        # Set text encoder paths in environment for HunyuanVideo
         try:
-            # Ensure HunyuanVideo resolves ckpt-relative paths (e.g. ./ckpts/text_encoder_i2v)
-            # regardless of the caller's working directory, without modifying the submodule.
             env = os.environ.copy()
-            env.setdefault("MODEL_BASE", str(HUNYUAN_PATH / "ckpts"))
+            # Set MODEL_BASE to where the main model weights are
+            hf_model_path = _get_hf_snapshot_path("tencent/HunyuanVideo-I2V")
+            if hf_model_path and hf_model_path.exists():
+                env["MODEL_BASE"] = str(hf_model_path)
+                
+                # HunyuanVideo's constants.py reads MODEL_BASE at import time and expects
+                # text_encoder_i2v and text_encoder_2 to be inside MODEL_BASE.
+                # Create symlinks in the HF cache to make this work.
+                text_encoder_i2v_link = hf_model_path / "text_encoder_i2v"
+                if not text_encoder_i2v_link.exists() and llava_text_encoder_dir.exists():
+                    try:
+                        text_encoder_i2v_link.symlink_to(llava_text_encoder_dir)
+                        print(f"Created symlink: {text_encoder_i2v_link} -> {llava_text_encoder_dir}")
+                    except (OSError, FileExistsError) as e:
+                        print(f"Warning: Could not create symlink for text_encoder_i2v: {e}")
+                
+                text_encoder_2_link = hf_model_path / "text_encoder_2"
+                if not text_encoder_2_link.exists() and clip_text_encoder_dir.exists():
+                    try:
+                        text_encoder_2_link.symlink_to(clip_text_encoder_dir)
+                        print(f"Created symlink: {text_encoder_2_link} -> {clip_text_encoder_dir}")
+                    except (OSError, FileExistsError) as e:
+                        print(f"Warning: Could not create symlink for text_encoder_2: {e}")
+            else:
+                env["MODEL_BASE"] = str(HUNYUAN_PATH / "ckpts")
+            env["TEXT_ENCODER_2"] = str(clip_text_encoder_dir)
+            env["TEXT_ENCODER_I2V"] = str(llava_text_encoder_dir)
             
-            # Enable xDiT parallel inference resizing (per docs)
             if num_gpus > 1:
                 env["ALLOW_RESIZE_FOR_SP"] = "1"
 
-
-            # Change to HunyuanVideo directory and run inference
             result = subprocess.run(
                 cmd,
                 cwd=str(HUNYUAN_PATH),
                 env=env,
                 capture_output=True,
                 text=True,
-                timeout=7200  # 120 minute timeout for large model
+                timeout=7200
             )
             
             success = result.returncode == 0
             error_msg = result.stderr if result.returncode != 0 else None
             
-            # Find the generated video file in the output directory
             output_video = None
             if success and output_dir.exists():
-                # HunyuanVideo may create videos in nested directories
-                # Search recursively and flatten to video.mp4
+                # Find all video files and sort by modification time (newest first)
                 video_files = list(output_dir.glob("**/*.mp4"))
                 if video_files:
-                    source_video = video_files[0]
+                    # Get the most recently created/modified video file
+                    source_video = max(video_files, key=lambda p: p.stat().st_mtime)
                     final_video_path = output_dir / "video.mp4"
                     
-                    # Move/rename to simple path
+                    # Only move if it's not already named video.mp4
                     if source_video != final_video_path:
+                        # If video.mp4 already exists, remove it first
+                        if final_video_path.exists():
+                            final_video_path.unlink()
                         shutil.move(str(source_video), str(final_video_path))
                     
-                    # Clean up any nested directories created by the model
+                    # Clean up subdirectories created by Hunyuan
                     for item in output_dir.iterdir():
                         if item.is_dir():
                             shutil.rmtree(item)
@@ -255,33 +295,32 @@ class HunyuanVideoService:
         output_filename: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Generate video from image and text prompt.
+        """Generate video from image and text prompt."""
+        num_frames = kwargs.pop('num_frames', None)
+        fps = kwargs.get('fps', 24)
         
-        Args:
-            image_path: Path to input image
-            text_prompt: Text prompt for video generation
-            duration: Video duration in seconds (converted to frames)
-            height: Video height in pixels (720p recommended)
-            width: Video width in pixels (1280 for 720p)
-            seed: Random seed for reproducibility
-            output_filename: Optional output filename (auto-generated if None)
-            **kwargs: Additional parameters passed to HunyuanVideo
-            
-        Returns:
-            Dictionary with generation results and metadata
-        """
-        # Convert duration to frames (HunyuanVideo uses ~25 FPS)
-        # Per docs: max supported is 129 frames (5 seconds)
-        fps = kwargs.get('fps', 25)
-        video_length = max(1, int(duration * fps))
-        # Ensure odd number of frames (HunyuanVideo requirement)
-        if video_length % 2 == 0:
-            video_length += 1
-        # Cap to max supported length per documentation
+        if num_frames is not None:
+            video_length = num_frames
+        else:
+            video_length = max(1, int(duration * fps))
+        
+        original_length = video_length
+        
+        # HunyuanVideo requires: (video_length - 1) % 4 == 0
+        # Valid lengths: 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 129
+        # Formula: video_length = 4*n + 1, where n >= 0
+        remainder = (video_length - 1) % 4
+        if remainder != 0:
+            # Round up to next valid length
+            video_length = video_length + (4 - remainder)
+        
+        # Cap at maximum
         video_length = min(video_length, 129)
         
-        # Validate inputs
+        if video_length != original_length:
+            print(f"    Note: Adjusted frames from {original_length} to {video_length} (HunyuanVideo: (n-1) divisible by 4, max 129)")
+        print(f"    Video generation: num_frames={video_length}, fps={fps}")
+        
         image_path = Path(image_path)
         if not image_path.exists():
             return {
@@ -295,11 +334,6 @@ class HunyuanVideoService:
                 "metadata": {"text_prompt": text_prompt, "image_path": str(image_path)},
             }
         
-        # Check GPU memory requirements
-        if height >= 720:
-            print(f"Warning: HunyuanVideo requires 60-80GB GPU memory for {height}p generation")
-        
-        # Run inference
         result = self._run_hunyuan_inference(
             image_path=image_path,
             text_prompt=text_prompt,
@@ -310,7 +344,6 @@ class HunyuanVideoService:
             **kwargs
         )
         
-        # Handle custom output filename
         if output_filename and result["success"] and result["video_path"]:
             old_path = Path(result["video_path"])
             new_path = self.output_dir / output_filename
@@ -321,11 +354,8 @@ class HunyuanVideoService:
         return result
 
 
-# Wrapper class to match VMEvalKit's interface pattern
 class HunyuanVideoWrapper(ModelWrapper):
-    """
-    Wrapper for HunyuanVideoService to match VMEvalKit's standard interface.
-    """
+    """Wrapper for HunyuanVideoService to match VMEvalKit's standard interface."""
     
     def __init__(
         self,
@@ -333,18 +363,13 @@ class HunyuanVideoWrapper(ModelWrapper):
         output_dir: str = "./outputs",
         **kwargs
     ):
-        """Initialize HunyuanVideo wrapper."""
-        # Properly initialize the base class
         super().__init__(model, output_dir, **kwargs)
-        
-        # Create HunyuanVideoService instance with model-specific Python interpreter
         self.hunyuan_service = HunyuanVideoService(
             model_id=model, 
             output_dir=str(self.output_dir), 
             model_python_interpreter=self.get_model_python_interpreter(),
             **kwargs
         )
-    
     
     def generate(
         self,
@@ -354,23 +379,8 @@ class HunyuanVideoWrapper(ModelWrapper):
         output_filename: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Generate video using HunyuanVideo-I2V (matches VMEvalKit interface).
-        
-        Args:
-            image_path: Path to input image
-            text_prompt: Text prompt for video generation
-            duration: Video duration in seconds
-            output_filename: Optional output filename
-            **kwargs: Additional parameters
-            
-        Returns:
-            Dictionary with generation results
-        """
-        # Sync service output_dir with wrapper output_dir before each generation
-        # This ensures videos are saved to the correct location when wrapper is cached
+        """Generate video using HunyuanVideo-I2V."""
         self.hunyuan_service.output_dir = self.output_dir
-        
         return self.hunyuan_service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

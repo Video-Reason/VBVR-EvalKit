@@ -55,7 +55,7 @@ VEO_MODELS = {
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.0-generate-001",
-        "description": "Google Veo 3.0 - Advanced video generation model",
+        "description": "Google Veo 3.0 - High-quality video generation",
         "family": "Google Veo"
     },
     "veo-3.0-fast-generate": {
@@ -63,24 +63,81 @@ VEO_MODELS = {
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.0-fast-generate-001",
-        "description": "Google Veo 3.0 Fast - Faster generation model",
+        "description": "Google Veo 3.0 Fast - Faster and cheaper generation",
         "family": "Google Veo"
     },
     "veo-3.1-generate": {
         "wrapper_module": "vmevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
-        "model": "veo-3.1-generate-001",
-        "description": "Google Veo 3.1 - Latest model with native 1080p and audio",
+        "model": "veo-3.1-generate-preview",
+        "description": "Google Veo 3.1 Standard - Latest model with native 1080p and audio (preview)",
+        "family": "Google Veo"
+    },
+    "veo-3.1-fast": {
+        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_class": "VeoWrapper",
+        "service_class": "VeoService",
+        "model": "veo-3.1-fast-generate-preview",
+        "description": "Google Veo 3.1 Fast - Faster variant of Veo 3.1 (preview)",
         "family": "Google Veo"
     }
 }
 
-
-
+# Kling AI Models
+KLING_MODELS = {
+    "kling-v2-6": {
+        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_class": "KlingWrapper",
+        "service_class": "KlingService",
+        "model": "kling-v2-6",
+        "description": "Kling 2.6 - Latest Kling model with best quality",
+        "family": "Kling AI"
+    },
+    "kling-v2-5-turbo": {
+        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_class": "KlingWrapper",
+        "service_class": "KlingService",
+        "model": "kling-v2-5-turbo",
+        "description": "Kling 2.5 Turbo - Fast generation model",
+        "family": "Kling AI"
+    },
+    "kling-v2-1-master": {
+        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_class": "KlingWrapper",
+        "service_class": "KlingService",
+        "model": "kling-v2-1-master",
+        "description": "Kling 2.1 Master - High quality model",
+        "family": "Kling AI"
+    },
+    "kling-v2-master": {
+        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_class": "KlingWrapper",
+        "service_class": "KlingService",
+        "model": "kling-v2-master",
+        "description": "Kling 2.0 Master - Balanced quality and speed",
+        "family": "Kling AI"
+    },
+    "kling-v1-6": {
+        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_class": "KlingWrapper",
+        "service_class": "KlingService",
+        "model": "kling-v1-6",
+        "description": "Kling 1.6 - Improved original model",
+        "family": "Kling AI"
+    }
+}
 
 # Runway ML Models
 RUNWAY_MODELS = {
+    "runway-gen45": {
+        "wrapper_module": "vmevalkit.models.runway_inference",
+        "wrapper_class": "RunwayWrapper",
+        "service_class": "RunwayService",
+        "model": "gen4.5",
+        "description": "Runway Gen-4.5 - World's top-rated video model (5s or 10s)",
+        "family": "Runway ML"
+    },
     "runway-gen4-turbo": {
         "wrapper_module": "vmevalkit.models.runway_inference",
         "wrapper_class": "RunwayWrapper",
@@ -346,6 +403,7 @@ SANA_VIDEO_MODELS = {
 AVAILABLE_MODELS = {
     **LUMA_MODELS,
     **VEO_MODELS,
+    **KLING_MODELS,
     **RUNWAY_MODELS,
     **OPENAI_SORA_MODELS,
     **LTX_VIDEO_MODELS,
@@ -364,6 +422,7 @@ AVAILABLE_MODELS = {
 MODEL_FAMILIES = {
     "Luma Dream Machine": LUMA_MODELS,
     "Google Veo": VEO_MODELS,
+    "Kling AI": KLING_MODELS,
     "Runway ML": RUNWAY_MODELS,
     "OpenAI Sora": OPENAI_SORA_MODELS,
     "LTX-Video": LTX_VIDEO_MODELS,

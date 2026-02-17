@@ -26,7 +26,7 @@ pip install -q open-clip-torch==2.20.0
 deactivate
 
 print_section "Checkpoints"
-download_checkpoint_by_path "${MODEL_CHECKPOINT_PATHS[$MODEL]}"
+download_checkpoint_by_path "$(get_model_checkpoint_path "$MODEL")"
 
 print_success "${MODEL} setup complete"
 

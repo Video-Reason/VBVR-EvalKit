@@ -1,7 +1,10 @@
 """
 Google Veo (Gemini API) — Text + Image → Video
 - Auth: uses GEMINI_API_KEY environment variable
-- Models: veo-2.0-generate-001, veo-3.0-generate-preview, veo-3.0-fast-generate-preview, veo-3.1-generate-001
+- Models (check your account availability with client.models.list()):
+  - Veo 2.0: veo-2.0-generate-001
+  - Veo 3.0: veo-3.0-generate-001, veo-3.0-fast-generate-001
+  - Veo 3.1: veo-3.1-generate-preview, veo-3.1-fast-generate-preview
 - Input image: local file (PNG/JPEG)
 - Output: saves video file directly using the Gemini client
 """
@@ -89,10 +92,20 @@ def get_gemini_api_key() -> str:
 
 # Model name mapping from catalog names to Gemini API model IDs
 MODEL_NAME_MAPPING = {
+    # Veo 2.0
     "veo-2.0-generate-001": "veo-2.0-generate-001",
+    # Veo 3.0 GA
+    "veo-3.0-generate-001": "veo-3.0-generate-001",
+    "veo-3.0-fast-generate-001": "veo-3.0-fast-generate-001",
+    # Veo 3.0 Preview (legacy)
     "veo-3.0-generate-preview": "veo-3.0-generate-preview",
     "veo-3.0-fast-generate-preview": "veo-3.0-fast-generate-preview",
+    # Veo 3.1 GA
     "veo-3.1-generate-001": "veo-3.1-generate-001",
+    "veo-3.1-fast-generate-001": "veo-3.1-fast-generate-001",
+    # Veo 3.1 Preview (if needed)
+    "veo-3.1-generate-preview": "veo-3.1-generate-preview",
+    "veo-3.1-fast-generate-preview": "veo-3.1-fast-generate-preview",
 }
 
 
@@ -103,7 +116,7 @@ class VeoService:
 
     def __init__(
         self,
-        model_id: str = "veo-3.0-generate-preview",
+        model_id: str = "veo-3.1-generate-001",
         poll_interval_s: float = 5.0,
         poll_timeout_s: float = 1800.0,
     ):

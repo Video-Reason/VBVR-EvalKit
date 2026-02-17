@@ -88,26 +88,45 @@ class WanService:
         guidance_scale: Optional[float] = None,
         fps: Optional[int] = None,
         output_path: Optional[Path] = None,
+        num_frames: Optional[int] = None,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
         **kwargs
     ) -> Dict[str, Any]:
         start_time = time.time()
         self._load_model()
         
-        image, height, width = self._prepare_image(image_path)
+        # Get dimensions from kwargs (ground truth) or use aspect ratio resize
+        if height is not None and width is not None:
+            # Use provided dimensions from ground truth
+            from diffusers.utils import load_image
+            image = load_image(str(image_path))
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
+            logger.info(f"Resized image to ground truth dimensions: {width}x{height}")
+        else:
+            # Fall back to aspect ratio resize
+            image, height, width = self._prepare_image(image_path)
         
         guidance_scale = guidance_scale or self.model_constraints["guidance_scale"]
         fps = fps or self.model_constraints["fps"]
         
         logger.info(f"Generating video with prompt: {text_prompt[:80]}...")
-        logger.info(f"Dimensions: {width}x{height}, guidance_scale={guidance_scale}, fps={fps}")
+        logger.info(f"Dimensions: {width}x{height}, guidance_scale={guidance_scale}, fps={fps}, num_frames={num_frames}")
         
-        output = self.pipe(
-            image=image,
-            prompt=text_prompt,
-            height=height,
-            width=width,
-            guidance_scale=guidance_scale
-        )
+        # Build pipeline kwargs
+        pipe_kwargs = {
+            "image": image,
+            "prompt": text_prompt,
+            "height": height,
+            "width": width,
+            "guidance_scale": guidance_scale
+        }
+        if num_frames is not None:
+            pipe_kwargs["num_frames"] = num_frames
+        
+        output = self.pipe(**pipe_kwargs)
         frames = output.frames[0]
         
         video_path = None
@@ -161,8 +180,13 @@ class WanWrapper(ModelWrapper):
     ) -> Dict[str, Any]:
         start_time = time.time()
         
+        # Extract parameters from kwargs (from ground truth)
         guidance_scale = kwargs.pop("guidance_scale", None)
         fps = kwargs.pop("fps", None)
+        num_frames = kwargs.pop("num_frames", None)
+        height = kwargs.pop("height", None)
+        width = kwargs.pop("width", None)
+        kwargs.pop("question_data", None)
         
         if not output_filename:
             output_filename = "video.mp4"
@@ -175,6 +199,9 @@ class WanWrapper(ModelWrapper):
             guidance_scale=guidance_scale,
             fps=fps,
             output_path=output_path,
+            num_frames=num_frames,
+            height=height,
+            width=width,
             **kwargs
         )
         

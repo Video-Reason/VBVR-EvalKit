@@ -39,19 +39,35 @@ declare -a COMMERCIAL_MODELS=(
     "luma-ray-2"
     "luma-ray-flash-2"
     "veo-2"
+    "veo-2.0-generate"
+    "veo-3.0-fast-generate"
     "veo-3.0-generate"
+    "veo-3.1-generate"
+    "veo-3.1-fast"
+    "kling-v2-6"
+    "kling-v2-5-turbo"
+    "kling-v2-1-master"
+    "kling-v2-master"
+    "kling-v1-6"
+    "runway-gen45"
+    "runway-gen3a-turbo"
+    "runway-gen4-aleph"
     "runway-gen4-turbo"
     "openai-sora-2"
+    "openai-sora-2-pro"
 )
 
-declare -A COMMERCIAL_API_KEYS=(
-    ["luma-ray-2"]="LUMA_API_KEY"
-    ["luma-ray-flash-2"]="LUMA_API_KEY"
-    ["veo-2"]="GEMINI_API_KEY"
-    ["veo-3.0-generate"]="GEMINI_API_KEY"
-    ["runway-gen4-turbo"]="RUNWAYML_API_SECRET"
-    ["openai-sora-2"]="OPENAI_API_KEY"
-)
+# Commercial API keys lookup (bash 3.2 compatible - no associative arrays)
+_get_api_key_for_model() {
+    case "$1" in
+        luma-ray-2|luma-ray-flash-2) echo "LUMA_API_KEY" ;;
+        veo-2|veo-2.0-generate|veo-3.0-fast-generate|veo-3.0-generate|veo-3.1-generate|veo-3.1-fast) echo "GEMINI_API_KEY" ;;
+        kling-v2-6|kling-v2-5-turbo|kling-v2-1-master|kling-v2-master|kling-v1-6) echo "KLING_API_KEY" ;;
+        runway-gen45|runway-gen3a-turbo|runway-gen4-aleph|runway-gen4-turbo) echo "RUNWAYML_API_SECRET" ;;
+        openai-sora-2|openai-sora-2-pro) echo "OPENAI_API_KEY" ;;
+        *) echo "" ;;
+    esac
+}
 
 declare -a CHECKPOINTS=(
     "dynamicrafter/dynamicrafter_256_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter/resolve/main/model.ckpt|3.5GB"
@@ -60,12 +76,16 @@ declare -a CHECKPOINTS=(
     "videocrafter/base_512_v2/model.ckpt|https://huggingface.co/VideoCrafter/VideoCrafter2/resolve/main/model.ckpt|5.5GB"
 )
 
-declare -A MODEL_CHECKPOINT_PATHS=(
-    ["dynamicrafter-256"]="dynamicrafter/dynamicrafter_256_v1/model.ckpt"
-    ["dynamicrafter-512"]="dynamicrafter/dynamicrafter_512_v1/model.ckpt"
-    ["dynamicrafter-1024"]="dynamicrafter/dynamicrafter_1024_v1/model.ckpt"
-    ["videocrafter2-512"]="videocrafter/base_512_v2/model.ckpt"
-)
+# Model checkpoint paths lookup (bash 3.2 compatible - no associative arrays)
+get_model_checkpoint_path() {
+    case "$1" in
+        dynamicrafter-256) echo "dynamicrafter/dynamicrafter_256_v1/model.ckpt" ;;
+        dynamicrafter-512) echo "dynamicrafter/dynamicrafter_512_v1/model.ckpt" ;;
+        dynamicrafter-1024) echo "dynamicrafter/dynamicrafter_1024_v1/model.ckpt" ;;
+        videocrafter2-512) echo "videocrafter/base_512_v2/model.ckpt" ;;
+        *) echo "" ;;
+    esac
+}
 
 # ============================================================================
 # MODEL HELPERS
@@ -88,7 +108,7 @@ is_commercial_model() {
 }
 
 get_commercial_env_var() {
-    echo "${COMMERCIAL_API_KEYS[$1]:-}"
+    _get_api_key_for_model "$1"
 }
 
 # ============================================================================

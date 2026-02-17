@@ -123,12 +123,19 @@ class CogVideoXService:
             f"(sequential offload + VAE tiling/slicing)"
         )
     
-    def _prepare_image(self, image_path: Union[str, Path]) -> Image.Image:
+    def _prepare_image(
+        self, 
+        image_path: Union[str, Path],
+        target_width: Optional[int] = None,
+        target_height: Optional[int] = None
+    ) -> Image.Image:
         """
         Load and prepare image for CogVideoX.
         
         Args:
             image_path: Path to input image
+            target_width: Target width (uses config default if None)
+            target_height: Target height (uses config default if None)
             
         Returns:
             Prepared PIL Image resized to target resolution
@@ -141,8 +148,11 @@ class CogVideoXService:
         if image.mode != "RGB":
             image = image.convert("RGB")
         
+        # Use provided dimensions or fall back to config
+        if target_width is None or target_height is None:
+            target_width, target_height = self.config.resolution
+        
         # Resize to target resolution
-        target_width, target_height = self.config.resolution
         image = image.resize(
             (target_width, target_height),
             Image.Resampling.LANCZOS
@@ -170,7 +180,7 @@ class CogVideoXService:
             text_prompt: Text prompt for video generation
             output_path: Path where video should be saved
             seed: Random seed for reproducibility (default: 42)
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (height, width, num_frames, etc.)
             
         Returns:
             Dictionary with generation results and metadata
@@ -180,28 +190,57 @@ class CogVideoXService:
         # Load model if not already loaded
         self._load_model()
         
-        # Prepare input image
-        image = self._prepare_image(image_path)
+        # Get original image dimensions from the first frame if not provided in kwargs
+        target_width = kwargs.get('width')
+        target_height = kwargs.get('height')
+        
+        # If dimensions not provided, read from the actual image file
+        if target_width is None or target_height is None:
+            from diffusers.utils import load_image
+            original_image = load_image(str(image_path))
+            target_width, target_height = original_image.size
+            logger.info(f"Original image dimensions: {target_width}x{target_height}")
+        
+        # Ensure dimensions meet CogVideoX requirements
+        # CogVideoX VAE requires dimensions divisible by 32 (not just 16)
+        # This is because the VAE has multiple downsampling layers
+        orig_width, orig_height = target_width, target_height
+        target_width = ((target_width + 31) // 32) * 32
+        target_height = ((target_height + 31) // 32) * 32
+        
+        if target_width != orig_width or target_height != orig_height:
+            logger.info(f"Rounded resolution: {orig_width}x{orig_height} -> {target_width}x{target_height} (multiple of 32)")
+        else:
+            logger.info(f"Using resolution: {target_width}x{target_height}")
+        
+        # Prepare input image with target dimensions
+        image = self._prepare_image(image_path, target_width, target_height)
         
         # Create generator for reproducibility (fixed seed = temperature 0)
         generator = None
         if seed is not None:
             generator = torch.Generator(device=self.device).manual_seed(seed)
         
+        # Filter out kwargs not accepted by the pipeline
+        skip_keys = ['question_data', 'duration', 'output_filename', 'num_frames', 'height', 'width']
+        pipeline_kwargs = {k: v for k, v in kwargs.items() if k not in skip_keys}
+        
+        # Use num_frames from kwargs if provided (from ground truth), otherwise use config
+        num_frames = kwargs.get('num_frames', self.config.num_frames)
+
         logger.info(
-            f"Generating {self.config.num_frames} frames at {self.config.fps}fps "
+            f"Generating {num_frames} frames at {self.config.fps}fps "
+            f"at {target_width}x{target_height} resolution "
             f"with guidance_scale={self.config.guidance_scale} (seed={seed})"
         )
         
-        # Filter out kwargs not accepted by the pipeline
-        pipeline_kwargs = {k: v for k, v in kwargs.items() 
-                          if k not in ['question_data', 'duration', 'output_filename']}
-        
-        # Generate video frames
+        # Generate video frames with explicit height and width
         result = self.pipe(
             prompt=text_prompt,
             image=image,
-            num_frames=self.config.num_frames,
+            height=target_height,
+            width=target_width,
+            num_frames=num_frames,
             num_inference_steps=self.config.num_inference_steps,
             guidance_scale=self.config.guidance_scale,  # Fixed for reproducibility
             generator=generator,
@@ -218,10 +257,17 @@ class CogVideoXService:
         duration_taken = time.time() - start_time
         logger.info(f"Video saved to: {output_path} (took {duration_taken:.2f}s)")
         
+        # Get actual resolution used (from prepared image or config)
+        actual_resolution = (
+            (target_width, target_height) 
+            if target_width is not None and target_height is not None 
+            else self.config.resolution
+        )
+        
         return {
             "video_path": str(output_path),
             "frames": frames,
-            "num_frames": self.config.num_frames,
+            "num_frames": num_frames,
             "fps": self.config.fps,
             "duration_seconds": duration_taken,
             "model": self.config.model_id,
@@ -229,7 +275,7 @@ class CogVideoXService:
             "metadata": {
                 "prompt": text_prompt,
                 "image_path": str(image_path),
-                "resolution": self.config.resolution,
+                "resolution": actual_resolution,
                 "guidance_scale": self.config.guidance_scale,
                 "num_inference_steps": self.config.num_inference_steps,
                 "seed": seed

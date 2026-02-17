@@ -154,6 +154,7 @@ class VideoCrafterService:
             Dictionary with inference results and metadata
         """
         start_time = time.time()
+        timestamp = int(start_time)
         
         # Set random seed if provided
         if seed is not None:

@@ -22,7 +22,7 @@ VMEvalKit supports two model types with different integration approaches:
 | **Setup** | API key only | Full installation (10-30min) |
 | **Storage** | None | 5-25 GB per model |
 | **GPU** | Not required | Required (8-24GB VRAM) |
-| **Examples** | Luma, Veo, Sora | LTX-Video, SVD, HunyuanVideo |
+| **Examples** | Luma, Veo, Kling, Sora | LTX-Video, LTX-2, SVD, HunyuanVideo |
 
 ## 🏗️ Architecture
 
@@ -151,8 +151,8 @@ python examples/generate_videos.py --model your-model-name --task-id test_0001
 
 ## 📚 Study Examples
 
-- **Commercial API**: `vmevalkit/models/luma_inference.py`
-- **Open-Source**: `vmevalkit/models/svd_inference.py`, `vmevalkit/models/ltx_inference.py`
+- **Commercial API**: `vmevalkit/models/luma_inference.py`, `vmevalkit/models/kling_inference.py`
+- **Open-Source**: `vmevalkit/models/svd_inference.py`, `vmevalkit/models/ltx_inference.py`, `vmevalkit/models/ltx2_inference.py`
 - **Setup Scripts**: `setup/models/*/setup.sh`
 
 Ready to add your model? Follow the patterns above and test thoroughly! 🚀

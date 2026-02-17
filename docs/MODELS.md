@@ -1,26 +1,36 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **29+ video generation models** across **14 provider families**.
+VMEvalKit provides unified access to **37 video generation models** across **15 provider families**.
 
-## Commercial APIs (12 models)
+## Commercial APIs (19 models)
 
 ### Luma Dream Machine (2 models)
 **API Key:** `LUMA_API_KEY`
 - `luma-ray-2` - Latest model with best quality
 - `luma-ray-flash-2` - Faster generation
 
-### Google Veo (5 models) 
+### Google Veo (6 models)
 **API Key:** `GEMINI_API_KEY`
 - `veo-2` - GA model for text+image→video
 - `veo-2.0-generate` - GA model for text+image→video
 - `veo-3.0-generate` - Advanced video generation model
 - `veo-3.0-fast-generate` - Faster generation model
-- `veo-3.1-generate` - Latest model with native 1080p and audio
+- `veo-3.1-generate` - Latest model with native 1080p and audio (preview)
+- `veo-3.1-fast` - Faster variant of Veo 3.1 (preview)
 
 
-### Runway ML (3 models)
+### Kling AI (5 models)
+**API Key:** `KLING_API_KEY`
+- `kling-v2-6` - Latest Kling model with best quality
+- `kling-v2-5-turbo` - Fast generation model
+- `kling-v2-1-master` - High quality model
+- `kling-v2-master` - Balanced quality and speed
+- `kling-v1-6` - Improved original model
+
+### Runway ML (4 models)
 **API Key:** `RUNWAYML_API_SECRET`
+- `runway-gen45` - World's top-rated video model (5s or 10s)
 - `runway-gen4-turbo` - Fast high-quality generation (5s or 10s)
 - `runway-gen4-aleph` - Premium quality (5s)
 - `runway-gen3a-turbo` - Proven performance (5s or 10s)
@@ -30,12 +40,13 @@ VMEvalKit provides unified access to **29+ video generation models** across **14
 - `openai-sora-2` - High-quality video generation (4s/8s/12s)
 - `openai-sora-2-pro` - Enhanced model with more resolution options
 
-## Open-Source Models (17 models)
+## Open-Source Models (18 models)
 
-### LTX-Video (2 models)
-**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh ltx-video`
+### LTX-Video (3 models)
+**VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video`
 - `ltx-video` - High-quality image-to-video generation (704x480, 24fps)
 - `ltx-video-13b-distilled` - Distilled version with 13B parameters
+- `LTX-2` - 19B FP8 text/image-to-video with audio generation (~40GB VRAM)
 
 ### HunyuanVideo (1 model)
 **VRAM:** 24GB+ | **Setup:** `bash setup/install_model.sh hunyuan-video-i2v`
@@ -97,8 +108,11 @@ python examples/generate_videos.py --questions-dir ./questions --model luma-ray-
 # Google Veo 3.1 - Latest with 1080p + audio
 python examples/generate_videos.py --questions-dir ./questions --model veo-3.1-generate
 
-# Runway Gen-4 Turbo - Fast premium quality
-python examples/generate_videos.py --questions-dir ./questions --model runway-gen4-turbo
+# Kling AI 2.6 - Latest Kling with best quality
+python examples/generate_videos.py --questions-dir ./questions --model kling-v2-6
+
+# Runway Gen-4.5 - World's top-rated video model
+python examples/generate_videos.py --questions-dir ./questions --model runway-gen45
 
 # OpenAI Sora 2 - High-quality generation
 python examples/generate_videos.py --questions-dir ./questions --model openai-sora-2

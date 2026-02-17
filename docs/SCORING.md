@@ -33,12 +33,24 @@ python examples/score_videos.py --eval-config eval_config.json
 # Set "method": "internvl" in config
 ```
 
+### Qwen3-VL Evaluation
+Open-source VLM evaluation using Qwen3-VL served via OpenAI-compatible API.
+
+```bash
+# Start Qwen3-VL server (e.g., via vLLM or SGLang)
+# Set QWEN_API_KEY and QWEN_API_BASE in .env
+
+# Run evaluation
+python examples/score_videos.py --eval-config eval_config.json
+# Set "method": "qwen" in config
+```
+
 ### Multi-Frame Evaluation
 Advanced evaluation using multiple video frames with consistency analysis and voting.
 
 ```bash
-# Multi-frame GPT-4O or InternVL
-# Set "method": "multiframe_gpt4o" or "multiframe_internvl" in config
+# Multi-frame GPT-4O, InternVL, or Qwen3-VL
+# Set "method": "multiframe_gpt4o", "multiframe_internvl", or "multiframe_qwen" in config
 ```
 
 

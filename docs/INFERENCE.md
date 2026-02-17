@@ -46,12 +46,12 @@ Models receive the initial state + prompt and must generate videos demonstrating
 
 VMEvalKit uses a **modular architecture** with dynamic loading:
 
-- **MODEL_CATALOG**: Registry of 29+ models across 14 families
+- **MODEL_CATALOG**: Registry of 37 models across 15 families
 - **Dynamic Loading**: Models loaded on-demand via importlib
 - **Unified Interface**: All models inherit from `ModelWrapper`
 - **Two Categories**:
-  - **Commercial APIs**: Instant setup with API keys (Luma, Veo, Sora, Runway)
-  - **Open-Source**: Local installation required (LTX-Video, HunyuanVideo, DynamiCrafter, SVD)
+  - **Commercial APIs**: Instant setup with API keys (Luma, Veo, Kling, Sora, Runway)
+  - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD)
 
 ## 📂 Output Structure
 
@@ -93,5 +93,7 @@ cp env.template .env
 # Edit .env with your API keys:
 LUMA_API_KEY=your_key_here
 OPENAI_API_KEY=your_openai_key
-# ... other keys as needed
+GEMINI_API_KEY=your_gemini_key
+KLING_API_KEY=your_kling_key
+RUNWAYML_API_SECRET=your_runway_secret
 ```

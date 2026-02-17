@@ -1,7 +1,7 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **33 video generation models** across **13 provider families**.
+VMEvalKit provides unified access to **37 video generation models** across **15 provider families**.
 
 ## Commercial APIs (19 models)
 
@@ -40,17 +40,27 @@ VMEvalKit provides unified access to **33 video generation models** across **13 
 - `openai-sora-2` - High-quality video generation (4s/8s/12s)
 - `openai-sora-2-pro` - Enhanced model with more resolution options
 
-## Open-Source Models (14 models)
+## Open-Source Models (18 models)
 
 ### LTX-Video (3 models)
-**VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video` (deps only) or `bash setup/models/LTX-2/setup.sh` (full setup with checkpoints)
+**VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video`
 - `ltx-video` - High-quality image-to-video generation (704x480, 24fps)
 - `ltx-video-13b-distilled` - Distilled version with 13B parameters
 - `LTX-2` - 19B FP8 text/image-to-video with audio generation (~40GB VRAM)
 
 ### HunyuanVideo (1 model)
-**VRAM:** 24GB+ | **Setup:** `bash setup/models/hunyuan-video-i2v/setup.sh` (requires conda, Python 3.10)
+**VRAM:** 24GB+ | **Setup:** `bash setup/install_model.sh hunyuan-video-i2v`
 - `hunyuan-video-i2v` - High-quality image-to-video up to 720p
+
+### VideoCrafter (1 model)
+**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh videocrafter2-512`
+- `videocrafter2-512` - High-quality text-guided video generation
+
+### DynamiCrafter (3 models)
+**VRAM:** 12-24GB | **Setup:** `bash setup/install_model.sh dynamicrafter-512`
+- `dynamicrafter-512` - Image animation with video diffusion
+- `dynamicrafter-256` - Faster image animation
+- `dynamicrafter-1024` - High-resolution image animation
 
 ### Morphic (1 model)
 **VRAM:** 20GB+ | **Setup:** `bash setup/install_model.sh morphic-frames-to-video`
@@ -118,8 +128,8 @@ python examples/generate_videos.py --questions-dir ./questions --model ltx-video
 bash setup/install_model.sh svd
 python examples/generate_videos.py --questions-dir ./questions --model svd
 
-# HunyuanVideo - High-quality up to 720p (requires conda)
-bash setup/models/hunyuan-video-i2v/setup.sh
+# HunyuanVideo - High-quality up to 720p
+bash setup/install_model.sh hunyuan-video-i2v
 python examples/generate_videos.py --questions-dir ./questions --model hunyuan-video-i2v
 
 # CogVideoX - Long-form generation

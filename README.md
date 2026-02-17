@@ -4,8 +4,8 @@
 
 ## Features
 
-- **🚀 33 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, SVD, etc.)
-- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL) + rule-based scoring (VBVR-Bench Rubrics)
+- **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
+- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL)  
 - **☁️ Cloud Integration**: S3 + HuggingFace Hub support
 
 ## Data Format
@@ -58,13 +58,7 @@ source venv/bin/activate
 pip install -e .
 
 # 2. Setup models
-# Option A: install_model.sh — creates isolated venv + installs pip dependencies only
 bash setup/install_model.sh --model svd --validate
-# Option B: setup.sh — full setup (venv + deps + clone repos + download checkpoints)
-#   Use this for models that need large model weights (e.g., LTX-2, hunyuan-video-i2v)
-bash setup/models/LTX-2/setup.sh
-# Option C: manual install from requirements.txt
-pip install -r setup/models/svd/requirements.txt
 
 # # 3. Organize your questions data (see format above)
 # mkdir -p ~/my_research/questions
@@ -72,13 +66,10 @@ pip install -r setup/models/svd/requirements.txt
 # 4. Run inference
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model LTX-2
-# 5. Run evaluation
+# 5. Run evaluation  
 # Create eval_config.json first:
-echo '{"evaluator":"human","inference_dir":"~/my_research/outputs","eval_output_dir":"~/my_research/evaluations"}' > eval_config.json
+echo '{"method": "human", "inference_dir": "~/my_research/outputs", "eval_output_dir": "~/my_research/evaluations"}' > eval_config.json
 python examples/score_videos.py --eval-config eval_config.json
-
-# 6. Run VBVR-Bench rule-based (rubrics) evaluation (no API needed)
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
 ```
 
 ## API Keys

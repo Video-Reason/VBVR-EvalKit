@@ -46,12 +46,12 @@ Models receive the initial state + prompt and must generate videos demonstrating
 
 VMEvalKit uses a **modular architecture** with dynamic loading:
 
-- **MODEL_CATALOG**: Registry of 33 models across 13 families
+- **MODEL_CATALOG**: Registry of 37 models across 15 families
 - **Dynamic Loading**: Models loaded on-demand via importlib
 - **Unified Interface**: All models inherit from `ModelWrapper`
 - **Two Categories**:
   - **Commercial APIs**: Instant setup with API keys (Luma, Veo, Kling, Sora, Runway)
-  - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, SVD)
+  - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD)
 
 ## 📂 Output Structure
 
@@ -97,43 +97,3 @@ GEMINI_API_KEY=your_gemini_key
 KLING_API_KEY=your_kling_key
 RUNWAYML_API_SECRET=your_runway_secret
 ```
-
-
-# Open-Source Model Test Results
-
-Task: `shape_scaling_00000000` (1 task)
-
-Env: RTX A6000
-
-## Tested & Succeeded
-
-| Model | Time | Notes |
-|---|---|---|
-| svd | - | Previous results available |
-| ltx-video | 1m31s | |
-| ltx-video-13b-distilled | 5m38s | |
-| wan-2.2-ti2v-5b | 9m19s | |
-| sana-video-2b-480p | ~12s | Succeeded after fix |
-| cogvideox1.5-5b-i2v | 5m22s | Reinstalled venv + forced native resolution/frames |
-
-## TODO (Need Re-run)
-
-| Model | Reason |
-|---|---|
-| wan-2.1-i2v-480p | Process ran but outputs were cleared, need re-run to confirm |
-| wan-2.1-i2v-720p | Same as above |
-| wan-2.2-i2v-a14b | Same as above |
-
-## Failed - Environment/Dependency Issues
-
-| Model | Error | Fix |
-|---|---|---|
-| cogvideox-5b-i2v | venv missing torch | Reinstall venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
-
-## Failed - Missing Weights/Installation
-
-| Model | Error | Fix |
-|---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run full setup: `bash setup/models/LTX-2/setup.sh` (`install_model.sh` only installs pip deps, not checkpoints) |
-| hunyuan-video-i2v | Python 3.13 `pkg_resources` missing / venv deps not installed | Requires conda with Python 3.10. Use `bash setup/models/hunyuan-video-i2v/setup.sh` (`install_model.sh` only installs pip deps) |
-| morphic-frames-to-video | Missing Wan2.2 + morphic LoRA weights | `hf download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `hf download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

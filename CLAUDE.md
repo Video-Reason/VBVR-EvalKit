@@ -2,36 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-<<<<<<< HEAD
-
-
-Apply KISS, YAGNI, and SOLID principles.
-
-
-Don't delete anything in `docs/`.
-
-
-don't write redundant code in markdown, keep it concise.
-
-
-每次完成任务后，`git add` 改动的文件并 `git commit`。 不要提交有名字的绝对路径, 改成相对路径.
-
-
-安装模型环境时，必须先用 WebSearch 搜索 HuggingFace 和 GitHub 上该模型的官方页面，了解最新的安装方式和用法，再编写 setup 脚本或 wrapper 代码。每个模型都要单独搜索。
-
-
-=======
->>>>>>> e759317 (update doc)
 ## Project Overview
 
 VMEvalKit is a unified inference and evaluation framework for 29+ video generation models. It evaluates video models' reasoning capabilities through task pairs — visual reasoning problems (chess, maze, sudoku, raven puzzles, arc-agi, rotation, physical causality, match3). Models receive an initial state image + text prompt and must generate videos demonstrating the reasoning process.
 
-<<<<<<< HEAD
-
-
-
-=======
->>>>>>> e759317 (update doc)
 ## Common Commands
 
 ```bash
@@ -97,7 +71,7 @@ evaluations/ (structured JSON with scores, metadata, explanations)
 
 - `vmevalkit/models/` — 17 model wrapper implementations (one file per provider/model family)
 - `vmevalkit/runner/` — `MODEL_CATALOG.py` (registry), `inference.py` (orchestration), `score.py` (scoring)
-- `vmevalkit/eval/` — evaluators (human, gpt4o, internvl, qwen3vl, multiframe, vbvr_bench_eval), frame sampling, consistency analysis, voting aggregation
+- `vmevalkit/eval/` — evaluators (human, gpt4o, internvl, qwen3vl, multiframe), frame sampling, consistency analysis, voting aggregation
 - `vmevalkit/tasks/` — 8 task domain implementations (chess, maze, sudoku, raven, rotation, arc_agi, physical_causality, match3)
 - `setup/` — model installation scripts; `setup/models/{name}/setup.sh` for each open-source model
 - `submodules/` — git submodules for open-source model repos and task data generators
@@ -109,5 +83,4 @@ evaluations/ (structured JSON with scores, metadata, explanations)
 - API keys loaded from `.env` via python-dotenv (see `env.template` for required keys)
 - Open-source models get isolated venvs at `./envs/{model-id}/`; `ModelWrapper.get_model_python_interpreter()` resolves the correct Python binary
 - Model checkpoints stored in `weights/` directory
-- VLM scoring uses a 1-5 scale, converted to binary: 4-5 = success, 1-3 = failure
-- Rubrics scoring (VBVR-Bench) uses 0-1 continuous scale, rule-based with no API calls
+- Scoring uses a 1-5 scale, converted to binary: 4-5 = success, 1-3 = failure

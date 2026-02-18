@@ -127,12 +127,8 @@ lmms-eval 是用一个 transformers固定版本.
 | wan-2.2-ti2v-5b | 9m19s | |
 | sana-video-2b-480p | ~12s | 修复后成功 |
 | cogvideox1.5-5b-i2v | 5m22s | 重装 venv + 强制使用模型原生分辨率/帧数 |
-
-## TODO (需要重跑)
-
-| Model | 原因 |
-|---|---|
-| wan-2.2-i2v-a14b |  |
+| hunyuan-video-i2v | ~30-60min | 单卡 H100 CPU offload, 960x960x129帧 50步 |
+| wan-2.2-i2v-a14b | ~63s | 400x400x81帧 50步 |
 
 ## Failed - 环境/依赖问题
 
@@ -145,5 +141,4 @@ lmms-eval 是用一个 transformers固定版本.
 | Model | 错误 | 修复方法 |
 |---|---|---|
 | LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/models/LTX-2/setup.sh`（`install_model.sh` 仅装 pip 依赖，不下载权重）。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存 |
-| hunyuan-video-i2v | 1) `install_model.sh` 创建 Python 3.13 venv，缺 `pkg_resources` 导致 pyarrow/CLIP 构建失败；2) `python -m huggingface_hub download` 在 0.36+ 已移除；3) `conda activate` 在非交互 shell 需先初始化 | 用 `bash setup/models/hunyuan-video-i2v/setup.sh`（需要 conda，Python 3.10） |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `hf download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `hf download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

@@ -2,12 +2,143 @@
 
 import shutil
 import importlib
+import json
+import subprocess
+import sys
+import time
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, Type
 from datetime import datetime
 
 from .MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
 from ..models.base import ModelWrapper
+
+# Path to the subprocess worker script
+_WORKER_SCRIPT = Path(__file__).parent.parent / "models" / "_subprocess_worker.py"
+
+# VMEvalKit root directory
+_VMEVAL_ROOT = Path(__file__).parent.parent.parent
+
+
+def _get_model_venv_python(model_name: str) -> Optional[str]:
+    """Get the venv Python path for a model, or None if no venv exists."""
+    # Check catalog for venv_id override, otherwise use model_name
+    config = AVAILABLE_MODELS.get(model_name, {})
+    venv_id = config.get("venv_id", model_name)
+    venv_python = _VMEVAL_ROOT / "envs" / venv_id / "bin" / "python"
+    if venv_python.exists():
+        return str(venv_python)
+    return None
+
+
+def _run_via_subprocess(
+    model_name: str,
+    venv_python: str,
+    image_path: Union[str, Path],
+    text_prompt: str,
+    output_dir: str,
+    **kwargs
+) -> Dict[str, Any]:
+    """Run model inference in a subprocess using the model's venv Python."""
+    start_time = time.time()
+
+    # Serialize kwargs to JSON (remove non-serializable items)
+    serializable_kwargs = {}
+    for k, v in kwargs.items():
+        try:
+            json.dumps(v, default=str)
+            serializable_kwargs[k] = v
+        except (TypeError, ValueError):
+            serializable_kwargs[k] = str(v)
+
+    cmd = [
+        venv_python,
+        str(_WORKER_SCRIPT),
+        "--model-name", model_name,
+        "--image-path", str(image_path),
+        "--prompt", text_prompt,
+        "--output-dir", output_dir,
+        "--kwargs-json", json.dumps(serializable_kwargs, default=str),
+    ]
+
+    print(f"[subprocess] Running {model_name} with venv: {venv_python}")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=str(_VMEVAL_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=7200,  # 2 hour timeout
+        )
+
+        # Parse result from stdout (look for the marker line)
+        stdout = result.stdout
+        stderr = result.stderr
+
+        if stderr:
+            # Print stderr for debugging (model loading progress, warnings, etc.)
+            for line in stderr.strip().split("\n")[-20:]:
+                print(f"  [stderr] {line}")
+
+        # Find the result JSON in stdout
+        parsed_result = None
+        for line in stdout.split("\n"):
+            if line.startswith("__VMEVAL_RESULT__"):
+                json_str = line[len("__VMEVAL_RESULT__"):]
+                parsed_result = json.loads(json_str)
+                break
+
+        if parsed_result is not None:
+            return parsed_result
+
+        # No result marker found - check return code
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "video_path": None,
+                "error": f"Subprocess failed (exit {result.returncode}): {stderr[-500:] if stderr else 'no stderr'}",
+                "duration_seconds": time.time() - start_time,
+                "generation_id": None,
+                "model": model_name,
+                "status": "failed",
+                "metadata": {"stdout": stdout[-500:] if stdout else ""},
+            }
+
+        # Return code 0 but no result marker - try to find video
+        return {
+            "success": False,
+            "video_path": None,
+            "error": f"No result marker in output. stdout: {stdout[-500:]}",
+            "duration_seconds": time.time() - start_time,
+            "generation_id": None,
+            "model": model_name,
+            "status": "failed",
+            "metadata": {},
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "video_path": None,
+            "error": "Subprocess timed out (2 hours)",
+            "duration_seconds": time.time() - start_time,
+            "generation_id": None,
+            "model": model_name,
+            "status": "failed",
+            "metadata": {},
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "video_path": None,
+            "error": f"Subprocess error: {e}",
+            "duration_seconds": time.time() - start_time,
+            "generation_id": None,
+            "model": model_name,
+            "status": "failed",
+            "metadata": {},
+        }
 
 
 def _load_model_wrapper(model_name: str) -> Type[ModelWrapper]:
@@ -17,11 +148,11 @@ def _load_model_wrapper(model_name: str) -> Type[ModelWrapper]:
             f"Unknown model: {model_name}. "
             f"Available models: {list(AVAILABLE_MODELS.keys())}"
         )
-    
+
     config = AVAILABLE_MODELS[model_name]
     module = importlib.import_module(config["wrapper_module"])
     wrapper_class = getattr(module, config["wrapper_class"])
-    
+
     return wrapper_class
 
 
@@ -34,45 +165,57 @@ def run_inference(
     **kwargs
 ) -> Dict[str, Any]:
     """Run inference with specified model using dynamic loading."""
+    # Check for venv - use subprocess if available
+    venv_python = _get_model_venv_python(model_name)
+    if venv_python:
+        if question_data:
+            kwargs['question_data'] = question_data
+        result = _run_via_subprocess(
+            model_name, venv_python, image_path, text_prompt, output_dir, **kwargs
+        )
+        result["question_data"] = question_data
+        return result
+
+    # Fallback: direct import (for commercial API models without venvs)
     wrapper_class = _load_model_wrapper(model_name)
     model_config = AVAILABLE_MODELS[model_name]
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     inference_id = kwargs.pop('inference_id', f"{model_name}_{timestamp}")
     inference_dir = Path(output_dir) / inference_id
     video_dir = inference_dir / "video"
     video_dir.mkdir(parents=True, exist_ok=True)
-    
+
     init_kwargs = {
         "model": model_config["model"],
         "output_dir": str(video_dir),
     }
-    
+
     if "args" in model_config:
         init_kwargs.update(model_config["args"])
-    
+
     wrapper = wrapper_class(**init_kwargs)
-    
+
     if question_data:
         kwargs['question_data'] = question_data
-    
+
     result = wrapper.generate(image_path, text_prompt, **kwargs)
-    
+
     result["inference_dir"] = str(inference_dir)
     result["question_data"] = question_data
-    
+
     return result
 
 
 class InferenceRunner:
     """Enhanced inference runner with dynamic model loading."""
-    
+
     def __init__(self, output_dir: str = "./outputs"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.runs = []
         self._wrapper_cache = {}
-    
+
     def run(
         self,
         model_name: str,
@@ -83,7 +226,7 @@ class InferenceRunner:
     ) -> Dict[str, Any]:
         """Run inference and save video as {task_id}.mp4 under domain folder."""
         start_time = datetime.now()
-        
+
         domain_dir_name = "unknown_task"
         task_id = "unknown"
         if question_data:
@@ -93,54 +236,69 @@ class InferenceRunner:
         # Save video directly under domain folder as {task_id}.mp4
         domain_dir = self.output_dir / domain_dir_name
         domain_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        # Check for venv - use subprocess if available
+        venv_python = _get_model_venv_python(model_name)
+        if venv_python:
+            if question_data:
+                kwargs['question_data'] = question_data
+            result = _run_via_subprocess(
+                model_name, venv_python, image_path, text_prompt,
+                str(domain_dir), **kwargs
+            )
+            # Rename video to {task_id}.mp4
+            self._rename_video_to_task_id(domain_dir, task_id, result)
+            print(f"\nInference complete: {domain_dir / f'{task_id}.mp4'}")
+            return result
+
+        # Fallback: direct import (for commercial API models without venvs)
         if model_name not in self._wrapper_cache:
             wrapper_class = _load_model_wrapper(model_name)
             model_config = AVAILABLE_MODELS[model_name]
-            
+
             init_kwargs = {
                 "model": model_config["model"],
                 "output_dir": str(self.output_dir),
             }
-            
+
             if "args" in model_config:
                 init_kwargs.update(model_config["args"])
-            
+
             self._wrapper_cache[model_name] = wrapper_class(**init_kwargs)
             print(f"Loaded model: {model_name}")
-        
+
         wrapper = self._wrapper_cache[model_name]
-        
+
         # Set output dir to domain folder
         wrapper.output_dir = domain_dir
-        
+
         if question_data:
             kwargs['question_data'] = question_data
-        
+
         result = wrapper.generate(image_path, text_prompt, **kwargs)
-        
+
         # Rename video to {task_id}.mp4
         self._rename_video_to_task_id(domain_dir, task_id, result)
-        
+
         print(f"\nInference complete: {domain_dir / f'{task_id}.mp4'}")
-        
+
         return result
-    
+
     def _rename_video_to_task_id(self, domain_dir: Path, task_id: str, result: Dict[str, Any]):
         """Rename generated video to {task_id}.mp4."""
         video_path = result.get("video_path")
         if not video_path:
             return
-        
+
         video_path = Path(video_path)
         if not video_path.exists():
             return
-        
+
         target_path = domain_dir / f"{task_id}.mp4"
         if video_path != target_path:
             video_path.rename(target_path)
             result["video_path"] = str(target_path)
-    
+
     def _cleanup_failed_folder(self, task_dir: Path):
         """Clean up folder if video generation failed."""
         if task_dir.exists():
@@ -149,14 +307,14 @@ class InferenceRunner:
                 return
             shutil.rmtree(task_dir)
             print(f"Cleaned up empty folder: {task_dir.name}")
-    
+
     def list_models(self) -> Dict[str, str]:
         """List available models and their descriptions."""
         return {
             name: config["description"]
             for name, config in AVAILABLE_MODELS.items()
         }
-    
+
     def list_models_by_family(self) -> Dict[str, Dict[str, str]]:
         """List models organized by family."""
         return {
@@ -166,7 +324,7 @@ class InferenceRunner:
             }
             for family_name, family_models in MODEL_FAMILIES.items()
         }
-    
+
     def get_model_families(self) -> Dict[str, int]:
         """Get model family statistics."""
         return {

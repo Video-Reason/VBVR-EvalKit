@@ -32,7 +32,11 @@ declare -a OPENSOURCE_MODELS=(
     "cogvideox-5b-i2v"
     "cogvideox1.5-5b-i2v"
     "sana-video-2b-480p"
+    "sana"
+    "wan-2.1-i2v-480p"
+    "wan-2.1-i2v-720p"
     "wan-2.2-i2v-a14b"
+    "wan-2.2-ti2v-5b"
 )
 
 declare -a COMMERCIAL_MODELS=(

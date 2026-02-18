@@ -26,8 +26,6 @@ tokenizers>=0.15,<1.0
 deepspeed>=0.15,<1.0
 pyarrow>=14.0,<16.0
 tensorboard>=2.15,<3.0
-clip @ git+https://github.com/openai/CLIP.git
-
 Pillow>=9.0
 
 # Config

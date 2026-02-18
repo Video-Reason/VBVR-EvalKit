@@ -1,0 +1,12 @@
+google-genai>=1.10,<2.0
+
+# Config
+pydantic>=2.7,<3.0
+pydantic-settings>=2.7,<3.0
+python-dotenv>=1.0,<2.0
+
+# Image / video I/O
+Pillow>=10.0
+numpy>=1.24
+imageio>=2.34
+imageio-ffmpeg>=0.5,<1.0

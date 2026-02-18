@@ -157,6 +157,11 @@ class SanaVideoService:
         """
         start_time = time.time()
 
+        # Force model's native resolution — diffusers' resolution binning has
+        # a bug where the 1:1 bin (624x624) isn't divisible by 32.
+        height = self.model_constraints["height"]
+        width = self.model_constraints["width"]
+
         self._load_model()
         image = self._prepare_image(image_path)
 

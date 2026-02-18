@@ -43,7 +43,7 @@ VMEvalKit 提供对 **33 个视频生成模型**（覆盖 **13 个模型家族**
 ## 开源模型（14 个模型）
 
 ### LTX-Video（3 个模型）
-**显存:** 16-40GB | **安装:** `bash setup/install_model.sh ltx-video`
+**显存:** 16-40GB | **安装:** `bash setup/install_model.sh ltx-video`（仅装依赖）或 `bash setup/models/LTX-2/setup.sh`（完整安装含模型权重）
 - `ltx-video` - 高画质图生视频（704x480, 24fps）
 - `ltx-video-13b-distilled` - 13B 参数蒸馏版
 - `LTX-2` - 19B FP8 文本/图片生视频，支持音频生成（~40GB 显存）

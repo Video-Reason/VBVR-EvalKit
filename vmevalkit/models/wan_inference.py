@@ -98,13 +98,15 @@ class WanService:
         
         # Get dimensions from kwargs (ground truth) or use aspect ratio resize
         if height is not None and width is not None:
-            # Use provided dimensions from ground truth
             from diffusers.utils import load_image
             image = load_image(str(image_path))
             if image.mode != "RGB":
                 image = image.convert("RGB")
+            mod_value = self.pipe.vae_scale_factor_spatial * self.pipe.transformer.config.patch_size[1]
+            height = round(height / mod_value) * mod_value
+            width = round(width / mod_value) * mod_value
             image = image.resize((width, height), Image.Resampling.LANCZOS)
-            logger.info(f"Resized image to ground truth dimensions: {width}x{height}")
+            logger.info(f"Resized image to aligned dimensions: {width}x{height}")
         else:
             # Fall back to aspect ratio resize
             image, height, width = self._prepare_image(image_path)

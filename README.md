@@ -58,13 +58,13 @@ source venv/bin/activate
 pip install -e .
 
 # 2. Setup models
-# Option A: automated script (creates isolated venv per model)
+# Option A: install_model.sh — creates isolated venv + installs pip dependencies only
 bash setup/install_model.sh --model svd --validate
-# Option B: manual install from requirements.txt
+# Option B: setup.sh — full setup (venv + deps + clone repos + download checkpoints)
+#   Use this for models that need large model weights (e.g., LTX-2, hunyuan-video-i2v)
+bash setup/models/LTX-2/setup.sh
+# Option C: manual install from requirements.txt
 pip install -r setup/models/svd/requirements.txt
-# NOTE: setup.sh pins specific torch/CUDA versions that may not match your
-# environment. If installation fails, check setup/models/<model>/requirements.txt
-# for the recommended dependency ranges and install manually.
 
 # # 3. Organize your questions data (see format above)
 # mkdir -p ~/my_research/questions

@@ -274,13 +274,16 @@ class LTX2Service:
 
         print("Loading LTX-2 pipeline...")
         from ltx_pipelines.ti2vid_one_stage import TI2VidOneStagePipeline
+        from ltx_core.quantization.policy import QuantizationPolicy
+
+        quantization = QuantizationPolicy.fp8_cast() if self.enable_fp8 else None
 
         self._pipeline = TI2VidOneStagePipeline(
             checkpoint_path=self.checkpoint_path,
             gemma_root=self.gemma_root,
             loras=[],  # No LoRAs by default
             device=self.device,
-            fp8transformer=self.enable_fp8,
+            quantization=quantization,
         )
         print("LTX-2 pipeline loaded.")
         return self._pipeline
@@ -374,6 +377,10 @@ class LTX2Service:
         pipeline = self._load_pipeline()
 
         try:
+            # Build guider params (replaces cfg_guidance_scale in newer LTX-2 API)
+            from ltx_core.components.guiders import MultiModalGuiderParams
+            guider_params = MultiModalGuiderParams(cfg_scale=cfg_guidance_scale)
+
             # Run generation
             video, audio = pipeline(
                 prompt=text_prompt,
@@ -384,7 +391,8 @@ class LTX2Service:
                 num_frames=num_frames,
                 frame_rate=fps,
                 num_inference_steps=num_inference_steps,
-                cfg_guidance_scale=cfg_guidance_scale,
+                video_guider_params=guider_params,
+                audio_guider_params=guider_params,
                 images=images,
                 enhance_prompt=enhance_prompt,
             )

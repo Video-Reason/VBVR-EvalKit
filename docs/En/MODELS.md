@@ -43,7 +43,7 @@ VMEvalKit provides unified access to **33 video generation models** across **13 
 ## Open-Source Models (14 models)
 
 ### LTX-Video (3 models)
-**VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video`
+**VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video` (deps only) or `bash setup/models/LTX-2/setup.sh` (full setup with checkpoints)
 - `ltx-video` - High-quality image-to-video generation (704x480, 24fps)
 - `ltx-video-13b-distilled` - Distilled version with 13B parameters
 - `LTX-2` - 19B FP8 text/image-to-video with audio generation (~40GB VRAM)

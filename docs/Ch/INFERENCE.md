@@ -117,6 +117,7 @@ RTX A6000
 | ltx-video-13b-distilled | 5m38s | |
 | wan-2.2-ti2v-5b | 9m19s | |
 | sana-video-2b-480p | ~12s | 修复后成功 |
+| cogvideox1.5-5b-i2v | 5m22s | 重装 venv + 强制使用模型原生分辨率/帧数 |
 
 ## TODO (需要重跑)
 
@@ -135,8 +136,6 @@ RTX A6000
 | dynamicrafter-1024 | 同上 | 同上 |
 | videocrafter2-512 | 同上 | 同上 |
 | cogvideox-5b-i2v | venv 缺 torch | 重装 venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
-| cogvideox1.5-5b-i2v | venv 缺 torch . 推理失败了 — rotary embedding 的 tensor 尺寸不匹配，说明传入的分辨率/帧数跟模型不兼容。问题显示传了 1024x1024、60 帧，但
-  CogVideoX1.5-5B-I2V 期望 1360x768、81 帧。| 同上 |
 
 ## Failed - 缺少权重/安装
 

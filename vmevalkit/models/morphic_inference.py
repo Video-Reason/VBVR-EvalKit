@@ -109,7 +109,7 @@ class MorphicService:
             errors.append(
                 f"Wan2.2 weights directory not found at {self.wan2_ckpt_dir}.\n"
                 f"Please download weights:\n"
-                f"huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B"
+                f"hf download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B"
             )
         
         # Check LoRA weights file
@@ -118,7 +118,7 @@ class MorphicService:
             errors.append(
                 f"LoRA weights file not found at {self.lora_weights_path}.\n"
                 f"Please download weights:\n"
-                f"huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic"
+                f"hf download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic"
             )
         
         if errors:

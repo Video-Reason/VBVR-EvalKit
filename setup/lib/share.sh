@@ -240,7 +240,7 @@ ensure_morphic_assets() {
     else
         print_download "Wan2.2-I2V-A14B (~27GB)..."
         mkdir -p "$(dirname "$wan_dir")"
-        huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
+        hf download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
         print_success "Wan2.2-I2V-A14B ready"
     fi
 
@@ -249,7 +249,7 @@ ensure_morphic_assets() {
     else
         print_download "Morphic LoRA weights..."
         mkdir -p "$lora_dir"
-        huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
+        hf download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
         print_success "Morphic LoRA ready"
     fi
 }

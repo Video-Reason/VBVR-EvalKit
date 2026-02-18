@@ -163,7 +163,7 @@ class HunyuanVideoService:
             raise FileNotFoundError(
                 f"Missing CLIP text encoder. Expected at HF cache (openai/clip-vit-large-patch14) "
                 f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_2'}\n"
-                f"Run: huggingface-cli download openai/clip-vit-large-patch14"
+                f"Run: hf download openai/clip-vit-large-patch14"
             )
         
         # Check for LLaVA text encoder (text_encoder_i2v) - try HF cache first, then local ckpts
@@ -176,7 +176,7 @@ class HunyuanVideoService:
             raise FileNotFoundError(
                 f"Missing LLaVA text encoder. Expected at HF cache (xtuner/llava-llama-3-8b-v1_1-transformers) "
                 f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_i2v'}\n"
-                f"Run: huggingface-cli download xtuner/llava-llama-3-8b-v1_1-transformers"
+                f"Run: hf download xtuner/llava-llama-3-8b-v1_1-transformers"
             )
         
         # Set text encoder paths in environment for HunyuanVideo

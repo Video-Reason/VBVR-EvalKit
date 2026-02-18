@@ -134,6 +134,6 @@ Env: RTX A6000
 
 | Model | Error | Fix |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run setup script |
-| hunyuan-video-i2v | Python 3.13 `pkg_resources` missing / venv deps not installed | Requires conda with Python 3.10. Use `bash setup/models/hunyuan-video-i2v/setup.sh` instead of `install_model.sh` |
-| morphic-frames-to-video | Missing Wan2.2 + morphic LoRA weights | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run full setup: `bash setup/models/LTX-2/setup.sh` (`install_model.sh` only installs pip deps, not checkpoints) |
+| hunyuan-video-i2v | Python 3.13 `pkg_resources` missing / venv deps not installed | Requires conda with Python 3.10. Use `bash setup/models/hunyuan-video-i2v/setup.sh` (`install_model.sh` only installs pip deps) |
+| morphic-frames-to-video | Missing Wan2.2 + morphic LoRA weights | `hf download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `hf download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

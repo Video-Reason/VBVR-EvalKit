@@ -90,7 +90,7 @@ evaluations/ (structured JSON with scores, metadata, explanations)
 - `vmevalkit/runner/` — `MODEL_CATALOG.py` (registry), `inference.py` (orchestration), `score.py` (scoring)
 - `vmevalkit/eval/` — evaluators (human, gpt4o, internvl, qwen3vl, multiframe, vbvr_bench_eval), frame sampling, consistency analysis, voting aggregation
 - `vmevalkit/tasks/` — 8 task domain implementations (chess, maze, sudoku, raven, rotation, arc_agi, physical_causality, match3)
-- `setup/` — model installation; `setup/models/{name}/requirements.txt` for each model's dependencies
+- `setup/` — model installation scripts; `setup/models/{name}/setup.sh` for each open-source model
 - `submodules/` — git submodules for open-source model repos and task data generators
 
 ## Conventions

@@ -4,12 +4,14 @@
 
 ## 可用的评估器
 
+`examples/score_videos.py` 默认从配置读取 `evaluator`。命令行 `--evaluator` 仅支持 `gpt4o`、`internvl`、`qwen`。
+
 ### 人工评估
 基于 Gradio 的交互式人工打分界面。
 
 ```bash
 python examples/score_videos.py --eval-config eval_config.json
-# 在配置中设置 "method": "human"
+# 在配置中设置 "evaluator": "human"
 ```
 
 ### GPT-4O 评估
@@ -18,7 +20,7 @@ python examples/score_videos.py --eval-config eval_config.json
 ```bash
 # 需要 OPENAI_API_KEY
 python examples/score_videos.py --eval-config eval_config.json
-# 在配置中设置 "method": "gpt4o"
+# 在配置中设置 "evaluator": "gpt4o"
 ```
 
 ### InternVL 评估
@@ -30,7 +32,7 @@ bash script/lmdeploy_server.sh
 
 # 运行评估
 python examples/score_videos.py --eval-config eval_config.json
-# 在配置中设置 "method": "internvl"
+# 在配置中设置 "evaluator": "internvl"
 ```
 
 ### Qwen3-VL 评估
@@ -42,7 +44,7 @@ python examples/score_videos.py --eval-config eval_config.json
 
 # 运行评估
 python examples/score_videos.py --eval-config eval_config.json
-# 在配置中设置 "method": "qwen"
+# 在配置中设置 "evaluator": "qwen"
 ```
 
 ### 多帧评估
@@ -50,7 +52,8 @@ python examples/score_videos.py --eval-config eval_config.json
 
 ```bash
 # 多帧 GPT-4O、InternVL 或 Qwen3-VL
-# 在配置中设置 "method": "multiframe_gpt4o"、"multiframe_internvl" 或 "multiframe_qwen"
+# 在配置中设置 "evaluator" 为 "gpt4o"、"internvl" 或 "qwen"
+# 并添加 "multiframe" 配置块（可选增加 "sampling_strategy"）
 ```
 
 ### VBVR-Bench 规则评估（Rubrics）
@@ -107,14 +110,29 @@ VBVR-Bench 规则评估器产出 0-1 连续分数，有 5 个评估维度：
 
 ```json
 {
-  "method": "gpt4o",
+  "evaluator": "gpt4o",
+  "inference_dir": "./outputs",
+  "eval_output_dir": "./evaluations",
+  "temperature": 0.0
+}
+```
+
+多帧评估可在配置中增加 `multiframe`：
+
+```json
+{
+  "evaluator": "qwen",
+  "sampling_strategy": "hybrid",
   "inference_dir": "./outputs",
   "eval_output_dir": "./evaluations",
   "temperature": 0.0,
   "multiframe": {
     "n_frames": 5,
+    "last_seconds": 3.0,
     "strategy": "hybrid",
-    "voting": "weighted_majority"
+    "voting": "weighted_majority",
+    "metric": "histogram",
+    "temporal_weight": 0.3
   }
 }
 ```

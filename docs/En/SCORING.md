@@ -4,12 +4,14 @@ Comprehensive scoring methods for assessing video generation models' reasoning c
 
 ## Available Evaluators
 
+`examples/score_videos.py` reads `evaluator` from config. CLI override is supported via `--evaluator` for `gpt4o`, `internvl`, and `qwen`.
+
 ### Human Evaluation
 Interactive Gradio interface for human scoring.
 
 ```bash
 python examples/score_videos.py --eval-config eval_config.json
-# Set "method": "human" in config
+# Set "evaluator": "human" in config
 ```
 
 ### GPT-4O Evaluation
@@ -18,7 +20,7 @@ Automated scoring using OpenAI's GPT-4O vision model.
 ```bash
 # Requires OPENAI_API_KEY
 python examples/score_videos.py --eval-config eval_config.json  
-# Set "method": "gpt4o" in config
+# Set "evaluator": "gpt4o" in config
 ```
 
 ### InternVL Evaluation
@@ -30,7 +32,7 @@ bash script/lmdeploy_server.sh
 
 # Run evaluation
 python examples/score_videos.py --eval-config eval_config.json
-# Set "method": "internvl" in config
+# Set "evaluator": "internvl" in config
 ```
 
 ### Qwen3-VL Evaluation
@@ -42,7 +44,7 @@ Open-source VLM evaluation using Qwen3-VL served via OpenAI-compatible API.
 
 # Run evaluation
 python examples/score_videos.py --eval-config eval_config.json
-# Set "method": "qwen" in config
+# Set "evaluator": "qwen" in config
 ```
 
 ### Multi-Frame Evaluation
@@ -50,7 +52,8 @@ Advanced evaluation using multiple video frames with consistency analysis and vo
 
 ```bash
 # Multi-frame GPT-4O, InternVL, or Qwen3-VL
-# Set "method": "multiframe_gpt4o", "multiframe_internvl", or "multiframe_qwen" in config
+# Set "evaluator" to one of: "gpt4o", "internvl", "qwen"
+# Add a "multiframe" block (and optionally "sampling_strategy")
 ```
 
 ### VBVR-Bench Rule-Based Evaluation (Rubrics)
@@ -107,14 +110,29 @@ Create `eval_config.json` to configure VLM evaluation:
 
 ```json
 {
-  "method": "gpt4o",
+  "evaluator": "gpt4o",
+  "inference_dir": "./outputs",
+  "eval_output_dir": "./evaluations",
+  "temperature": 0.0
+}
+```
+
+For multi-frame scoring, add a `multiframe` block:
+
+```json
+{
+  "evaluator": "qwen",
+  "sampling_strategy": "hybrid",
   "inference_dir": "./outputs",
   "eval_output_dir": "./evaluations",
   "temperature": 0.0,
   "multiframe": {
     "n_frames": 5,
+    "last_seconds": 3.0,
     "strategy": "hybrid",
-    "voting": "weighted_majority"
+    "voting": "weighted_majority",
+    "metric": "histogram",
+    "temporal_weight": 0.3
   }
 }
 ```

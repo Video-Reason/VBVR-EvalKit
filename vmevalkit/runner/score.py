@@ -25,6 +25,42 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _iter_legacy_results(model_results: dict):
+    """Iterate over legacy evaluation entries in model_results."""
+    for tasks in model_results.get("evaluations", {}).values():
+        for result in tasks.values():
+            yield result
+
+
+def _summarize_legacy_results(model_results: dict, include_review: bool = False) -> tuple[int, int, int]:
+    """Summarize total/scored/review counts from legacy evaluator output."""
+    total_tasks = 0
+    scored_tasks = 0
+    review_needed = 0
+
+    for result in _iter_legacy_results(model_results):
+        total_tasks += 1
+        if include_review:
+            if result.get("status") == "completed":
+                scored_tasks += 1
+                if result.get("needs_review"):
+                    review_needed += 1
+        else:
+            if "error" not in result:
+                scored_tasks += 1
+
+    return total_tasks, scored_tasks, review_needed
+
+
+def _log_summary(model_name: str, total_tasks: int, scored_tasks: int, review_needed: Optional[int] = None):
+    """Print standardized per-model summary logs."""
+    logger.info(f"\n{model_name}:")
+    logger.info(f"  Total tasks: {total_tasks}")
+    logger.info(f"  Scored: {scored_tasks}")
+    if review_needed is not None:
+        logger.info(f"  Needs review: {review_needed}")
+
+
 def run_human_scoring(
     inference_dir: str,
     eval_output_dir: str = "./evaluations/human",
@@ -93,17 +129,8 @@ def run_gpt4o_scoring(
     # Print basic counts
     for model_name, model_results in results.items():
         if "evaluations" in model_results:
-            total_tasks = 0
-            scored_tasks = 0
-            for task_type, tasks in model_results["evaluations"].items():
-                for task_id, result in tasks.items():
-                    total_tasks += 1
-                    if "error" not in result:
-                        scored_tasks += 1
-
-            logger.info(f"\n{model_name}:")
-            logger.info(f"  Total tasks: {total_tasks}")
-            logger.info(f"  Scored: {scored_tasks}")
+            total_tasks, scored_tasks, _ = _summarize_legacy_results(model_results)
+            _log_summary(model_name, total_tasks, scored_tasks)
 
 
 def run_multiframe_gpt4o_scoring(
@@ -232,22 +259,10 @@ def run_multiframe_vlm_scoring(
     # Print summary
     for model_name, model_results in results.items():
         if "evaluations" in model_results:
-            total_tasks = 0
-            scored_tasks = 0
-            review_needed = 0
-
-            for task_type, tasks in model_results["evaluations"].items():
-                for task_id, result in tasks.items():
-                    total_tasks += 1
-                    if result.get("status") == "completed":
-                        scored_tasks += 1
-                        if result.get("needs_review"):
-                            review_needed += 1
-
-            logger.info(f"\n{model_name}:")
-            logger.info(f"  Total tasks: {total_tasks}")
-            logger.info(f"  Scored: {scored_tasks}")
-            logger.info(f"  Needs review: {review_needed}")
+            total_tasks, scored_tasks, review_needed = _summarize_legacy_results(
+                model_results, include_review=True
+            )
+            _log_summary(model_name, total_tasks, scored_tasks, review_needed)
 
 
 def run_rubrics_scoring(
@@ -428,6 +443,71 @@ def run_multiframe_scoring(
                     logger.error(f"  {task_id}: Error - {e}")
 
 
+def _run_method(args: argparse.Namespace) -> None:
+    """Dispatch parsed args to the selected scoring method."""
+    dispatch = {
+        "human": lambda: run_human_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            annotator_name=args.annotator,
+            port=args.port,
+            share=args.share,
+        ),
+        "gpt4o": lambda: run_gpt4o_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            max_frames=args.max_frames,
+            temperature=args.temperature,
+        ),
+        "multiframe": lambda: run_multiframe_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+        ),
+        "multiframe-gpt4o": lambda: run_multiframe_gpt4o_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+            temporal_weight=args.temporal_weight,
+            temperature=args.temperature,
+        ),
+        "multiframe-vlm": lambda: run_multiframe_vlm_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            evaluator_type=args.evaluator,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+            temporal_weight=args.temporal_weight,
+            temperature=args.temperature,
+            api_key=args.api_key,
+            base_url=args.base_url,
+        ),
+        "rubrics": lambda: run_rubrics_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            gt_base_path=args.gt_base_path,
+            device=args.device,
+            task_specific_only=not args.full_score,
+        ),
+    }
+
+    run = dispatch.get(args.method)
+    if run is None:
+        raise ValueError(f"Unknown scoring method: {args.method}")
+    run()
+
+
 def main():
     """Main entry point for scoring runner."""
     parser = argparse.ArgumentParser(
@@ -606,69 +686,7 @@ Examples:
         parser.print_help()
         return
 
-    # Run the appropriate scoring method
-    if args.method == 'human':
-        run_human_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            annotator_name=args.annotator,
-            port=args.port,
-            share=args.share
-        )
-    elif args.method == 'gpt4o':
-        run_gpt4o_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            max_frames=args.max_frames,
-            temperature=args.temperature
-        )
-    elif args.method == 'multiframe':
-        run_multiframe_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric
-        )
-    elif args.method == 'multiframe-gpt4o':
-        run_multiframe_gpt4o_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric,
-            temporal_weight=args.temporal_weight,
-            temperature=args.temperature
-        )
-    elif args.method == 'multiframe-vlm':
-        run_multiframe_vlm_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            evaluator_type=args.evaluator,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric,
-            temporal_weight=args.temporal_weight,
-            temperature=args.temperature,
-            api_key=args.api_key,
-            base_url=args.base_url
-        )
-    elif args.method == 'rubrics':
-        run_rubrics_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            gt_base_path=args.gt_base_path,
-            device=args.device,
-            task_specific_only=not args.full_score
-        )
-    else:
-        raise ValueError(f"Unknown scoring method: {args.method}")
+    _run_method(args)
 
 
 if __name__ == "__main__":

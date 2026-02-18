@@ -12,14 +12,14 @@ import os
 import sys
 import time
 import uuid
-import subprocess
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, List, Tuple
+from typing import Any, Dict, Optional, Union
 
 import torch
 from PIL import Image
 
 from .base import ModelWrapper
+from ..utils.image import load_image_rgb
 
 # Paths
 VMEVAL_ROOT = Path(__file__).parent.parent.parent
@@ -102,7 +102,7 @@ def preprocess_image_for_ltx2(
     Returns:
         Path to preprocessed image
     """
-    img = Image.open(image_path).convert("RGB")
+    img = load_image_rgb(image_path)
     orig_w, orig_h = img.size
     
     # Scale proportionally based on target width
@@ -134,6 +134,18 @@ def preprocess_image_for_ltx2(
     print(f"Preprocessed image: {orig_w}x{orig_h} -> {target_width}x{target_height} (saved to {preprocessed_path})")
     
     return preprocessed_path
+
+
+def _newest_hf_snapshot(snapshots_dir: Path) -> Optional[Path]:
+    """Return the newest snapshot directory under an HF cache snapshots path, or None."""
+    if not snapshots_dir.exists():
+        return None
+    dirs = sorted(
+        (d for d in snapshots_dir.iterdir() if d.is_dir()),
+        key=lambda d: d.stat().st_mtime,
+        reverse=True,
+    )
+    return dirs[0] if dirs else None
 
 
 class LTX2Service:
@@ -196,56 +208,40 @@ class LTX2Service:
         
         add_ltx2_to_path()
 
-        # Build checkpoint paths - try HuggingFace cache first, then local LTX-2 directory
+        # Resolve checkpoint and Gemma paths (HF cache first, then local)
         checkpoint_filename = self.model_config["checkpoint"]
         gemma_dirname = self.model_config["gemma_dir"]
-        gemma_hf_name = self.model_config.get("gemma_hf_name", gemma_dirname)  # HF cache uses different naming
-        
-        # Get HuggingFace cache base path
+        gemma_hf_name = self.model_config.get("gemma_hf_name", gemma_dirname)
+
         hf_cache_base = Path(os.environ.get("HF_HOME", "~/.cache/huggingface")).expanduser()
-        
-        # Try to find LTX-2 checkpoint in HuggingFace cache
-        hf_checkpoint_path = hf_cache_base / "models--Lightricks--LTX-2" / "snapshots"
-        
+
+        # LTX-2 checkpoint: search HF cache snapshots for the file, then local
         self.checkpoint_path = None
-        if hf_checkpoint_path.exists():
-            # Find the latest snapshot directory
-            snapshot_dirs = sorted([d for d in hf_checkpoint_path.iterdir() if d.is_dir()], 
-                                   key=lambda x: x.stat().st_mtime, reverse=True)
-            for snapshot_dir in snapshot_dirs:
-                candidate = snapshot_dir / checkpoint_filename
-                if candidate.exists() or candidate.is_symlink():
-                    self.checkpoint_path = str(candidate)
-                    print(f"Using LTX-2 checkpoint from HuggingFace cache: {self.checkpoint_path}")
-                    break
-        
-        # Fallback to local LTX-2 directory for checkpoint
+        snapshot = _newest_hf_snapshot(hf_cache_base / "models--Lightricks--LTX-2" / "snapshots")
+        if snapshot:
+            candidate = snapshot / checkpoint_filename
+            if candidate.exists() or candidate.is_symlink():
+                self.checkpoint_path = str(candidate)
+                print(f"Using LTX-2 checkpoint from HuggingFace cache: {self.checkpoint_path}")
         if self.checkpoint_path is None:
             local_checkpoint = LTX2_PATH / checkpoint_filename
             if local_checkpoint.exists():
                 self.checkpoint_path = str(local_checkpoint)
                 print(f"Using local LTX-2 checkpoint: {self.checkpoint_path}")
-        
-        # Try to find Gemma model in HuggingFace cache first
-        # Gemma is stored in hub/ subdirectory with format: hub/models--google--gemma-3-12b-it-qat-q4_0-unquantized
-        hf_gemma_path = hf_cache_base / "hub" / f"models--google--{gemma_hf_name}" / "snapshots"
-        
+
+        # Gemma model: search HF hub cache, then local directory
         self.gemma_root = None
-        if hf_gemma_path.exists():
-            # Find the latest snapshot directory
-            snapshot_dirs = sorted([d for d in hf_gemma_path.iterdir() if d.is_dir()], 
-                                   key=lambda x: x.stat().st_mtime, reverse=True)
-            if snapshot_dirs:
-                self.gemma_root = str(snapshot_dirs[0])
-                print(f"Using Gemma model from HuggingFace cache: {self.gemma_root}")
-        
-        # Fallback to local LTX-2 directory for Gemma
+        gemma_snapshot = _newest_hf_snapshot(
+            hf_cache_base / "hub" / f"models--google--{gemma_hf_name}" / "snapshots"
+        )
+        if gemma_snapshot:
+            self.gemma_root = str(gemma_snapshot)
+            print(f"Using Gemma model from HuggingFace cache: {self.gemma_root}")
         if self.gemma_root is None:
             local_gemma = LTX2_PATH / gemma_dirname
             if local_gemma.exists():
-                # Check if it has actual model files (not just README)
                 has_model_files = any(
-                    f.suffix in ['.safetensors', '.bin', '.gguf'] 
+                    f.suffix in ('.safetensors', '.bin', '.gguf')
                     for f in local_gemma.rglob('*') if f.is_file()
                 )
                 if has_model_files:
@@ -357,7 +353,7 @@ class LTX2Service:
             seed = int(time.time()) % 2147483647
 
         # Prepare image conditioning with preprocessing
-        images: List[Tuple[str, int, float]] = []
+        images: list[tuple[str, int, float]] = []
         if image_path is not None:
             image_path = Path(image_path)
             if image_path.exists():
@@ -506,22 +502,8 @@ class LTX2Wrapper(ModelWrapper):
         output_filename: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """
-        Generate video using LTX-2 (matches VMEvalKit interface).
-
-        Args:
-            image_path: Path to input image (optional for LTX-2, can be None)
-            text_prompt: Text prompt for video generation
-            duration: Video duration in seconds
-            output_filename: Optional output filename
-            **kwargs: Additional parameters (num_inference_steps, cfg_guidance_scale, seed, etc.)
-
-        Returns:
-            Dictionary with generation results
-        """
-        # Filter out parameters not used by LTX2Service
+        """Generate video using LTX-2 (matches VMEvalKit interface)."""
         kwargs.pop("question_data", None)
-        
         return self.service.generate(
             image_path=image_path,
             text_prompt=text_prompt,

@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 from PIL import Image
 from .base import ModelWrapper
+from ..utils.image import load_image_rgb
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +47,7 @@ class LTXVideoService:
         logger.info(f"LTX model loaded on {self.device}")
     
     def _prepare_image(self, image_path: Union[str, Path]) -> Image.Image:
-        from diffusers.utils import load_image
-        
-        image = load_image(str(image_path))
-        
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
         logger.info(f"Prepared image: {image.size}")
         return image
     

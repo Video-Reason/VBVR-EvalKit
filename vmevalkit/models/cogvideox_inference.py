@@ -18,6 +18,8 @@ import torch
 from PIL import Image
 from pydantic import BaseModel, Field, field_validator
 
+from ..utils.image import load_image_rgb
+
 from .base import ModelWrapper
 
 logger = logging.getLogger(__name__)
@@ -140,14 +142,8 @@ class CogVideoXService:
         Returns:
             Prepared PIL Image resized to target resolution
         """
-        from diffusers.utils import load_image
-        
-        image = load_image(str(image_path))
-        
-        # Ensure RGB mode
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
+
         # Use provided dimensions or fall back to config
         if target_width is None or target_height is None:
             target_width, target_height = self.config.resolution

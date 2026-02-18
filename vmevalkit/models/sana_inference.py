@@ -22,8 +22,10 @@ import logging
 
 import torch
 from PIL import Image
+
+from ..utils.image import load_image_rgb
 from diffusers import SanaImageToVideoPipeline, FlowMatchEulerDiscreteScheduler
-from diffusers.utils import export_to_video, load_image
+from diffusers.utils import export_to_video
 
 from .base import ModelWrapper
 
@@ -111,11 +113,7 @@ class SanaVideoService:
         Returns:
             PIL Image in RGB mode
         """
-        image = load_image(str(image_path))
-        
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
         logger.info(f"Prepared image for SANA: {image.size}")
         return image
 

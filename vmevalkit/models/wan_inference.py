@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 from PIL import Image
 from .base import ModelWrapper
+from ..utils.image import load_image_rgb
 
 logger = logging.getLogger(__name__)
 
@@ -67,20 +68,14 @@ class WanService:
         
         logger.info(f"Aspect ratio resize: {image.size} -> {resized_image.size}")
         return resized_image, height, width
-    
-    
+
     def _prepare_image(self, image_path: Union[str, Path]) -> tuple:
-        from diffusers.utils import load_image
-        
-        image = load_image(str(image_path))
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        """Load, convert to RGB, and resize image using aspect ratio constraints."""
+        image = load_image_rgb(image_path)
         image, height, width = self._aspect_ratio_resize(image)
-        
         logger.info(f"Prepared image: {image.size}")
         return image, height, width
-    
+
     def generate_video(
         self,
         image_path: Union[str, Path],
@@ -95,20 +90,15 @@ class WanService:
     ) -> Dict[str, Any]:
         start_time = time.time()
         self._load_model()
-        
-        # Get dimensions from kwargs (ground truth) or use aspect ratio resize
+
         if height is not None and width is not None:
-            from diffusers.utils import load_image
-            image = load_image(str(image_path))
-            if image.mode != "RGB":
-                image = image.convert("RGB")
+            image = load_image_rgb(image_path)
             mod_value = self.pipe.vae_scale_factor_spatial * self.pipe.transformer.config.patch_size[1]
             height = round(height / mod_value) * mod_value
             width = round(width / mod_value) * mod_value
             image = image.resize((width, height), Image.Resampling.LANCZOS)
             logger.info(f"Resized image to aligned dimensions: {width}x{height}")
         else:
-            # Fall back to aspect ratio resize
             image, height, width = self._prepare_image(image_path)
         
         guidance_scale = guidance_scale or self.model_constraints["guidance_scale"]
@@ -180,21 +170,15 @@ class WanWrapper(ModelWrapper):
         output_filename: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        start_time = time.time()
-        
-        # Extract parameters from kwargs (from ground truth)
         guidance_scale = kwargs.pop("guidance_scale", None)
         fps = kwargs.pop("fps", None)
         num_frames = kwargs.pop("num_frames", None)
         height = kwargs.pop("height", None)
         width = kwargs.pop("width", None)
         kwargs.pop("question_data", None)
-        
-        if not output_filename:
-            output_filename = "video.mp4"
-        
-        output_path = self.output_dir / output_filename
-        
+
+        output_path = self.output_dir / (output_filename or "video.mp4")
+
         result = self.wan_service.generate_video(
             image_path=str(image_path),
             text_prompt=text_prompt,
@@ -206,17 +190,16 @@ class WanWrapper(ModelWrapper):
             width=width,
             **kwargs
         )
-        
-        duration_taken = time.time() - start_time
-        
+
+        has_video = bool(result.get("video_path"))
         return {
-            "success": bool(result.get("video_path")),
+            "success": has_video,
             "video_path": result.get("video_path"),
             "error": None,
-            "duration_seconds": duration_taken,
+            "duration_seconds": result.get("duration_seconds", 0),
             "generation_id": f"wan_{int(time.time())}",
             "model": self.model,
-            "status": "success" if result.get("video_path") else "failed",
+            "status": "success" if has_video else "failed",
             "metadata": {
                 "prompt": text_prompt,
                 "image_path": str(image_path),

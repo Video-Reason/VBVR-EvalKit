@@ -12,16 +12,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from vmevalkit.eval.vbvr_bench import is_out_of_domain
+from vmevalkit.eval.vbvr_bench.evaluators import (
+    get_evaluator, TASK_EVALUATOR_MAP, get_task_category,
+)
+
 logger = logging.getLogger(__name__)
-
-
-def _import_vbvr():
-    """Lazy import of VBVR-Bench modules."""
-    from vmevalkit.eval.vbvr_bench.evaluators import (
-        get_evaluator, TASK_EVALUATOR_MAP, get_task_category,
-        get_tasks_by_split
-    )
-    return get_evaluator, TASK_EVALUATOR_MAP, get_task_category, get_tasks_by_split
 
 
 class VBVRBenchEvaluator:
@@ -56,10 +52,6 @@ class VBVRBenchEvaluator:
 
         self.eval_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Import and cache VBVR-Bench internals
-        (self._get_evaluator, self._TASK_MAP,
-         self._get_category, self._get_by_split) = _import_vbvr()
-
     # ------------------------------------------------------------------
     # Task name resolution
     # ------------------------------------------------------------------
@@ -69,9 +61,9 @@ class VBVRBenchEvaluator:
 
         Tries exact match first, then prefix match.
         """
-        if dir_name in self._TASK_MAP:
+        if dir_name in TASK_EVALUATOR_MAP:
             return dir_name
-        for task_name in self._TASK_MAP:
+        for task_name in TASK_EVALUATOR_MAP:
             if task_name.startswith(dir_name) or dir_name.startswith(task_name):
                 return task_name
         return None
@@ -161,7 +153,7 @@ class VBVRBenchEvaluator:
             }
 
         eval_info = self._build_eval_info(video_path, run_dir, task_name)
-        evaluator = self._get_evaluator(task_name, self.device)
+        evaluator = get_evaluator(task_name, self.device)
 
         result = evaluator.evaluate(
             eval_info, task_specific_only=self.task_specific_only
@@ -215,16 +207,60 @@ class VBVRBenchEvaluator:
     # Model-level evaluation (directory walking)
     # ------------------------------------------------------------------
 
-    def evaluate_model(self, model_name: str) -> Dict[str, Any]:
-        """Evaluate all tasks for one model."""
+    def _evaluate_task_dir(
+        self,
+        task_dir: Path,
+        model_name: str,
+        task_type: str,
+        results: Dict[str, Any],
+        counters: Dict[str, int],
+    ) -> None:
+        """Evaluate all task samples in a directory, updating results and counters."""
         from vmevalkit.eval.VLMasjudge.run_selector import select_latest_run
 
+        results["evaluations"].setdefault(task_type, {})
+
+        for sample_dir in sorted(task_dir.iterdir()):
+            if not sample_dir.is_dir():
+                continue
+            task_id = sample_dir.name
+            counters["total"] += 1
+
+            if self._has_evaluation(model_name, task_type, task_id):
+                counters["skipped"] += 1
+                continue
+
+            run_dir = select_latest_run(sample_dir)
+            if not run_dir:
+                continue
+            video_files = sorted((run_dir / "video").glob("*.mp4"))
+            if not video_files:
+                continue
+
+            try:
+                logger.info(f"Evaluating {model_name}/{task_type}/{task_id}")
+                eval_result = self.evaluate_single(
+                    model_name, task_type, task_id,
+                    str(video_files[0]), run_dir,
+                )
+                results["evaluations"][task_type][task_id] = eval_result
+                self._save_single_result(model_name, task_type, task_id, eval_result)
+                counters["evaluated"] += 1
+            except Exception as e:
+                logger.error(f"Error {model_name}/{task_type}/{task_id}: {e}")
+                counters["failed"] += 1
+                results["evaluations"][task_type][task_id] = {
+                    "status": "failed", "error": str(e),
+                }
+
+    def evaluate_model(self, model_name: str) -> Dict[str, Any]:
+        """Evaluate all tasks for one model."""
         model_dir = self.inference_dir / model_name
         if not model_dir.exists():
             raise ValueError(f"Model directory not found: {model_dir}")
 
         results: Dict[str, Any] = {"model_name": model_name, "evaluations": {}}
-        total = skipped = evaluated = failed = 0
+        counters = {"total": 0, "skipped": 0, "evaluated": 0, "failed": 0}
 
         for first_level_dir in sorted(model_dir.iterdir()):
             if not first_level_dir.is_dir():
@@ -232,86 +268,23 @@ class VBVRBenchEvaluator:
 
             if self._is_generator_dir(first_level_dir.name):
                 # 3-layer: model/generator/task_type/task_id
-                generator_name = first_level_dir.name
                 for task_type_dir in sorted(first_level_dir.iterdir()):
                     if not task_type_dir.is_dir():
                         continue
-                    full_task_type = f"{generator_name}/{task_type_dir.name}"
-                    results["evaluations"].setdefault(full_task_type, {})
-
-                    for task_dir in sorted(task_type_dir.iterdir()):
-                        if not task_dir.is_dir():
-                            continue
-                        task_id = task_dir.name
-                        total += 1
-
-                        if self._has_evaluation(model_name, full_task_type, task_id):
-                            skipped += 1
-                            continue
-
-                        run_dir = select_latest_run(task_dir)
-                        if not run_dir:
-                            continue
-                        video_files = sorted((run_dir / "video").glob("*.mp4"))
-                        if not video_files:
-                            continue
-
-                        try:
-                            logger.info(f"Evaluating {model_name}/{full_task_type}/{task_id}")
-                            eval_result = self.evaluate_single(
-                                model_name, full_task_type, task_id,
-                                str(video_files[0]), run_dir,
-                            )
-                            results["evaluations"][full_task_type][task_id] = eval_result
-                            self._save_single_result(model_name, full_task_type, task_id, eval_result)
-                            evaluated += 1
-                        except Exception as e:
-                            logger.error(f"Error {model_name}/{full_task_type}/{task_id}: {e}")
-                            failed += 1
-                            results["evaluations"][full_task_type][task_id] = {
-                                "status": "failed", "error": str(e),
-                            }
+                    full_task_type = f"{first_level_dir.name}/{task_type_dir.name}"
+                    self._evaluate_task_dir(
+                        task_type_dir, model_name, full_task_type, results, counters,
+                    )
             else:
                 # 2-layer: model/task_type/task_id
-                task_type = first_level_dir.name
-                results["evaluations"].setdefault(task_type, {})
-
-                for task_dir in sorted(first_level_dir.iterdir()):
-                    if not task_dir.is_dir():
-                        continue
-                    task_id = task_dir.name
-                    total += 1
-
-                    if self._has_evaluation(model_name, task_type, task_id):
-                        skipped += 1
-                        continue
-
-                    run_dir = select_latest_run(task_dir)
-                    if not run_dir:
-                        continue
-                    video_files = sorted((run_dir / "video").glob("*.mp4"))
-                    if not video_files:
-                        continue
-
-                    try:
-                        logger.info(f"Evaluating {model_name}/{task_type}/{task_id}")
-                        eval_result = self.evaluate_single(
-                            model_name, task_type, task_id,
-                            str(video_files[0]), run_dir,
-                        )
-                        results["evaluations"][task_type][task_id] = eval_result
-                        self._save_single_result(model_name, task_type, task_id, eval_result)
-                        evaluated += 1
-                    except Exception as e:
-                        logger.error(f"Error {model_name}/{task_type}/{task_id}: {e}")
-                        failed += 1
-                        results["evaluations"][task_type][task_id] = {
-                            "status": "failed", "error": str(e),
-                        }
+                self._evaluate_task_dir(
+                    first_level_dir, model_name, first_level_dir.name, results, counters,
+                )
 
         logger.info(
             f"VBVR-Bench Evaluation for {model_name}: "
-            f"total={total} skipped={skipped} evaluated={evaluated} failed={failed}"
+            f"total={counters['total']} skipped={counters['skipped']} "
+            f"evaluated={counters['evaluated']} failed={counters['failed']}"
         )
         return results
 
@@ -343,7 +316,6 @@ class VBVRBenchEvaluator:
     def _rebuild_summary_from_files(self) -> Dict[str, Any]:
         """Rebuild summary with VBVR-specific breakdowns (category, split)."""
         from statistics import mean, median, stdev
-        from collections import Counter
 
         all_models: Dict[str, Any] = {}
 
@@ -424,11 +396,10 @@ class VBVRBenchEvaluator:
                     dir_name = task_type.split("/")[0]
                     vbvr_task = self._resolve_task_name(dir_name) or ""
 
-                category = self._get_category(vbvr_task) if vbvr_task else "Unknown"
+                category = get_task_category(vbvr_task) if vbvr_task else "Unknown"
                 category_scores.setdefault(category, []).extend(task_scores)
 
                 # Determine split
-                from vmevalkit.eval.vbvr_bench import is_out_of_domain
                 split = "Out_of_Domain" if (vbvr_task and is_out_of_domain(vbvr_task)) else "In_Domain"
                 split_scores[split].extend(task_scores)
 

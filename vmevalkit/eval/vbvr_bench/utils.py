@@ -423,22 +423,17 @@ def get_dominant_colors(img: np.ndarray, n_colors: int = 5) -> List[Tuple[int, i
     return colors
 
 
-def color_distance(c1: Tuple, c2: Tuple, method: str = 'euclidean') -> float:
+def color_distance(c1: Tuple, c2: Tuple) -> float:
     """
-    Compute distance between two colors.
-    
+    Compute Euclidean distance between two colors.
+
     Args:
         c1, c2: Color tuples (B, G, R) or (H, S, V)
-        method: 'euclidean' or 'deltaE' (perceptual)
-        
+
     Returns:
         Distance value (lower = more similar)
     """
-    if method == 'euclidean':
-        return np.sqrt(sum((a - b) ** 2 for a, b in zip(c1, c2)))
-    else:
-        # Simple euclidean as fallback
-        return np.sqrt(sum((a - b) ** 2 for a, b in zip(c1, c2)))
+    return float(np.sqrt(sum((a - b) ** 2 for a, b in zip(c1, c2))))
 
 
 def rgb_to_hsv(r: int, g: int, b: int) -> Tuple[float, float, float]:

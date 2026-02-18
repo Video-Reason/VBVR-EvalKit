@@ -403,35 +403,17 @@ def get_tasks_by_category():
 def get_tasks_by_split():
     """
     Get tasks organized by split (In-Domain vs Out-of-Domain).
-    
+
     Out-of-Domain = Original Hidden_40 + 10 additional tasks from Open_60:
         G-24, G-54, G-168, G-169, G-189, G-206, G-222, G-223, G-250, O-27
-    
+
     In-Domain = Remaining 50 tasks from original Open_60
     """
-    # Original Hidden_40 task prefixes (40 tasks)
-    hidden_40_prefixes = [
-        'G-135_', 'G-193_', 'G-136_', 'G-140_', 'G-147_', 'G-160_', 'G-161_',
-        'G-167_', 'G-202_', 'G-212_', 'G-217_', 'G-218_', 'G-219_', 'G-221_',
-        'G-240_', 'G-247_', 'G-248_', 'G-174_', 'G-273_', 'G-47_',
-        'O-11_', 'O-56_', 'O-22_', 'O-2_', 'O-39_', 'O-43_', 'O-46_', 'O-49_',
-        'O-5_', 'O-54_', 'O-58_', 'O-59_', 'O-60_', 'O-61_', 'O-62_', 'O-64_',
-        'O-65_', 'O-6_', 'O-85_', 'O-9_'
-    ]
-    
-    # Additional 10 tasks moved from Open_60 to Out-of-Domain
-    additional_ood_prefixes = [
-        'G-24_', 'G-54_', 'G-168_', 'G-169_', 'G-189_', 'G-206_', 'G-222_',
-        'G-223_', 'G-250_', 'O-27_'
-    ]
-    
-    # Combine for Out-of-Domain (50 tasks total)
-    ood_prefixes = hidden_40_prefixes + additional_ood_prefixes
-    
-    out_of_domain = [t for t in TASK_EVALUATOR_MAP.keys() 
-                    if any(t.startswith(p) for p in ood_prefixes)]
-    in_domain = [t for t in TASK_EVALUATOR_MAP.keys() if t not in out_of_domain]
-    
+    from .. import is_out_of_domain
+
+    out_of_domain = [t for t in TASK_EVALUATOR_MAP if is_out_of_domain(t)]
+    in_domain = [t for t in TASK_EVALUATOR_MAP if not is_out_of_domain(t)]
+
     return {'In_Domain': in_domain, 'Out_of_Domain': out_of_domain}
 
 

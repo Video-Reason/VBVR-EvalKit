@@ -125,10 +125,11 @@ lmms-eval 是用一个 transformers固定版本.
 | ltx-video | 1m31s | |
 | ltx-video-13b-distilled | 5m38s | |
 | wan-2.2-ti2v-5b | 9m19s | |
-| sana-video-2b-480p | ~12s | 修复后成功 |
+| sana-video-2b-480p | - | 修复后成功 |
 | cogvideox1.5-5b-i2v | 5m22s | 重装 venv + 强制使用模型原生分辨率/帧数 |
 | hunyuan-video-i2v | ~30-60min | 单卡 H100 CPU offload, 960x960x129帧 50步 |
-| wan-2.2-i2v-a14b | ~4min | 400x400x35帧 50步, 含 subprocess 模型加载 |
+| wan-2.2-i2v-a14b | 4min | 400x400x35帧 50步, 含 subprocess 模型加载 |
+| LTX-2 | 3m48s | H100, 512x768x97帧 30步, ~40GB VRAM |
 
 ## Failed - 环境/依赖问题
 
@@ -140,5 +141,4 @@ lmms-eval 是用一个 transformers固定版本.
 
 | Model | 错误 | 修复方法 |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/models/LTX-2/setup.sh`（`install_model.sh` 仅装 pip 依赖，不下载权重）。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存 |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `hf download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `hf download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

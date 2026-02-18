@@ -8,10 +8,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional, List
-
-# Add parent directory to path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+from typing import Optional
 
 # Configure logging
 logging.basicConfig(

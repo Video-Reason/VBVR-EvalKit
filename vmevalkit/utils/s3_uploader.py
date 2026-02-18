@@ -41,19 +41,19 @@ class S3ImageUploader:
         # Test prefix for uploaded images
         self.prefix = f"temp_maze_tests/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
+    _CONTENT_TYPES = {
+        ".mp4": "video/mp4",
+        ".png": "image/png",
+        ".json": "application/json",
+        ".txt": "text/plain",
+    }
+
     @staticmethod
     def _guess_content_type(file_path: Path) -> str:
         """Infer content type from file extension."""
-        suffix = file_path.suffix.lower()
-        if suffix == ".mp4":
-            return "video/mp4"
-        if suffix == ".png":
-            return "image/png"
-        if suffix == ".json":
-            return "application/json"
-        if suffix == ".txt":
-            return "text/plain"
-        return "application/octet-stream"
+        return S3ImageUploader._CONTENT_TYPES.get(
+            file_path.suffix.lower(), "application/octet-stream"
+        )
 
     def _upload_and_presign(self, file_path: Path, key: str, expires_in: int) -> str:
         """Upload a file and return a presigned GET URL."""
@@ -168,12 +168,12 @@ class S3ImageUploader:
                 print(f"[S3] Uploaded {relative_path}")
         
         # Print upload summary
-        print(f"\n✅ Inference folder uploaded to S3")
-        if any('video/' in path for path in uploaded_files):
-            video_urls = [url for path, url in uploaded_files.items() if 'video/' in path]
-            print(f"   Videos: {len(video_urls)} file(s) uploaded")
-        if any('question/' in path for path in uploaded_files):
-            question_files = [path for path in uploaded_files if 'question/' in path]
-            print(f"   Question files: {len(question_files)} file(s) uploaded")
+        print(f"\n[S3] Inference folder uploaded to S3")
+        video_count = sum(1 for path in uploaded_files if 'video/' in path)
+        if video_count:
+            print(f"   Videos: {video_count} file(s) uploaded")
+        question_count = sum(1 for path in uploaded_files if 'question/' in path)
+        if question_count:
+            print(f"   Question files: {question_count} file(s) uploaded")
         
         return uploaded_files

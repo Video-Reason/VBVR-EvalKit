@@ -1,10 +1,8 @@
 """VMEvalKit Inference Runner - Multi-Provider Video Generation"""
 
-import shutil
 import importlib
 import json
 import subprocess
-import sys
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, Type
@@ -51,12 +49,6 @@ def _build_failed_result(
         "status": "failed",
         "metadata": metadata or {},
     }
-
-
-def _attach_question_data(result: Dict[str, Any], question_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Attach question data to result payload and return it."""
-    result["question_data"] = question_data
-    return result
 
 
 def _extract_domain_and_task(question_data: Optional[Dict[str, Any]]) -> tuple[str, str]:
@@ -210,7 +202,8 @@ def run_inference(
         result = _run_via_subprocess(
             model_name, venv_python, image_path, text_prompt, output_dir, **generation_kwargs
         )
-        return _attach_question_data(result, question_data)
+        result["question_data"] = question_data
+        return result
 
     # Fallback: direct import (for commercial API models without venvs)
     wrapper_class = _load_model_wrapper(model_name)
@@ -228,7 +221,8 @@ def run_inference(
 
     result["inference_dir"] = str(inference_dir)
 
-    return _attach_question_data(result, question_data)
+    result["question_data"] = question_data
+    return result
 
 
 class InferenceRunner:
@@ -237,7 +231,6 @@ class InferenceRunner:
     def __init__(self, output_dir: str = "./outputs"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True, parents=True)
-        self.runs = []
         self._wrapper_cache = {}
 
     def _get_or_create_wrapper(self, model_name: str) -> ModelWrapper:
@@ -258,8 +251,6 @@ class InferenceRunner:
         **kwargs
     ) -> Dict[str, Any]:
         """Run inference and save video as {task_id}.mp4 under domain folder."""
-        start_time = datetime.now()
-
         domain_dir_name, task_id = _extract_domain_and_task(question_data)
 
         # Save video directly under domain folder as {task_id}.mp4
@@ -310,15 +301,6 @@ class InferenceRunner:
         if video_path != target_path:
             video_path.rename(target_path)
             result["video_path"] = str(target_path)
-
-    def _cleanup_failed_folder(self, task_dir: Path):
-        """Clean up folder if video generation failed."""
-        if task_dir.exists():
-            video_files = list(task_dir.glob("*.mp4")) + list(task_dir.glob("*.webm"))
-            if video_files:
-                return
-            shutil.rmtree(task_dir)
-            print(f"Cleaned up empty folder: {task_dir.name}")
 
     def list_models(self) -> Dict[str, str]:
         """List available models and their descriptions."""

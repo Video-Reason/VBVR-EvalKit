@@ -56,20 +56,6 @@ def get_image_dimensions(image_path: str) -> Optional[tuple]:
     return None
 
 
-def get_available_domains(questions_dir_path):
-    """Discover available domains from questions directory."""
-    questions_dir = Path(questions_dir_path)
-    if not questions_dir.exists():
-        return []
-    
-    domains = []
-    for item in questions_dir.iterdir():
-        if item.is_dir():
-            # Use directory name as domain (strip _task suffix if present)
-            domain = item.name.replace('_task', '') if item.name.endswith('_task') else item.name
-            domains.append(domain)
-    return sorted(domains)
-
 def discover_all_tasks_from_folders(questions_dir: Path, domain_filter: Optional[set] = None) -> Dict[str, List[Dict[str, Any]]]:
     """Discover all tasks by scanning questions directory.
     

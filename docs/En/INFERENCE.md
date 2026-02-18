@@ -46,12 +46,12 @@ Models receive the initial state + prompt and must generate videos demonstrating
 
 VMEvalKit uses a **modular architecture** with dynamic loading:
 
-- **MODEL_CATALOG**: Registry of 37 models across 15 families
+- **MODEL_CATALOG**: Registry of 33 models across 13 families
 - **Dynamic Loading**: Models loaded on-demand via importlib
 - **Unified Interface**: All models inherit from `ModelWrapper`
 - **Two Categories**:
   - **Commercial APIs**: Instant setup with API keys (Luma, Veo, Kling, Sora, Runway)
-  - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD)
+  - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, SVD)
 
 ## 📂 Output Structure
 
@@ -128,10 +128,6 @@ Env: RTX A6000
 
 | Model | Error | Fix |
 |---|---|---|
-| dynamicrafter-256 | `typing.io` removed in Python 3.13 (antlr4) | Downgrade Python or upgrade antlr4 |
-| dynamicrafter-512 | Same as above | Same as above |
-| dynamicrafter-1024 | Same as above | Same as above |
-| videocrafter2-512 | Same as above | Same as above |
 | cogvideox-5b-i2v | venv missing torch | Reinstall venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
 
 ## Failed - Missing Weights/Installation

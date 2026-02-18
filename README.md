@@ -4,7 +4,7 @@
 
 ## Features
 
-- **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
+- **🚀 33 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, SVD, etc.)
 - **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL) + rule-based scoring (VBVR-Bench Rubrics)
 - **☁️ Cloud Integration**: S3 + HuggingFace Hub support
 

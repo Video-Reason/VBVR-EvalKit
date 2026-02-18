@@ -25,10 +25,6 @@ declare -a OPENSOURCE_MODELS=(
     "svd"
     "morphic-frames-to-video"
     "hunyuan-video-i2v"
-    "dynamicrafter-256"
-    "dynamicrafter-512"
-    "dynamicrafter-1024"
-    "videocrafter2-512"
     "cogvideox-5b-i2v"
     "cogvideox1.5-5b-i2v"
     "sana-video-2b-480p"
@@ -74,19 +70,11 @@ _get_api_key_for_model() {
 }
 
 declare -a CHECKPOINTS=(
-    "dynamicrafter/dynamicrafter_256_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter/resolve/main/model.ckpt|3.5GB"
-    "dynamicrafter/dynamicrafter_512_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter_512/resolve/main/model.ckpt|5.2GB"
-    "dynamicrafter/dynamicrafter_1024_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter_1024/resolve/main/model.ckpt|9.7GB"
-    "videocrafter/base_512_v2/model.ckpt|https://huggingface.co/VideoCrafter/VideoCrafter2/resolve/main/model.ckpt|5.5GB"
 )
 
 # Model checkpoint paths lookup (bash 3.2 compatible - no associative arrays)
 get_model_checkpoint_path() {
     case "$1" in
-        dynamicrafter-256) echo "dynamicrafter/dynamicrafter_256_v1/model.ckpt" ;;
-        dynamicrafter-512) echo "dynamicrafter/dynamicrafter_512_v1/model.ckpt" ;;
-        dynamicrafter-1024) echo "dynamicrafter/dynamicrafter_1024_v1/model.ckpt" ;;
-        videocrafter2-512) echo "videocrafter/base_512_v2/model.ckpt" ;;
         *) echo "" ;;
     esac
 }

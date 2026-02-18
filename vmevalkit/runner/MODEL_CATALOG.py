@@ -228,46 +228,6 @@ HUNYUAN_VIDEO_MODELS = {
     }
 }
 
-# VideoCrafter Models (AILab-CVC)
-VIDEOCRAFTER_MODELS = {
-    "videocrafter2-512": {
-        "wrapper_module": "vmevalkit.models.videocrafter_inference",
-        "wrapper_class": "VideoCrafterWrapper",
-        "service_class": "VideoCrafterService",
-        "model": "videocrafter2",
-        "description": "VideoCrafter2 - High-quality text-guided video generation",
-        "family": "VideoCrafter"
-    }
-}
-
-# DynamiCrafter Models (Doubiiu)
-DYNAMICRAFTER_MODELS = {
-    "dynamicrafter-512": {
-        "wrapper_module": "vmevalkit.models.dynamicrafter_inference",
-        "wrapper_class": "DynamiCrafterWrapper",
-        "service_class": "DynamiCrafterService",
-        "model": "dynamicrafter-512",
-        "description": "DynamiCrafter 512p - Image animation with video diffusion",
-        "family": "DynamiCrafter"
-    },
-    "dynamicrafter-256": {
-        "wrapper_module": "vmevalkit.models.dynamicrafter_inference",
-        "wrapper_class": "DynamiCrafterWrapper",
-        "service_class": "DynamiCrafterService",
-        "model": "dynamicrafter-256",
-        "description": "DynamiCrafter 256p - Faster image animation",
-        "family": "DynamiCrafter"
-    },
-    "dynamicrafter-1024": {
-        "wrapper_module": "vmevalkit.models.dynamicrafter_inference",
-        "wrapper_class": "DynamiCrafterWrapper",
-        "service_class": "DynamiCrafterService",
-        "model": "dynamicrafter-1024",
-        "description": "DynamiCrafter 1024p - High-resolution image animation",
-        "family": "DynamiCrafter"
-    }
-}
-
 # Morphic Frames-to-Video Models
 MORPHIC_MODELS = {
     "morphic-frames-to-video": {
@@ -396,8 +356,6 @@ AVAILABLE_MODELS = {
     **OPENAI_SORA_MODELS,
     **LTX_VIDEO_MODELS,
     **HUNYUAN_VIDEO_MODELS,
-    **VIDEOCRAFTER_MODELS,
-    **DYNAMICRAFTER_MODELS,
     **MORPHIC_MODELS,
     **SVD_MODELS,
     **WAN_MODELS,
@@ -414,8 +372,6 @@ MODEL_FAMILIES = {
     "OpenAI Sora": OPENAI_SORA_MODELS,
     "LTX-Video": LTX_VIDEO_MODELS,
     "HunyuanVideo": HUNYUAN_VIDEO_MODELS,
-    "VideoCrafter": VIDEOCRAFTER_MODELS,
-    "DynamiCrafter": DYNAMICRAFTER_MODELS,
     "Morphic": MORPHIC_MODELS,
     "Stable Video Diffusion": SVD_MODELS,
     "WAN (Wan-AI)": WAN_MODELS,

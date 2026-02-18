@@ -1,7 +1,7 @@
 
 # 支持的模型
 
-VMEvalKit 提供对 **37 个视频生成模型**（覆盖 **15 个模型家族**）的统一访问。
+VMEvalKit 提供对 **33 个视频生成模型**（覆盖 **13 个模型家族**）的统一访问。
 
 ## 商业 API（19 个模型）
 
@@ -40,7 +40,7 @@ VMEvalKit 提供对 **37 个视频生成模型**（覆盖 **15 个模型家族**
 - `openai-sora-2` - 高画质视频生成（4s/8s/12s）
 - `openai-sora-2-pro` - 增强版模型，支持更多分辨率
 
-## 开源模型（18 个模型）
+## 开源模型（14 个模型）
 
 ### LTX-Video（3 个模型）
 **显存:** 16-40GB | **安装:** `bash setup/install_model.sh ltx-video`
@@ -51,16 +51,6 @@ VMEvalKit 提供对 **37 个视频生成模型**（覆盖 **15 个模型家族**
 ### HunyuanVideo（1 个模型）
 **显存:** 24GB+ | **安装:** `bash setup/install_model.sh hunyuan-video-i2v`
 - `hunyuan-video-i2v` - 高画质图生视频，最高 720p
-
-### VideoCrafter（1 个模型）
-**显存:** 16GB+ | **安装:** `bash setup/install_model.sh videocrafter2-512`
-- `videocrafter2-512` - 高画质文本引导视频生成
-
-### DynamiCrafter（3 个模型）
-**显存:** 12-24GB | **安装:** `bash setup/install_model.sh dynamicrafter-512`
-- `dynamicrafter-512` - 基于视频扩散的图像动画
-- `dynamicrafter-256` - 更快的图像动画
-- `dynamicrafter-1024` - 高分辨率图像动画
 
 ### Morphic（1 个模型）
 **显存:** 20GB+ | **安装:** `bash setup/install_model.sh morphic-frames-to-video`

@@ -10,12 +10,6 @@
 [submodule "submodules/LTX-Video"]
 	path = submodules/LTX-Video
 	url = https://github.com/Lightricks/LTX-Video.git
-[submodule "submodules/VideoCrafter"]
-	path = submodules/VideoCrafter
-	url = https://github.com/AILab-CVC/VideoCrafter.git
-[submodule "submodules/DynamiCrafter"]
-	path = submodules/DynamiCrafter
-	url = https://github.com/Doubiiu/DynamiCrafter.git
 [submodule "submodules/python-chess"]
 	path = submodules/python-chess
 	url = https://github.com/niklasf/python-chess.git

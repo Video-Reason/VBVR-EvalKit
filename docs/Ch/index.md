@@ -40,14 +40,12 @@ VMEvalKit/
 - `cogvideox_inference.py` — CogVideoX（本地开源）
 - `wan_inference.py` — Wan AI（本地开源）
 - `sana_inference.py` — SANA Video（本地开源）
-- `videocrafter_inference.py` — VideoCrafter（本地开源）
-- `dynamicrafter_inference.py` — DynamiCrafter（本地开源）
 - `morphic_inference.py` — Morphic Frames-to-Video（本地开源）
 
 ### `vmevalkit/runner/` — 推理调度
 
 将模型注册、加载、批量推理和评分串联起来的调度层：
-- `MODEL_CATALOG.py` — 模型注册表，纯数据（无 import），记录所有 37 个模型的 wrapper 路径、类名、家族信息等，供 `importlib` 动态加载
+- `MODEL_CATALOG.py` — 模型注册表，纯数据（无 import），记录所有 33 个模型的 wrapper 路径、类名、家族信息等，供 `importlib` 动态加载
 - `inference.py` — `run_inference()` 函数和 `InferenceRunner` 类，负责任务发现、模型加载、批量生成视频
 - `score.py` — 评分调度，串联各评估器
 
@@ -96,7 +94,7 @@ VMEvalKit/
 开源模型的环境搭建：
 - `install_model.sh` — 模型安装入口脚本，根据 `--model` 参数调用对应的安装脚本
 - `test_model.sh` — 模型安装后的验证测试
-- `models/` — 每个模型一个子目录（共 36 个），各含 `setup.sh` 安装脚本，负责创建独立 venv、安装依赖、下载 checkpoint
+- `models/` — 每个模型一个子目录（共 33 个），各含 `setup.sh` 安装脚本，负责创建独立 venv、安装依赖、下载 checkpoint
 - `lib/share.sh` — 安装脚本共享函数（创建 venv、下载 checkpoint 等）和 checkpoint 路径注册表
 - `test_assets/` — 测试用的样例数据（first_frame.png、prompt.txt 等）
 
@@ -107,8 +105,6 @@ VMEvalKit/
 以 git submodule 形式集成的外部仓库：
 - `LTX-Video/` — LTX-Video 模型源码
 - `HunyuanVideo-I2V/` — 腾讯混元视频模型源码
-- `VideoCrafter/` — VideoCrafter 模型源码
-- `DynamiCrafter/` — DynamiCrafter 模型源码
 - `morphic-frames-to-video/` — Morphic 帧到视频模型源码
 - `maze-dataset/` — 迷宫任务数据集生成工具
 - `python-chess/` — 国际象棋任务所依赖的棋盘逻辑库

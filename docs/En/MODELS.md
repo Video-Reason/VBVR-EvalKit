@@ -1,7 +1,7 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **37 video generation models** across **15 provider families**.
+VMEvalKit provides unified access to **33 video generation models** across **13 provider families**.
 
 ## Commercial APIs (19 models)
 
@@ -40,7 +40,7 @@ VMEvalKit provides unified access to **37 video generation models** across **15 
 - `openai-sora-2` - High-quality video generation (4s/8s/12s)
 - `openai-sora-2-pro` - Enhanced model with more resolution options
 
-## Open-Source Models (18 models)
+## Open-Source Models (14 models)
 
 ### LTX-Video (3 models)
 **VRAM:** 16-40GB | **Setup:** `bash setup/install_model.sh ltx-video`
@@ -51,16 +51,6 @@ VMEvalKit provides unified access to **37 video generation models** across **15 
 ### HunyuanVideo (1 model)
 **VRAM:** 24GB+ | **Setup:** `bash setup/install_model.sh hunyuan-video-i2v`
 - `hunyuan-video-i2v` - High-quality image-to-video up to 720p
-
-### VideoCrafter (1 model)
-**VRAM:** 16GB+ | **Setup:** `bash setup/install_model.sh videocrafter2-512`
-- `videocrafter2-512` - High-quality text-guided video generation
-
-### DynamiCrafter (3 models)
-**VRAM:** 12-24GB | **Setup:** `bash setup/install_model.sh dynamicrafter-512`
-- `dynamicrafter-512` - Image animation with video diffusion
-- `dynamicrafter-256` - Faster image animation
-- `dynamicrafter-1024` - High-resolution image animation
 
 ### Morphic (1 model)
 **VRAM:** 20GB+ | **Setup:** `bash setup/install_model.sh morphic-frames-to-video`

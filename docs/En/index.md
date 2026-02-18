@@ -40,14 +40,12 @@ Each file corresponds to one model family's inference implementation, following 
 - `cogvideox_inference.py` — CogVideoX (local open-source)
 - `wan_inference.py` — Wan AI (local open-source)
 - `sana_inference.py` — SANA Video (local open-source)
-- `videocrafter_inference.py` — VideoCrafter (local open-source)
-- `dynamicrafter_inference.py` — DynamiCrafter (local open-source)
 - `morphic_inference.py` — Morphic Frames-to-Video (local open-source)
 
 ### `vmevalkit/runner/` — Inference Orchestration
 
 The orchestration layer that ties together model registration, loading, batch inference, and scoring:
-- `MODEL_CATALOG.py` — Model registry, pure data (no imports), records all 37 models' wrapper paths, class names, family info, etc., for dynamic loading via `importlib`
+- `MODEL_CATALOG.py` — Model registry, pure data (no imports), records all 33 models' wrapper paths, class names, family info, etc., for dynamic loading via `importlib`
 - `inference.py` — `run_inference()` function and `InferenceRunner` class, responsible for task discovery, model loading, and batch video generation
 - `score.py` — Scoring orchestration, connecting various evaluators
 
@@ -96,7 +94,7 @@ Main scripts for end users:
 Environment setup for open-source models:
 - `install_model.sh` — Model installation entry script, invokes the corresponding setup script based on the `--model` argument
 - `test_model.sh` — Post-installation validation test
-- `models/` — One subdirectory per model (36 total), each containing a `setup.sh` installation script responsible for creating an isolated venv, installing dependencies, and downloading checkpoints
+- `models/` — One subdirectory per model (33 total), each containing a `setup.sh` installation script responsible for creating an isolated venv, installing dependencies, and downloading checkpoints
 - `lib/share.sh` — Shared functions for installation scripts (creating venvs, downloading checkpoints, etc.) and checkpoint path registry
 - `test_assets/` — Sample test data (first_frame.png, prompt.txt, etc.)
 
@@ -107,8 +105,6 @@ Environment setup for open-source models:
 External repositories integrated as git submodules:
 - `LTX-Video/` — LTX-Video model source code
 - `HunyuanVideo-I2V/` — Tencent HunyuanVideo model source code
-- `VideoCrafter/` — VideoCrafter model source code
-- `DynamiCrafter/` — DynamiCrafter model source code
 - `morphic-frames-to-video/` — Morphic frames-to-video model source code
 - `maze-dataset/` — Maze task dataset generation tool
 - `python-chess/` — Chess logic library for chess tasks

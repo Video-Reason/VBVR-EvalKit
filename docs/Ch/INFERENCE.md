@@ -46,12 +46,12 @@ questions/
 
 VMEvalKit 使用**模块化架构**和动态加载机制：
 
-- **MODEL_CATALOG**：包含 37 个模型（覆盖 15 个家族）的注册表
+- **MODEL_CATALOG**：包含 33 个模型（覆盖 13 个家族）的注册表
 - **动态加载**：通过 importlib 按需加载模型
 - **统一接口**：所有模型继承自 `ModelWrapper`
 - **两类模型**：
   - **商业 API**：仅需 API Key 即可使用（Luma、Veo、Kling、Sora、Runway）
-  - **开源模型**：需要本地安装（LTX-Video、LTX-2、HunyuanVideo、DynamiCrafter、SVD）
+  - **开源模型**：需要本地安装（LTX-Video、LTX-2、HunyuanVideo、SVD）
 
 ## 输出结构
 
@@ -133,10 +133,6 @@ lmms-eval 是用一个 transformers固定版本.
 
 | Model | 错误 | 修复方法 |
 |---|---|---|
-| dynamicrafter-256 | `typing.io` removed in Python 3.13 (antlr4) | 降级 Python 或升级 antlr4 |
-| dynamicrafter-512 | 同上 | 同上 |
-| dynamicrafter-1024 | 同上 | 同上 |
-| videocrafter2-512 | 同上 | 同上 |
 | cogvideox-5b-i2v | venv 缺 torch | 重装 venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
 
 ## Failed - 缺少权重/安装
@@ -144,5 +140,5 @@ lmms-eval 是用一个 transformers固定版本.
 | Model | 错误 | 修复方法 |
 |---|---|---|
 | LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/install_model.sh --model LTX-2`。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存 |
-| hunyuan-video-i2v | 1) `HF_HOME` 默认指向不存在的 `/mnt/aigc/shared_env/huggingface`，已修复为 `~/.cache/huggingface`；2) Python 3.13 下 `pkg_resources` 被移除导致 CLIP 安装失败；3) venv 依赖未安装 | setup.sh 改用 conda + Python 3.10，`bash setup/models/hunyuan-video-i2v/setup.sh` |
+| hunyuan-video-i2v | 1) `HF_HOME` 默认指向不存在的 `/mnt/aigc/shared_env/huggingface`，已修复为 `~/.cache/huggingface`；2) Python 3.13 下 `pkg_resources` 被移除导致 CLIP 安装失败；3) venv 依赖未安装 | `bash setup/models/hunyuan-video-i2v/setup.sh` |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

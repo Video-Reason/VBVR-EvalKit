@@ -11,6 +11,9 @@ __pycache__/
 
 analysis/figures/
 analysis/statistics/
+*.json
+outputs_rubrics/
+questions/
 
 # Distribution / packaging
 .Python

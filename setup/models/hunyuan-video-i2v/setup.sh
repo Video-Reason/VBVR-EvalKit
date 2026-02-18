@@ -15,7 +15,7 @@ print_section "Dependencies"
 # Install PyTorch 2.4.0 with CUDA 12.1 (compatible with system CUDA 12.8)
 # Official docs recommend pytorch-cuda=12.4 via conda, we use pip equivalent
 # Force reinstall to ensure torchvision custom ops (e.g., nms) are present
-pip install -q --force-reinstall --no-cache-dir torch==2.4.0+cu121 torchvision==0.19.0+cu121 torchaudio==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+pip install -q torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1
 
 # Verify torchvision has compiled ops (fail fast if a CPU-only wheel slips in)
 python - <<'PY'
@@ -25,35 +25,35 @@ assert getattr(torchvision.extension, "_has_ops")(), "torchvision C++ ops missin
 PY
 
 # Install EXACT versions from HunyuanVideo-I2V requirements.txt
-pip install -q opencv-python==4.9.0.80
+pip install -q "opencv-python>=4.9.0"
 pip install -q diffusers==0.31.0
 pip install -q accelerate==1.1.1
-pip install -q pandas==2.0.3
-pip install -q numpy==1.24.4
+pip install -q "pandas>=2.0.3"
+pip install -q "numpy>=2.0.0"
 pip install -q einops==0.7.0
 pip install -q tqdm==4.66.2
 pip install -q loguru==0.7.2
 pip install -q imageio==2.34.0
 pip install -q imageio-ffmpeg==0.5.1
-pip install -q safetensors==0.4.3
+pip install -q "safetensors>=0.4.3"
 pip install -q peft==0.13.2
 pip install -q transformers==4.39.3
-pip install -q tokenizers==0.15.0
+pip install -q "tokenizers>=0.15.0"
 pip install -q deepspeed==0.15.1
-pip install -q pyarrow==14.0.1
+pip install -q "pyarrow>=14.0.1"
 pip install -q tensorboard==2.19.0
 pip install -q --no-cache-dir git+https://github.com/openai/CLIP.git
 
 # Additional utilities for VMEvalKit
-pip install -q Pillow==9.5.0
+pip install -q "Pillow>=10.0.0"
 pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
 pip install -q requests==2.32.5 httpx==0.28.1
-pip install -q "huggingface_hub[cli]==0.26.2"
+pip install -q "huggingface_hub[cli]>=0.26.2"
 
 # Install flash-attn v2.6.3 (per official docs)
 # Use --no-cache-dir to avoid cross-device link errors on different filesystems
 pip install -q ninja
-pip install -q --no-cache-dir git+https://github.com/Dao-AILab/flash-attention.git@v2.6.3 --no-build-isolation
+pip install -q --no-cache-dir "flash-attn>=2.7.0" --no-build-isolation
 
 # NOTE: xfuser is NOT installed - single GPU mode only (avoids dependency conflicts)
 # For multi-GPU, manually install xfuser and reinstall torch afterwards

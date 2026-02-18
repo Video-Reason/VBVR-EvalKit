@@ -2,9 +2,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+
+
+Apply KISS, YAGNI, and SOLID principles.
+
+
+Don't delete anything in `docs/`.
+
+
+don't write redundant code in markdown, keep it concise.
+
+
+每次完成任务后，`git add` 改动的文件并 `git commit`。 不要提交有名字的绝对路径, 改成相对路径. 
+
+
 ## Project Overview
 
 VMEvalKit is a unified inference and evaluation framework for 29+ video generation models. It evaluates video models' reasoning capabilities through task pairs — visual reasoning problems (chess, maze, sudoku, raven puzzles, arc-agi, rotation, physical causality, match3). Models receive an initial state image + text prompt and must generate videos demonstrating the reasoning process.
+
+
+
 
 ## Common Commands
 

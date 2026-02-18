@@ -143,6 +143,6 @@ lmms-eval 是用一个 transformers固定版本.
 
 | Model | 错误 | 修复方法 |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | 运行 setup 脚本 |
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | 运行 setup 脚本。注意：LTX-2（19B 音视频联合模型 `Lightricks/LTX-2`）需要 diffusers main 分支，当前 0.35.2 不支持；当前 diffusers 0.35.2 仅支持 LTX-Video 系列（2B / 13B） |
 | hunyuan-video-i2v | 缺 CLIP text encoder | `huggingface-cli download openai/clip-vit-large-patch14` |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

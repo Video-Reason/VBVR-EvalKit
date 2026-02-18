@@ -13,7 +13,10 @@ Don't delete anything in `docs/`.
 don't write redundant code in markdown, keep it concise.
 
 
-每次完成任务后，`git add` 改动的文件并 `git commit`。 不要提交有名字的绝对路径, 改成相对路径. 
+每次完成任务后，`git add` 改动的文件并 `git commit`。 不要提交有名字的绝对路径, 改成相对路径.
+
+
+安装模型环境时，必须先用 WebSearch 搜索 HuggingFace 和 GitHub 上该模型的官方页面，了解最新的安装方式和用法，再编写 setup 脚本或 wrapper 代码。每个模型都要单独搜索。
 
 
 ## Project Overview

@@ -189,29 +189,11 @@ class CogVideoXService:
         
         # Load model if not already loaded
         self._load_model()
-        
-        # Get original image dimensions from the first frame if not provided in kwargs
-        target_width = kwargs.get('width')
-        target_height = kwargs.get('height')
-        
-        # If dimensions not provided, read from the actual image file
-        if target_width is None or target_height is None:
-            from diffusers.utils import load_image
-            original_image = load_image(str(image_path))
-            target_width, target_height = original_image.size
-            logger.info(f"Original image dimensions: {target_width}x{target_height}")
-        
-        # Ensure dimensions meet CogVideoX requirements
-        # CogVideoX VAE requires dimensions divisible by 32 (not just 16)
-        # This is because the VAE has multiple downsampling layers
-        orig_width, orig_height = target_width, target_height
-        target_width = ((target_width + 31) // 32) * 32
-        target_height = ((target_height + 31) // 32) * 32
-        
-        if target_width != orig_width or target_height != orig_height:
-            logger.info(f"Rounded resolution: {orig_width}x{orig_height} -> {target_width}x{target_height} (multiple of 32)")
-        else:
-            logger.info(f"Using resolution: {target_width}x{target_height}")
+
+        # CogVideoX requires specific resolution and frame counts tied to its
+        # rotary positional embeddings — always use the model's native config.
+        target_width, target_height = self.config.resolution
+        logger.info(f"Using model native resolution: {target_width}x{target_height}")
         
         # Prepare input image with target dimensions
         image = self._prepare_image(image_path, target_width, target_height)
@@ -225,8 +207,8 @@ class CogVideoXService:
         skip_keys = ['question_data', 'duration', 'output_filename', 'num_frames', 'height', 'width']
         pipeline_kwargs = {k: v for k, v in kwargs.items() if k not in skip_keys}
         
-        # Use num_frames from kwargs if provided (from ground truth), otherwise use config
-        num_frames = kwargs.get('num_frames', self.config.num_frames)
+        # Always use model's native frame count (required by positional embeddings)
+        num_frames = self.config.num_frames
 
         logger.info(
             f"Generating {num_frames} frames at {self.config.fps}fps "

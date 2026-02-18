@@ -79,7 +79,7 @@ if [[ -d "${HUNYUAN_MODEL_DIR}" ]] && [[ -n "$(ls -A "${HUNYUAN_MODEL_DIR}" 2>/d
 else
     print_download "Downloading HunyuanVideo-I2V weights to ${HUNYUAN_CKPTS_DIR} (large download, resume supported)..."
     mkdir -p "${HUNYUAN_CKPTS_DIR}"
-    huggingface-cli download tencent/HunyuanVideo-I2V \
+    python -m huggingface_hub download tencent/HunyuanVideo-I2V \
         --local-dir "${HUNYUAN_CKPTS_DIR}" \
         --local-dir-use-symlinks False \
         --resume-download
@@ -97,7 +97,7 @@ else
     fi
     print_download "Downloading HunyuanVideo-I2V text encoder (xtuner/llava-llama-3-8b-v1_1-transformers) to ${TEXT_ENCODER_DIR}..."
     mkdir -p "${TEXT_ENCODER_DIR}"
-    huggingface-cli download xtuner/llava-llama-3-8b-v1_1-transformers \
+    python -m huggingface_hub download xtuner/llava-llama-3-8b-v1_1-transformers \
         --local-dir "${TEXT_ENCODER_DIR}" \
         --local-dir-use-symlinks False \
         --resume-download
@@ -114,7 +114,7 @@ else
     fi
     print_download "Downloading CLIP-L text encoder (openai/clip-vit-large-patch14) to ${CLIP_TEXT_ENCODER_DIR}..."
     mkdir -p "${CLIP_TEXT_ENCODER_DIR}"
-    huggingface-cli download openai/clip-vit-large-patch14 \
+    python -m huggingface_hub download openai/clip-vit-large-patch14 \
         --local-dir "${CLIP_TEXT_ENCODER_DIR}" \
         --local-dir-use-symlinks False \
         --resume-download

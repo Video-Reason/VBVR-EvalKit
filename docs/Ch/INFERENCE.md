@@ -97,3 +97,51 @@ GEMINI_API_KEY=your_gemini_key
 KLING_API_KEY=your_kling_key
 RUNWAYML_API_SECRET=your_runway_secret
 ```
+
+
+# Open-Source Model Test Results
+
+Task: `shape_scaling_00000000` (1 task)
+
+Env: 
+RTX A6000 
+
+
+
+## Tested & Succeeded
+
+| Model | Time | Notes |
+|---|---|---|
+| svd | - | 之前已有结果 |
+| ltx-video | 1m31s | |
+| ltx-video-13b-distilled | 5m38s | |
+| wan-2.2-ti2v-5b | 9m19s | |
+| sana-video-2b-480p | ~12s | 修复后成功 |
+
+## TODO (需要重跑)
+
+| Model | 原因 |
+|---|---|
+| wan-2.1-i2v-480p | 进程跑了但 outputs 被清，需重跑确认 |
+| wan-2.1-i2v-720p | 同上 |
+| wan-2.2-i2v-a14b | 同上 |
+
+## Failed - 环境/依赖问题
+
+| Model | 错误 | 修复方法 |
+|---|---|---|
+| dynamicrafter-256 | `typing.io` removed in Python 3.13 (antlr4) | 降级 Python 或升级 antlr4 |
+| dynamicrafter-512 | 同上 | 同上 |
+| dynamicrafter-1024 | 同上 | 同上 |
+| videocrafter2-512 | 同上 | 同上 |
+| cogvideox-5b-i2v | venv 缺 torch | 重装 venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
+| cogvideox1.5-5b-i2v | venv 缺 torch . 推理失败了 — rotary embedding 的 tensor 尺寸不匹配，说明传入的分辨率/帧数跟模型不兼容。问题显示传了 1024x1024、60 帧，但
+  CogVideoX1.5-5B-I2V 期望 1360x768、81 帧。| 同上 |
+
+## Failed - 缺少权重/安装
+
+| Model | 错误 | 修复方法 |
+|---|---|---|
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | 运行 setup 脚本 |
+| hunyuan-video-i2v | 缺 CLIP text encoder | `huggingface-cli download openai/clip-vit-large-patch14` |
+| morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

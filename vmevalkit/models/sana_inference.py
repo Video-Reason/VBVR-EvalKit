@@ -1,10 +1,6 @@
 """SANA-Video Integration for VMEvalKit
 
-Uses SanaVideoPipeline from diffusers for text+image → video generation.
-Single backbone (SANA-Video 2B) supports all conditioning modes:
-- Text-to-Video
-- Image-to-Video  
-- Text+Image-to-Video (TextImage-to-Video)
+Uses SanaImageToVideoPipeline from diffusers for image → video generation.
 
 Supported model:
 - sana-video-2b-480p: Short-video model (~5 seconds, 81 frames, 480x832)
@@ -12,11 +8,10 @@ Supported model:
 Performance: ~22GB VRAM, ~4 minutes on RTX A6000 (50 steps)
 
 Requirements:
-- diffusers>=0.36.0 (with SanaVideoPipeline support)
+- diffusers>=0.36.0
 
 References:
 - HuggingFace: https://huggingface.co/Efficient-Large-Model/SANA-Video_2B_480p_diffusers
-- GitHub: https://github.com/NVlabs/Sana
 - Diffusers: https://huggingface.co/docs/diffusers/main/en/api/pipelines/sana_video
 """
 
@@ -27,7 +22,7 @@ import logging
 
 import torch
 from PIL import Image
-from diffusers import SanaVideoPipeline
+from diffusers import SanaImageToVideoPipeline, FlowMatchEulerDiscreteScheduler
 from diffusers.utils import export_to_video, load_image
 
 from .base import ModelWrapper
@@ -91,12 +86,15 @@ class SanaVideoService:
             encoder_dtype = torch.float32
             vae_dtype = torch.float32
         
-        logger.info("Using pipeline: SanaVideoPipeline")
-        self.pipe = SanaVideoPipeline.from_pretrained(
+        logger.info("Using pipeline: SanaImageToVideoPipeline")
+        self.pipe = SanaImageToVideoPipeline.from_pretrained(
             self.model_id,
             torch_dtype=transformer_dtype
         )
-        
+        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+            self.pipe.scheduler.config, flow_shift=8.0
+        )
+
         self.pipe.vae.to(vae_dtype)
         self.pipe.text_encoder.to(encoder_dtype)
         self.pipe.to(self.device)

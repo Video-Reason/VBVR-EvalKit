@@ -8,22 +8,16 @@ and produces fully reproducible 0-1 continuous scores.
 import json
 import re
 import logging
-import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Add VBVR-Bench to path for imports
-_VBVR_BENCH_PATH = str(Path(__file__).resolve().parent.parent.parent.parent / "VBVR-Bench")
-if _VBVR_BENCH_PATH not in sys.path:
-    sys.path.insert(0, _VBVR_BENCH_PATH)
-
 
 def _import_vbvr():
     """Lazy import of VBVR-Bench modules."""
-    from vbvr_bench.evaluators import (
+    from vmevalkit.eval.vbvr_bench.evaluators import (
         get_evaluator, TASK_EVALUATOR_MAP, get_task_category,
         get_tasks_by_split
     )
@@ -434,7 +428,7 @@ class VBVRBenchEvaluator:
                 category_scores.setdefault(category, []).extend(task_scores)
 
                 # Determine split
-                from vbvr_bench import is_out_of_domain
+                from vmevalkit.eval.vbvr_bench import is_out_of_domain
                 split = "Out_of_Domain" if (vbvr_task and is_out_of_domain(vbvr_task)) else "In_Domain"
                 split_scores[split].extend(task_scores)
 

@@ -18,6 +18,7 @@ else
 fi
 
 cd "${LTX2_DIR}"
+git checkout 28c3c73fe557666c3de176e1e50a5220152ccfca
 
 # Install via uv sync (uses uv.lock for exact dependency resolution)
 print_info "Running uv sync..."

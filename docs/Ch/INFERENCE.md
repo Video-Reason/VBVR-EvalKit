@@ -106,9 +106,11 @@ Task: `shape_scaling_00000000` (1 task)
 Env: 
 RTX A6000 
 
+lmms-eval 是用一个 transformers固定版本. 
 
 
 ## Tested & Succeeded
+
 
 | Model | Time | Notes |
 |---|---|---|

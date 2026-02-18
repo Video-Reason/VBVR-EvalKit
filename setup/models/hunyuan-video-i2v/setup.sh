@@ -42,6 +42,7 @@ pip install -q "tokenizers>=0.15.0"
 pip install -q deepspeed==0.15.1
 pip install -q "pyarrow>=14.0.1"
 pip install -q tensorboard==2.19.0
+pip install -q setuptools  # needed for pkg_resources on Python 3.13+
 pip install -q --no-cache-dir git+https://github.com/openai/CLIP.git
 
 # Additional utilities for VMEvalKit

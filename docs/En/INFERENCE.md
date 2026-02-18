@@ -97,3 +97,47 @@ GEMINI_API_KEY=your_gemini_key
 KLING_API_KEY=your_kling_key
 RUNWAYML_API_SECRET=your_runway_secret
 ```
+
+
+# Open-Source Model Test Results
+
+Task: `shape_scaling_00000000` (1 task)
+
+Env: RTX A6000
+
+## Tested & Succeeded
+
+| Model | Time | Notes |
+|---|---|---|
+| svd | - | Previous results available |
+| ltx-video | 1m31s | |
+| ltx-video-13b-distilled | 5m38s | |
+| wan-2.2-ti2v-5b | 9m19s | |
+| sana-video-2b-480p | ~12s | Succeeded after fix |
+| cogvideox1.5-5b-i2v | 5m22s | Reinstalled venv + forced native resolution/frames |
+
+## TODO (Need Re-run)
+
+| Model | Reason |
+|---|---|
+| wan-2.1-i2v-480p | Process ran but outputs were cleared, need re-run to confirm |
+| wan-2.1-i2v-720p | Same as above |
+| wan-2.2-i2v-a14b | Same as above |
+
+## Failed - Environment/Dependency Issues
+
+| Model | Error | Fix |
+|---|---|---|
+| dynamicrafter-256 | `typing.io` removed in Python 3.13 (antlr4) | Downgrade Python or upgrade antlr4 |
+| dynamicrafter-512 | Same as above | Same as above |
+| dynamicrafter-1024 | Same as above | Same as above |
+| videocrafter2-512 | Same as above | Same as above |
+| cogvideox-5b-i2v | venv missing torch | Reinstall venv: `bash setup/install_model.sh --model cogvideox-5b-i2v` |
+
+## Failed - Missing Weights/Installation
+
+| Model | Error | Fix |
+|---|---|---|
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run setup script |
+| hunyuan-video-i2v | Missing CLIP text encoder | `huggingface-cli download openai/clip-vit-large-patch14` |
+| morphic-frames-to-video | Missing Wan2.2 + morphic LoRA weights | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

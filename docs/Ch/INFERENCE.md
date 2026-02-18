@@ -137,6 +137,6 @@ lmms-eval 是用一个 transformers固定版本.
 
 | Model | 错误 | 修复方法 |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/install_model.sh --model LTX-2`。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存。**注意:** Gemma-3 12B 文本编码器约 24GB，500Mbps 带宽下载约需 10 分钟。setup 脚本通过检查 `.safetensors` 权重文件判断是否已下载完成，不会因为目录非空而跳过 |
-| hunyuan-video-i2v | 1) `HF_HOME` 默认指向不存在的 `/mnt/aigc/shared_env/huggingface`，已修复为 `~/.cache/huggingface`； | `bash setup/models/hunyuan-video-i2v/setup.sh` |
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/install_model.sh --model LTX-2`。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存 |
+| hunyuan-video-i2v | 1) `install_model.sh` 创建 Python 3.13 venv，缺 `pkg_resources` 导致 pyarrow/CLIP 构建失败；2) `python -m huggingface_hub download` 在 0.36+ 已移除；3) `conda activate` 在非交互 shell 需先初始化 | 用 `bash setup/models/hunyuan-video-i2v/setup.sh`（需要 conda，Python 3.10） |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

@@ -190,6 +190,8 @@ create_model_conda_env() {
 }
 
 activate_model_conda_env() {
+    # Ensure conda shell hooks are available (needed in non-interactive scripts)
+    eval "$(conda shell.bash hook)"
     conda activate "$(get_model_venv_path "$1")"
 }
 
@@ -238,7 +240,7 @@ ensure_morphic_assets() {
     else
         print_download "Wan2.2-I2V-A14B (~27GB)..."
         mkdir -p "$(dirname "$wan_dir")"
-        python -m huggingface_hub download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
+        huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
         print_success "Wan2.2-I2V-A14B ready"
     fi
 
@@ -247,7 +249,7 @@ ensure_morphic_assets() {
     else
         print_download "Morphic LoRA weights..."
         mkdir -p "$lora_dir"
-        python -m huggingface_hub download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
+        huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
         print_success "Morphic LoRA ready"
     fi
 }

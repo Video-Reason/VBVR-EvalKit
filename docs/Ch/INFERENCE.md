@@ -103,8 +103,15 @@ RUNWAYML_API_SECRET=your_runway_secret
 
 Task: `shape_scaling_00000000` (1 task)
 
-Env: 
-RTX A6000 
+Env:
+RTX A6000
+
+### VRAM Usage
+
+| Model | VRAM |
+|---|---|
+| hunyuan-video-i2v | 57 GB |
+| wan-2.2-i2v-a14b | 92 GB |
 
 lmms-eval 是用一个 transformers固定版本. 
 

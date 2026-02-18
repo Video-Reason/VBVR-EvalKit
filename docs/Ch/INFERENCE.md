@@ -128,7 +128,7 @@ lmms-eval 是用一个 transformers固定版本.
 | sana-video-2b-480p | ~12s | 修复后成功 |
 | cogvideox1.5-5b-i2v | 5m22s | 重装 venv + 强制使用模型原生分辨率/帧数 |
 | hunyuan-video-i2v | ~30-60min | 单卡 H100 CPU offload, 960x960x129帧 50步 |
-| wan-2.2-i2v-a14b | ~63s | 400x400x81帧 50步 |
+| wan-2.2-i2v-a14b | ~4min | 400x400x35帧 50步, 含 subprocess 模型加载 |
 
 ## Failed - 环境/依赖问题
 

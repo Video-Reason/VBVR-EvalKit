@@ -108,10 +108,10 @@ RTX A6000
 
 ### VRAM Usage
 
-| Model | VRAM |
-|---|---|
-| hunyuan-video-i2v | 57 GB |
-| wan-2.2-i2v-a14b | 92 GB |
+| Model | VRAM | Notes |
+|---|---|---|
+| hunyuan-video-i2v | 57 GB | 单卡 H100 CPU offload, 960x960x129帧 50步, ~30-60min |
+| wan-2.2-i2v-a14b | 92 GB | |
 
 lmms-eval 是用一个 transformers固定版本. 
 

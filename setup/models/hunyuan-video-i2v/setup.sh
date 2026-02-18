@@ -6,15 +6,13 @@ source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="hunyuan-video-i2v"
 
-print_section "Virtual Environment"
-create_model_venv "$MODEL"
-activate_model_venv "$MODEL"
+print_section "Conda Environment (Python 3.10)"
+create_model_conda_env "$MODEL" "3.10"
+activate_model_conda_env "$MODEL"
 
 print_section "Dependencies"
 
-# Install PyTorch 2.4.0 with CUDA 12.1 (compatible with system CUDA 12.8)
-# Official docs recommend pytorch-cuda=12.4 via conda, we use pip equivalent
-# Force reinstall to ensure torchvision custom ops (e.g., nms) are present
+# Install PyTorch with CUDA support
 pip install -q torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1
 
 # Verify torchvision has compiled ops (fail fast if a CPU-only wheel slips in)
@@ -42,7 +40,6 @@ pip install -q "tokenizers>=0.15.0"
 pip install -q deepspeed==0.15.1
 pip install -q "pyarrow>=14.0.1"
 pip install -q tensorboard==2.19.0
-pip install -q setuptools  # needed for pkg_resources on Python 3.13+
 pip install -q --no-cache-dir git+https://github.com/openai/CLIP.git
 
 # Additional utilities for VMEvalKit
@@ -51,13 +48,9 @@ pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
 pip install -q requests==2.32.5 httpx==0.28.1
 pip install -q "huggingface_hub[cli]>=0.26.2"
 
-# Install flash-attn v2.6.3 (per official docs)
-# Use --no-cache-dir to avoid cross-device link errors on different filesystems
+# Install flash-attn (use --no-cache-dir to avoid cross-device link errors)
 pip install -q ninja
 pip install -q --no-cache-dir "flash-attn>=2.7.0" --no-build-isolation
-
-# NOTE: xfuser is NOT installed - single GPU mode only (avoids dependency conflicts)
-# For multi-GPU, manually install xfuser and reinstall torch afterwards
 
 # Final verification: torchvision must have compiled C++ ops
 python - <<'VERIFY'
@@ -122,6 +115,6 @@ else
     print_success "CLIP text encoder ready at ${CLIP_TEXT_ENCODER_DIR}"
 fi
 
-deactivate
+conda deactivate
 
 print_success "${MODEL} setup complete"

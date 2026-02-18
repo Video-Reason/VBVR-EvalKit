@@ -143,6 +143,6 @@ lmms-eval 是用一个 transformers固定版本.
 
 | Model | 错误 | 修复方法 |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | 运行 setup 脚本。注意：LTX-2（19B 音视频联合模型 `Lightricks/LTX-2`）需要 diffusers main 分支，当前 0.35.2 不支持；当前 diffusers 0.35.2 仅支持 LTX-Video 系列（2B / 13B） |
-| hunyuan-video-i2v | 缺 CLIP text encoder | `huggingface-cli download openai/clip-vit-large-patch14` |
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | `bash setup/install_model.sh --model LTX-2`。LTX-2 使用自有 pipeline（非 diffusers），checkpoint: `ltx-2-19b-distilled-fp8.safetensors`，文本编码器: Gemma-3 12B（`gemma3-12b-it-qat-q4_0-unquantized`），默认分辨率 512x768，97 帧 @25fps，需要 ~40GB 显存 |
+| hunyuan-video-i2v | 1) `HF_HOME` 默认指向不存在的 `/mnt/aigc/shared_env/huggingface`，已修复为 `~/.cache/huggingface`；2) Python 3.13 下 `pkg_resources` 被移除导致 CLIP 安装失败；3) venv 依赖未安装 | setup.sh 改用 conda + Python 3.10，`bash setup/models/hunyuan-video-i2v/setup.sh` |
 | morphic-frames-to-video | 缺 Wan2.2 + morphic LoRA 权重 | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

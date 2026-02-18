@@ -181,6 +181,30 @@ create_model_venv() {
     print_success "Virtual environment created: ${model}"
 }
 
+# --- Conda-based environment helpers ---
+
+create_model_conda_env() {
+    local model="$1"
+    local python_version="${2:-3.10}"
+    local env_path
+    env_path="$(get_model_venv_path "$model")"
+
+    if [[ -d "$env_path" ]]; then
+        print_step "Removing existing environment: ${model}"
+        rm -rf "$env_path"
+        print_success "Old environment removed"
+    fi
+
+    print_step "Creating conda environment: ${model} (Python ${python_version})"
+    mkdir -p "${ENVS_DIR}"
+    conda create -y -p "$env_path" python="${python_version}" pip setuptools wheel -q
+    print_success "Conda environment created: ${model}"
+}
+
+activate_model_conda_env() {
+    conda activate "$(get_model_venv_path "$1")"
+}
+
 # ============================================================================
 # CHECKPOINT FUNCTIONS
 # ============================================================================

@@ -15,7 +15,7 @@ HUNYUAN_PATH = Path(__file__).parent.parent.parent / "submodules" / "HunyuanVide
 sys.path.insert(0, str(HUNYUAN_PATH))
 
 # HuggingFace cache paths for shared checkpoints
-HF_HOME = os.environ.get("HF_HOME", "/mnt/aigc/shared_env/huggingface")
+HF_HOME = os.environ.get("HF_HOME", str(Path.home() / ".cache" / "huggingface"))
 HF_HUB_CACHE = Path(HF_HOME) / "hub"
 
 

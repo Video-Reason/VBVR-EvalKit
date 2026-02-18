@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """VMEvalKit Video Generation"""
 
-import sys
 import shutil
 import os
 import subprocess
@@ -12,8 +11,6 @@ from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
 
 load_dotenv()
-
-sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
@@ -447,13 +444,6 @@ def main():
         type=int,
         default=None,
         help="GPU device ID to use"
-    )
-    
-    parser.add_argument(
-        "--only-model",
-        nargs="*",
-        default=None,
-        help="(Legacy) Same as --model"
     )
     
     args = parser.parse_args()

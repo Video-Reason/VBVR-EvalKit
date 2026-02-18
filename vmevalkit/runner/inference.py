@@ -4,9 +4,9 @@ import importlib
 import json
 import subprocess
 import time
-from pathlib import Path
-from typing import Dict, Any, Optional, Union, Type
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional, Type, Union
 
 from .MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
 from ..models.base import ModelWrapper
@@ -253,38 +253,26 @@ class InferenceRunner:
         """Run inference and save video as {task_id}.mp4 under domain folder."""
         domain_dir_name, task_id = _extract_domain_and_task(question_data)
 
-        # Save video directly under domain folder as {task_id}.mp4
         domain_dir = self.output_dir / domain_dir_name
         domain_dir.mkdir(parents=True, exist_ok=True)
         generation_kwargs = dict(kwargs)
         if question_data:
             generation_kwargs['question_data'] = question_data
 
-        # Check for venv - use subprocess if available
+        # Use subprocess for venv models, direct import for API models
         venv_python = _get_model_venv_python(model_name)
         if venv_python:
             result = _run_via_subprocess(
                 model_name, venv_python, image_path, text_prompt,
                 str(domain_dir), **generation_kwargs
             )
-            # Rename video to {task_id}.mp4
-            self._rename_video_to_task_id(domain_dir, task_id, result)
-            print(f"\nInference complete: {domain_dir / f'{task_id}.mp4'}")
-            return result
+        else:
+            wrapper = self._get_or_create_wrapper(model_name)
+            wrapper.output_dir = domain_dir
+            result = wrapper.generate(image_path, text_prompt, **generation_kwargs)
 
-        # Fallback: direct import (for commercial API models without venvs)
-        wrapper = self._get_or_create_wrapper(model_name)
-
-        # Set output dir to domain folder
-        wrapper.output_dir = domain_dir
-
-        result = wrapper.generate(image_path, text_prompt, **generation_kwargs)
-
-        # Rename video to {task_id}.mp4
         self._rename_video_to_task_id(domain_dir, task_id, result)
-
         print(f"\nInference complete: {domain_dir / f'{task_id}.mp4'}")
-
         return result
 
     def _rename_video_to_task_id(self, domain_dir: Path, task_id: str, result: Dict[str, Any]):

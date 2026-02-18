@@ -1,15 +1,14 @@
 """HunyuanVideo-I2V Inference Service for VMEvalKit"""
 
 import os
-import sys
-import subprocess
 import shutil
-import tempfile
-from pathlib import Path
-from typing import Dict, Any, Optional, Union
-from .base import ModelWrapper
-import json
+import subprocess
+import sys
 import time
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+from .base import ModelWrapper
 
 HUNYUAN_PATH = Path(__file__).parent.parent.parent / "submodules" / "HunyuanVideo-I2V"
 sys.path.insert(0, str(HUNYUAN_PATH))
@@ -180,6 +179,7 @@ class HunyuanVideoService:
             )
         
         # Set text encoder paths in environment for HunyuanVideo
+        result = None
         try:
             env = os.environ.copy()
             # Set MODEL_BASE to where the main model weights are
@@ -279,8 +279,8 @@ class HunyuanVideoService:
                 "seed": seed,
                 "use_i2v_stability": use_i2v_stability,
                 "flow_shift": flow_shift,
-                "stdout": result.stdout if 'result' in locals() else None,
-                "stderr": result.stderr if 'result' in locals() else None,
+                "stdout": result.stdout if result else None,
+                "stderr": result.stderr if result else None,
             }
         }
 

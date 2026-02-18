@@ -59,9 +59,9 @@ pip install -q "huggingface_hub[cli,hf-xet]>=0.31.4"
 print_section "Checkpoints"
 cd "${LTX2_DIR}"
 
-# Download Gemma-3 model (check if already exists)
+# Download Gemma-3 model (check for actual weight files, not just tokenizer)
 GEMMA_DIR="${LTX2_DIR}/gemma3-12b-it-qat-q4_0-unquantized"
-if [ -d "${GEMMA_DIR}" ] && [ -n "$(ls -A "${GEMMA_DIR}" 2>/dev/null)" ]; then
+if find "${GEMMA_DIR}" -name '*.safetensors' -print -quit 2>/dev/null | grep -q .; then
     print_skip "Gemma-3 model already downloaded"
 else
     print_info "Downloading Gemma-3 model..."

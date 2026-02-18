@@ -134,6 +134,6 @@ Env: RTX A6000
 
 | Model | Error | Fix |
 |---|---|---|
-| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run setup script |
+| LTX-2 | `RuntimeError: LTX-2 is not installed` | Run setup script. **Note:** Gemma-3 12B text encoder is ~24GB; downloading takes ~10 min on 500Mbps. The setup script checks for `.safetensors` weight files — a partial download (tokenizer only) will be retried. |
 | hunyuan-video-i2v | Missing CLIP text encoder | `huggingface-cli download openai/clip-vit-large-patch14` |
 | morphic-frames-to-video | Missing Wan2.2 + morphic LoRA weights | `huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./weights/wan/Wan2.2-I2V-A14B` + `huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir ./weights/morphic` |

@@ -15,12 +15,15 @@ print_section "Dependencies"
 # Install PyTorch with CUDA support
 pip install -q torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1
 
+# Install flash-attn first (needs ninja + --no-build-isolation)
+pip install -q ninja
+pip install -q --no-cache-dir "flash-attn>=2.7.0" --no-build-isolation
+
 # Install all deps from requirements.txt
 pip install -q -r "${SCRIPT_DIR}/requirements.txt"
 
-# Install flash-attn (needs ninja + --no-build-isolation)
-pip install -q ninja
-pip install -q --no-cache-dir "flash-attn>=2.7.0" --no-build-isolation
+# Install deepspeed without building CUDA ops (only needed at import time, not for inference)
+DS_BUILD_OPS=0 pip install -q "deepspeed==0.18.6"
 
 print_section "Checkpoints"
 

@@ -1,31 +1,30 @@
 # -------------------------------------------------------------------
-# Requires Python 3.10
+# Requires Python 3.10+, PyTorch >= 2.4, CUDA
+# GPU VRAM: ~48 GB for 720p (960×544×129), ~80 GB for 960×960×129
 #
 # PyTorch — install the version matching your CUDA *before* these deps
 #   pip install torch>=2.4 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu1xx
-#
-# flash-attn — must build from source:
-#   pip install ninja
-#   pip install git+https://github.com/Dao-AILab/flash-attention.git@v2.6.3 --no-build-isolation
 # -------------------------------------------------------------------
 
-opencv-python>=4.9
-diffusers>=0.31,<0.33
-accelerate>=1.1,<2.0
-pandas>=2.0,<3.0
+# Pinned to match submodule HunyuanVideo-I2V compatibility
+flash-attn>=2.7.0
+opencv-python==4.9.0.80
+diffusers==0.31.0
+accelerate==1.1.1
+pandas==2.0.3
 numpy>=1.24,<2.0
-einops>=0.7,<1.0
-tqdm>=4.66,<5.0
-loguru>=0.7,<1.0
-imageio>=2.34
-imageio-ffmpeg>=0.5,<1.0
-safetensors>=0.4,<1.0
-peft>=0.13,<1.0
-transformers>=4.39,<5.0
-tokenizers>=0.15,<1.0
-deepspeed>=0.15,<1.0
-pyarrow>=14.0,<16.0
-tensorboard>=2.15,<3.0
+einops==0.7.0
+tqdm==4.66.2
+loguru==0.7.2
+imageio==2.34.0
+imageio-ffmpeg==0.5.1
+safetensors==0.4.3
+peft==0.13.2
+transformers==4.39.3
+tokenizers==0.15.0
+deepspeed==0.18.6
+pyarrow==14.0.1
+tensorboard==2.19.0
 Pillow>=9.0
 
 # Config

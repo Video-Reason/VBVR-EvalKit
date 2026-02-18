@@ -49,7 +49,7 @@ VMEvalKit 提供对 **33 个视频生成模型**（覆盖 **13 个模型家族**
 - `LTX-2` - 19B FP8 文本/图片生视频，支持音频生成（~40GB 显存）
 
 ### HunyuanVideo（1 个模型）
-**显存:** 24GB+ | **安装:** `bash setup/install_model.sh hunyuan-video-i2v`
+**显存:** 24GB+ | **安装:** `bash setup/models/hunyuan-video-i2v/setup.sh`（需要 conda，Python 3.10）
 - `hunyuan-video-i2v` - 高画质图生视频，最高 720p
 
 ### Morphic（1 个模型）
@@ -118,8 +118,8 @@ python examples/generate_videos.py --questions-dir ./questions --model ltx-video
 bash setup/install_model.sh svd
 python examples/generate_videos.py --questions-dir ./questions --model svd
 
-# HunyuanVideo - 高画质，最高 720p
-bash setup/install_model.sh hunyuan-video-i2v
+# HunyuanVideo - 高画质，最高 720p（需要 conda）
+bash setup/models/hunyuan-video-i2v/setup.sh
 python examples/generate_videos.py --questions-dir ./questions --model hunyuan-video-i2v
 
 # CogVideoX - 长视频生成

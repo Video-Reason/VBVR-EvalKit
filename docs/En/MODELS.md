@@ -49,7 +49,7 @@ VMEvalKit provides unified access to **33 video generation models** across **13 
 - `LTX-2` - 19B FP8 text/image-to-video with audio generation (~40GB VRAM)
 
 ### HunyuanVideo (1 model)
-**VRAM:** 24GB+ | **Setup:** `bash setup/install_model.sh hunyuan-video-i2v`
+**VRAM:** 24GB+ | **Setup:** `bash setup/models/hunyuan-video-i2v/setup.sh` (requires conda, Python 3.10)
 - `hunyuan-video-i2v` - High-quality image-to-video up to 720p
 
 ### Morphic (1 model)
@@ -118,8 +118,8 @@ python examples/generate_videos.py --questions-dir ./questions --model ltx-video
 bash setup/install_model.sh svd
 python examples/generate_videos.py --questions-dir ./questions --model svd
 
-# HunyuanVideo - High-quality up to 720p
-bash setup/install_model.sh hunyuan-video-i2v
+# HunyuanVideo - High-quality up to 720p (requires conda)
+bash setup/models/hunyuan-video-i2v/setup.sh
 python examples/generate_videos.py --questions-dir ./questions --model hunyuan-video-i2v
 
 # CogVideoX - Long-form generation

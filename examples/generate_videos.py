@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,17 +21,28 @@ from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
 
 def get_video_frame_count(video_path: str) -> Optional[int]:
     """Get the number of frames in a video using ffprobe."""
+    if shutil.which("ffprobe") is None:
+        print("Warning: ffprobe not found; skipping frame count detection")
+        return None
+
+    cmd = [
+        'ffprobe', '-v', 'error', '-select_streams', 'v:0',
+        '-count_packets', '-show_entries', 'stream=nb_read_packets',
+        '-of', 'csv=p=0', video_path
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: ffprobe failed for {video_path}: {result.stderr.strip()}")
+        return None
+
+    value = result.stdout.strip()
+    if not value:
+        return None
+
     try:
-        cmd = [
-            'ffprobe', '-v', 'error', '-select_streams', 'v:0',
-            '-count_packets', '-show_entries', 'stream=nb_read_packets',
-            '-of', 'csv=p=0', video_path
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip():
-            return int(result.stdout.strip())
-    except Exception as e:
-        print(f"Warning: Could not get frame count from {video_path}: {e}")
+        return int(value)
+    except ValueError:
+        print(f"Warning: Could not parse frame count for {video_path}: {value!r}")
     return None
 
 
@@ -40,7 +51,7 @@ def get_image_dimensions(image_path: str) -> Optional[tuple]:
     try:
         with Image.open(image_path) as img:
             return img.height, img.width
-    except Exception as e:
+    except (FileNotFoundError, UnidentifiedImageError, OSError) as e:
         print(f"Warning: Could not get dimensions from {image_path}: {e}")
     return None
 
@@ -165,7 +176,7 @@ def _ensure_real_png(image_path: str) -> bool:
     try:
         Image.open(image_path).verify()
         return True
-    except Exception:
+    except (UnidentifiedImageError, OSError):
         with open(image_path, 'rb') as f:
             head = f.read(1024)
         if b"<svg" in head.lower():

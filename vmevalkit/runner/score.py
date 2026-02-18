@@ -392,55 +392,51 @@ def run_multiframe_scoring(
 
                 video_path = str(video_files[0])
 
-                try:
-                    # Sample frames
-                    frames = sampler.sample(video_path, strategy=strategy)
-                    if not frames:
-                        continue
+                # Sample frames
+                frames = sampler.sample(video_path, strategy=strategy)
+                if not frames:
+                    continue
 
-                    # Analyze consistency
-                    consistency = analyzer.analyze([f.image for f in frames])
+                # Analyze consistency
+                consistency = analyzer.analyze([f.image for f in frames])
 
-                    # Evaluate each frame
-                    scores = []
-                    for i, (frame, weight) in enumerate(zip(frames, consistency.weights)):
-                        result = evaluator.evaluate_single(
-                            model_name, task_type, f"{task_id}_f{i}", video_path
-                        )
-                        score = result.get("solution_correctness_score", 0)
-                        scores.append(FrameScore(
-                            score=score,
-                            timestamp=frame.timestamp,
-                            weight=weight,
-                            is_keyframe=frame.is_keyframe
-                        ))
+                # Evaluate each frame
+                scores = []
+                for i, (frame, weight) in enumerate(zip(frames, consistency.weights)):
+                    result = evaluator.evaluate_single(
+                        model_name, task_type, f"{task_id}_f{i}", video_path
+                    )
+                    score = result.get("solution_correctness_score", 0)
+                    scores.append(FrameScore(
+                        score=score,
+                        timestamp=frame.timestamp,
+                        weight=weight,
+                        is_keyframe=frame.is_keyframe
+                    ))
 
-                    # Aggregate
-                    voting_result = voter.aggregate(scores, stability_score=consistency.stability_score)
+                # Aggregate
+                voting_result = voter.aggregate(scores, stability_score=consistency.stability_score)
 
-                    # Save
-                    task_out = output_path / model_name / task_type / task_id
-                    task_out.mkdir(parents=True, exist_ok=True)
+                # Save
+                task_out = output_path / model_name / task_type / task_id
+                task_out.mkdir(parents=True, exist_ok=True)
 
-                    with open(task_out / "MultiFrameEvaluator.json", 'w') as f:
-                        json.dump({
-                            "metadata": {
-                                "evaluator": "MultiFrameEvaluator",
-                                "timestamp": datetime.now().isoformat()
-                            },
-                            "result": {
-                                "final_score": voting_result.final_score,
-                                "confidence": voting_result.confidence,
-                                "agreement_ratio": voting_result.agreement_ratio,
-                                "stability_score": voting_result.stability_score,
-                                "needs_review": voting_result.needs_review
-                            }
-                        }, f, indent=2)
+                with open(task_out / "MultiFrameEvaluator.json", 'w') as f:
+                    json.dump({
+                        "metadata": {
+                            "evaluator": "MultiFrameEvaluator",
+                            "timestamp": datetime.now().isoformat()
+                        },
+                        "result": {
+                            "final_score": voting_result.final_score,
+                            "confidence": voting_result.confidence,
+                            "agreement_ratio": voting_result.agreement_ratio,
+                            "stability_score": voting_result.stability_score,
+                            "needs_review": voting_result.needs_review
+                        }
+                    }, f, indent=2)
 
-                    logger.info(f"  {task_id}: score={voting_result.final_score}, conf={voting_result.confidence:.2f}")
-
-                except Exception as e:
-                    logger.error(f"  {task_id}: Error - {e}")
+                logger.info(f"  {task_id}: score={voting_result.final_score}, conf={voting_result.confidence:.2f}")
 
 
 def _run_method(args: argparse.Namespace) -> None:

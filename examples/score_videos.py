@@ -611,11 +611,8 @@ Available methods:
     # 2. Determine evaluator
     if args.evaluator:
         # Command line override
-        try:
-            evaluator = Evaluator(args.evaluator)
-            logger.info(f"Evaluator from command line: {evaluator.value}")
-        except ValueError:
-            raise ValueError(f"Unknown evaluator: {args.evaluator}. Available: {[e.value for e in Evaluator]}")
+        evaluator = Evaluator(args.evaluator)
+        logger.info(f"Evaluator from command line: {evaluator.value}")
     elif config.evaluator:
         # Explicitly specified in config
         evaluator = config.evaluator

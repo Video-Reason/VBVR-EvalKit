@@ -12,7 +12,7 @@ activate_model_venv "$MODEL"
 
 print_section "Dependencies"
 # Follow Morphic's official setup_env.sh exactly
-pip install -q torch==2.5.0 torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -q torch==2.7.1 torchvision==0.22.1
 
 # Build flash-attn from source (like original Morphic setup)
 # Install build dependencies required by flash-attn
@@ -41,7 +41,7 @@ pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
 pip install -q requests==2.32.5 httpx==0.28.1
 # Note: This version conflicts with transformers 4.51.3's preference (>=0.30.0)
 # but is pinned for VMEvalKit consistency. The warning is non-critical.
-pip install -q "huggingface_hub[cli]==0.26.2"
+pip install -q "huggingface_hub[cli]>=0.26.2"
 
 print_section "Checkpoints"
 ensure_morphic_assets

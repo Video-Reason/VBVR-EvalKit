@@ -1,0 +1,36 @@
+# -------------------------------------------------------------------
+# Requires Python 3.10+, PyTorch >= 2.4, CUDA
+# GPU VRAM: ~48 GB for 720p (960×544×129), ~80 GB for 960×960×129
+#
+# PyTorch — install the version matching your CUDA *before* these deps
+#   pip install torch>=2.4 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu1xx
+# -------------------------------------------------------------------
+
+opencv-python>=4.9
+diffusers==0.31.0
+accelerate>=1.1,<2.0
+pandas>=2.0,<3.0
+numpy>=1.24,<2.0
+einops>=0.7,<1.0
+tqdm>=4.66,<5.0
+loguru>=0.7,<1.0
+imageio>=2.34
+imageio-ffmpeg>=0.5,<1.0
+safetensors>=0.4,<1.0
+peft==0.13.2
+transformers==4.44.2
+tokenizers>=0.15,<1.0
+deepspeed>=0.15,<1.0
+pyarrow>=14.0,<16.0
+tensorboard>=2.15,<3.0
+Pillow>=9.0
+
+# Config
+pydantic>=2.7,<3.0
+pydantic-settings>=2.7,<3.0
+python-dotenv>=1.0,<2.0
+
+# I/O
+requests>=2.31,<3.0
+httpx>=0.27,<1.0
+huggingface_hub[cli]>=0.26,<1.0

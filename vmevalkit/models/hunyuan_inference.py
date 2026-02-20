@@ -1,21 +1,20 @@
 """HunyuanVideo-I2V Inference Service for VMEvalKit"""
 
 import os
-import sys
-import subprocess
 import shutil
-import tempfile
-from pathlib import Path
-from typing import Dict, Any, Optional, Union
-from .base import ModelWrapper
-import json
+import subprocess
+import sys
 import time
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+from .base import ModelWrapper
 
 HUNYUAN_PATH = Path(__file__).parent.parent.parent / "submodules" / "HunyuanVideo-I2V"
 sys.path.insert(0, str(HUNYUAN_PATH))
 
 # HuggingFace cache paths for shared checkpoints
-HF_HOME = os.environ.get("HF_HOME", "/mnt/aigc/shared_env/huggingface")
+HF_HOME = os.environ.get("HF_HOME", str(Path.home() / ".cache" / "huggingface"))
 HF_HUB_CACHE = Path(HF_HOME) / "hub"
 
 
@@ -163,7 +162,7 @@ class HunyuanVideoService:
             raise FileNotFoundError(
                 f"Missing CLIP text encoder. Expected at HF cache (openai/clip-vit-large-patch14) "
                 f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_2'}\n"
-                f"Run: huggingface-cli download openai/clip-vit-large-patch14"
+                f"Run: hf download openai/clip-vit-large-patch14"
             )
         
         # Check for LLaVA text encoder (text_encoder_i2v) - try HF cache first, then local ckpts
@@ -176,10 +175,11 @@ class HunyuanVideoService:
             raise FileNotFoundError(
                 f"Missing LLaVA text encoder. Expected at HF cache (xtuner/llava-llama-3-8b-v1_1-transformers) "
                 f"or local: {HUNYUAN_PATH / 'ckpts' / 'text_encoder_i2v'}\n"
-                f"Run: huggingface-cli download xtuner/llava-llama-3-8b-v1_1-transformers"
+                f"Run: hf download xtuner/llava-llama-3-8b-v1_1-transformers"
             )
         
         # Set text encoder paths in environment for HunyuanVideo
+        result = None
         try:
             env = os.environ.copy()
             # Set MODEL_BASE to where the main model weights are
@@ -279,8 +279,8 @@ class HunyuanVideoService:
                 "seed": seed,
                 "use_i2v_stability": use_i2v_stability,
                 "flow_shift": flow_shift,
-                "stdout": result.stdout if 'result' in locals() else None,
-                "stderr": result.stderr if 'result' in locals() else None,
+                "stdout": result.stdout if result else None,
+                "stderr": result.stderr if result else None,
             }
         }
 

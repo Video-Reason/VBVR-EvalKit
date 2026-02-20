@@ -24,6 +24,7 @@ from google.genai import types
 from PIL import Image
 import io
 from .base import ModelWrapper
+from ..utils.image import load_image_rgb
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -236,10 +237,8 @@ class VeoService:
         if not p.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
         
-        image = Image.open(p)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(p)
+
         # Pad image to match video aspect ratio
         padded_image = self._pad_image_to_aspect_ratio(image, aspect_ratio)
         

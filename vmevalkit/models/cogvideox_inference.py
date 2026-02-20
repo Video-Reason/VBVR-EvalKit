@@ -18,6 +18,8 @@ import torch
 from PIL import Image
 from pydantic import BaseModel, Field, field_validator
 
+from ..utils.image import load_image_rgb
+
 from .base import ModelWrapper
 
 logger = logging.getLogger(__name__)
@@ -140,14 +142,8 @@ class CogVideoXService:
         Returns:
             Prepared PIL Image resized to target resolution
         """
-        from diffusers.utils import load_image
-        
-        image = load_image(str(image_path))
-        
-        # Ensure RGB mode
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
+
         # Use provided dimensions or fall back to config
         if target_width is None or target_height is None:
             target_width, target_height = self.config.resolution
@@ -189,29 +185,11 @@ class CogVideoXService:
         
         # Load model if not already loaded
         self._load_model()
-        
-        # Get original image dimensions from the first frame if not provided in kwargs
-        target_width = kwargs.get('width')
-        target_height = kwargs.get('height')
-        
-        # If dimensions not provided, read from the actual image file
-        if target_width is None or target_height is None:
-            from diffusers.utils import load_image
-            original_image = load_image(str(image_path))
-            target_width, target_height = original_image.size
-            logger.info(f"Original image dimensions: {target_width}x{target_height}")
-        
-        # Ensure dimensions meet CogVideoX requirements
-        # CogVideoX VAE requires dimensions divisible by 32 (not just 16)
-        # This is because the VAE has multiple downsampling layers
-        orig_width, orig_height = target_width, target_height
-        target_width = ((target_width + 31) // 32) * 32
-        target_height = ((target_height + 31) // 32) * 32
-        
-        if target_width != orig_width or target_height != orig_height:
-            logger.info(f"Rounded resolution: {orig_width}x{orig_height} -> {target_width}x{target_height} (multiple of 32)")
-        else:
-            logger.info(f"Using resolution: {target_width}x{target_height}")
+
+        # CogVideoX requires specific resolution and frame counts tied to its
+        # rotary positional embeddings — always use the model's native config.
+        target_width, target_height = self.config.resolution
+        logger.info(f"Using model native resolution: {target_width}x{target_height}")
         
         # Prepare input image with target dimensions
         image = self._prepare_image(image_path, target_width, target_height)
@@ -225,8 +203,8 @@ class CogVideoXService:
         skip_keys = ['question_data', 'duration', 'output_filename', 'num_frames', 'height', 'width']
         pipeline_kwargs = {k: v for k, v in kwargs.items() if k not in skip_keys}
         
-        # Use num_frames from kwargs if provided (from ground truth), otherwise use config
-        num_frames = kwargs.get('num_frames', self.config.num_frames)
+        # Always use model's native frame count (required by positional embeddings)
+        num_frames = self.config.num_frames
 
         logger.info(
             f"Generating {num_frames} frames at {self.config.fps}fps "
@@ -256,14 +234,7 @@ class CogVideoXService:
         
         duration_taken = time.time() - start_time
         logger.info(f"Video saved to: {output_path} (took {duration_taken:.2f}s)")
-        
-        # Get actual resolution used (from prepared image or config)
-        actual_resolution = (
-            (target_width, target_height) 
-            if target_width is not None and target_height is not None 
-            else self.config.resolution
-        )
-        
+
         return {
             "video_path": str(output_path),
             "frames": frames,
@@ -275,7 +246,7 @@ class CogVideoXService:
             "metadata": {
                 "prompt": text_prompt,
                 "image_path": str(image_path),
-                "resolution": actual_resolution,
+                "resolution": (target_width, target_height),
                 "guidance_scale": self.config.guidance_scale,
                 "num_inference_steps": self.config.num_inference_steps,
                 "seed": seed

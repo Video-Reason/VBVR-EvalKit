@@ -25,14 +25,14 @@ declare -a OPENSOURCE_MODELS=(
     "svd"
     "morphic-frames-to-video"
     "hunyuan-video-i2v"
-    "dynamicrafter-256"
-    "dynamicrafter-512"
-    "dynamicrafter-1024"
-    "videocrafter2-512"
     "cogvideox-5b-i2v"
     "cogvideox1.5-5b-i2v"
     "sana-video-2b-480p"
+    "sana"
+    "wan-2.1-i2v-480p"
+    "wan-2.1-i2v-720p"
     "wan-2.2-i2v-a14b"
+    "wan-2.2-ti2v-5b"
 )
 
 declare -a COMMERCIAL_MODELS=(
@@ -70,19 +70,11 @@ _get_api_key_for_model() {
 }
 
 declare -a CHECKPOINTS=(
-    "dynamicrafter/dynamicrafter_256_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter/resolve/main/model.ckpt|3.5GB"
-    "dynamicrafter/dynamicrafter_512_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter_512/resolve/main/model.ckpt|5.2GB"
-    "dynamicrafter/dynamicrafter_1024_v1/model.ckpt|https://huggingface.co/Doubiiu/DynamiCrafter_1024/resolve/main/model.ckpt|9.7GB"
-    "videocrafter/base_512_v2/model.ckpt|https://huggingface.co/VideoCrafter/VideoCrafter2/resolve/main/model.ckpt|5.5GB"
 )
 
 # Model checkpoint paths lookup (bash 3.2 compatible - no associative arrays)
 get_model_checkpoint_path() {
     case "$1" in
-        dynamicrafter-256) echo "dynamicrafter/dynamicrafter_256_v1/model.ckpt" ;;
-        dynamicrafter-512) echo "dynamicrafter/dynamicrafter_512_v1/model.ckpt" ;;
-        dynamicrafter-1024) echo "dynamicrafter/dynamicrafter_1024_v1/model.ckpt" ;;
-        videocrafter2-512) echo "videocrafter/base_512_v2/model.ckpt" ;;
         *) echo "" ;;
     esac
 }
@@ -177,6 +169,32 @@ create_model_venv() {
     print_success "Virtual environment created: ${model}"
 }
 
+# --- Conda-based environment helpers ---
+
+create_model_conda_env() {
+    local model="$1"
+    local python_version="${2:-3.10}"
+    local env_path
+    env_path="$(get_model_venv_path "$model")"
+
+    if [[ -d "$env_path" ]]; then
+        print_step "Removing existing environment: ${model}"
+        rm -rf "$env_path"
+        print_success "Old environment removed"
+    fi
+
+    print_step "Creating conda environment: ${model} (Python ${python_version})"
+    mkdir -p "${ENVS_DIR}"
+    conda create -y -p "$env_path" python="${python_version}" pip setuptools wheel -q
+    print_success "Conda environment created: ${model}"
+}
+
+activate_model_conda_env() {
+    # Ensure conda shell hooks are available (needed in non-interactive scripts)
+    eval "$(conda shell.bash hook)"
+    conda activate "$(get_model_venv_path "$1")"
+}
+
 # ============================================================================
 # CHECKPOINT FUNCTIONS
 # ============================================================================
@@ -222,7 +240,7 @@ ensure_morphic_assets() {
     else
         print_download "Wan2.2-I2V-A14B (~27GB)..."
         mkdir -p "$(dirname "$wan_dir")"
-        huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
+        hf download Wan-AI/Wan2.2-I2V-A14B --local-dir "$wan_dir"
         print_success "Wan2.2-I2V-A14B ready"
     fi
 
@@ -231,7 +249,7 @@ ensure_morphic_assets() {
     else
         print_download "Morphic LoRA weights..."
         mkdir -p "$lora_dir"
-        huggingface-cli download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
+        hf download morphic/Wan2.2-frames-to-video --local-dir "$lora_dir"
         print_success "Morphic LoRA ready"
     fi
 }

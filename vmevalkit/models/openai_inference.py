@@ -160,7 +160,6 @@ class SoraService:
         target_w, target_h = map(int, target_size.split("x"))
 
         with Image.open(path) as img:
-            # Normalize color and orientation
             img = img.convert("RGB")
             current_w, current_h = img.size
 

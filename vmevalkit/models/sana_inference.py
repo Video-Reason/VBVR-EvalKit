@@ -1,10 +1,6 @@
 """SANA-Video Integration for VMEvalKit
 
-Uses SanaVideoPipeline from diffusers for text+image → video generation.
-Single backbone (SANA-Video 2B) supports all conditioning modes:
-- Text-to-Video
-- Image-to-Video  
-- Text+Image-to-Video (TextImage-to-Video)
+Uses SanaImageToVideoPipeline from diffusers for image → video generation.
 
 Supported model:
 - sana-video-2b-480p: Short-video model (~5 seconds, 81 frames, 480x832)
@@ -12,11 +8,10 @@ Supported model:
 Performance: ~22GB VRAM, ~4 minutes on RTX A6000 (50 steps)
 
 Requirements:
-- diffusers>=0.36.0 (with SanaVideoPipeline support)
+- diffusers>=0.36.0
 
 References:
 - HuggingFace: https://huggingface.co/Efficient-Large-Model/SANA-Video_2B_480p_diffusers
-- GitHub: https://github.com/NVlabs/Sana
 - Diffusers: https://huggingface.co/docs/diffusers/main/en/api/pipelines/sana_video
 """
 
@@ -27,8 +22,10 @@ import logging
 
 import torch
 from PIL import Image
-from diffusers import SanaVideoPipeline
-from diffusers.utils import export_to_video, load_image
+
+from ..utils.image import load_image_rgb
+from diffusers import SanaImageToVideoPipeline, FlowMatchEulerDiscreteScheduler
+from diffusers.utils import export_to_video
 
 from .base import ModelWrapper
 
@@ -91,12 +88,15 @@ class SanaVideoService:
             encoder_dtype = torch.float32
             vae_dtype = torch.float32
         
-        logger.info("Using pipeline: SanaVideoPipeline")
-        self.pipe = SanaVideoPipeline.from_pretrained(
+        logger.info("Using pipeline: SanaImageToVideoPipeline")
+        self.pipe = SanaImageToVideoPipeline.from_pretrained(
             self.model_id,
             torch_dtype=transformer_dtype
         )
-        
+        self.pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(
+            self.pipe.scheduler.config, flow_shift=8.0
+        )
+
         self.pipe.vae.to(vae_dtype)
         self.pipe.text_encoder.to(encoder_dtype)
         self.pipe.to(self.device)
@@ -113,11 +113,7 @@ class SanaVideoService:
         Returns:
             PIL Image in RGB mode
         """
-        image = load_image(str(image_path))
-        
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
         logger.info(f"Prepared image for SANA: {image.size}")
         return image
 
@@ -158,6 +154,11 @@ class SanaVideoService:
             Dictionary with video_path, frames, and metadata
         """
         start_time = time.time()
+
+        # Force model's native resolution — diffusers' resolution binning has
+        # a bug where the 1:1 bin (624x624) isn't divisible by 32.
+        height = self.model_constraints["height"]
+        width = self.model_constraints["width"]
 
         self._load_model()
         image = self._prepare_image(image_path)

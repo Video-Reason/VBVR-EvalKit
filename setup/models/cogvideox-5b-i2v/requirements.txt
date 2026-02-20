@@ -1,0 +1,23 @@
+# -------------------------------------------------------------------
+# PyTorch — install the version matching your CUDA *before* these deps
+#   pip install torch>=2.1 torchvision --index-url https://download.pytorch.org/whl/cu1xx
+# -------------------------------------------------------------------
+
+diffusers>=0.31,<0.33
+transformers>=4.40,<5.0
+accelerate>=1.0,<2.0
+sentencepiece>=0.2,<1.0
+
+opencv-python>=4.8
+
+# Config
+pydantic>=2.7,<3.0
+pydantic-settings>=2.7,<3.0
+python-dotenv>=1.0,<2.0
+
+# Image / video I/O
+Pillow>=10.0
+numpy>=1.24
+imageio>=2.34
+imageio-ffmpeg>=0.5,<1.0
+requests>=2.31,<3.0

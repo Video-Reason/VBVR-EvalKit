@@ -5,6 +5,7 @@ S3 uploader for VMEvalKit - handles both individual files and structured inferen
 import os
 import boto3
 from botocore.config import Config
+from botocore.exceptions import BotoCoreError, ClientError
 from pathlib import Path
 from typing import Optional, Dict
 from datetime import datetime
@@ -39,8 +40,37 @@ class S3ImageUploader:
         
         # Test prefix for uploaded images
         self.prefix = f"temp_maze_tests/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    _CONTENT_TYPES = {
+        ".mp4": "video/mp4",
+        ".png": "image/png",
+        ".json": "application/json",
+        ".txt": "text/plain",
+    }
+
+    @staticmethod
+    def _guess_content_type(file_path: Path) -> str:
+        """Infer content type from file extension."""
+        return S3ImageUploader._CONTENT_TYPES.get(
+            file_path.suffix.lower(), "application/octet-stream"
+        )
+
+    def _upload_and_presign(self, file_path: Path, key: str, expires_in: int) -> str:
+        """Upload a file and return a presigned GET URL."""
+        content_type = self._guess_content_type(file_path)
+        self.s3_client.upload_file(
+            str(file_path),
+            self.bucket_name,
+            key,
+            ExtraArgs={"ContentType": content_type},
+        )
+        return self.s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": self.bucket_name, "Key": key},
+            ExpiresIn=expires_in,
+        )
     
-    def upload(self, image_path: str) -> Optional[str]:
+    def upload(self, image_path: str) -> str:
         """
         Upload an image to S3 and return a presigned URL for temporary public access.
         
@@ -59,52 +89,40 @@ class S3ImageUploader:
         key = f"{self.prefix}/{file_hash}_{path.name}"
         
         try:
-            # Upload without ACL
-            self.s3_client.upload_file(
-                str(path),
-                self.bucket_name,
-                key,
-                ExtraArgs={
-                    'ContentType': 'image/png'
-                }
-            )
-            
-            # Generate presigned URL (valid for 1 hour)
-            url = self.s3_client.generate_presigned_url(
-                'get_object',
-                Params={
-                    'Bucket': self.bucket_name,
-                    'Key': key
-                },
-                ExpiresIn=3600  # 1 hour
-            )
-            
-            print(f"[S3] Uploaded {path.name} with presigned URL")
-            return url
-            
-        except Exception as e:
-            print(f"[S3] Failed to upload {path.name}: {e}")
-            return None
+            url = self._upload_and_presign(path, key, expires_in=3600)
+        except (ClientError, BotoCoreError) as exc:
+            raise RuntimeError(f"Failed to upload {path.name} to s3://{self.bucket_name}/{key}") from exc
+
+        print(f"[S3] Uploaded {path.name} with presigned URL")
+        return url
     
     def cleanup(self):
         """Delete all temporary files uploaded in this session."""
         try:
-            # List objects with our prefix
             response = self.s3_client.list_objects_v2(
                 Bucket=self.bucket_name,
-                Prefix=self.prefix
+                Prefix=self.prefix,
             )
-            
-            if 'Contents' in response:
-                # Delete all objects
-                objects = [{'Key': obj['Key']} for obj in response['Contents']]
-                self.s3_client.delete_objects(
-                    Bucket=self.bucket_name,
-                    Delete={'Objects': objects}
-                )
-                print(f"[S3] Cleaned up {len(objects)} temporary files")
-        except Exception as e:
-            print(f"[S3] Cleanup failed: {e}")
+        except (ClientError, BotoCoreError) as exc:
+            raise RuntimeError(
+                f"Failed to list temporary files under s3://{self.bucket_name}/{self.prefix}"
+            ) from exc
+
+        objects = [{"Key": obj["Key"]} for obj in response.get("Contents", [])]
+        if not objects:
+            return
+
+        try:
+            self.s3_client.delete_objects(
+                Bucket=self.bucket_name,
+                Delete={"Objects": objects},
+            )
+        except (ClientError, BotoCoreError) as exc:
+            raise RuntimeError(
+                f"Failed to delete temporary files under s3://{self.bucket_name}/{self.prefix}"
+            ) from exc
+
+        print(f"[S3] Cleaned up {len(objects)} temporary files")
     
     def upload_inference_folder(self, inference_dir: str, prefix: Optional[str] = None) -> Dict[str, str]:
         """
@@ -138,47 +156,24 @@ class S3ImageUploader:
                 # Create relative path for S3 key
                 relative_path = file_path.relative_to(inference_path)
                 key = f"{prefix}/{relative_path}"
-                
-                # Determine content type
-                content_type = 'application/octet-stream'
-                if file_path.suffix == '.mp4':
-                    content_type = 'video/mp4'
-                elif file_path.suffix == '.png':
-                    content_type = 'image/png'
-                elif file_path.suffix == '.json':
-                    content_type = 'application/json'
-                elif file_path.suffix == '.txt':
-                    content_type = 'text/plain'
-                
+
                 try:
-                    # Upload file
-                    self.s3_client.upload_file(
-                        str(file_path),
-                        self.bucket_name,
-                        key,
-                        ExtraArgs={'ContentType': content_type}
-                    )
-                    
-                    # Generate presigned URL
-                    url = self.s3_client.generate_presigned_url(
-                        'get_object',
-                        Params={'Bucket': self.bucket_name, 'Key': key},
-                        ExpiresIn=86400  # 24 hours for inference results
-                    )
-                    
-                    uploaded_files[str(relative_path)] = url
-                    print(f"[S3] Uploaded {relative_path}")
-                    
-                except Exception as e:
-                    print(f"[S3] Failed to upload {relative_path}: {e}")
+                    url = self._upload_and_presign(file_path, key, expires_in=86400)
+                except (ClientError, BotoCoreError) as exc:
+                    raise RuntimeError(
+                        f"Failed to upload {relative_path} to s3://{self.bucket_name}/{key}"
+                    ) from exc
+
+                uploaded_files[str(relative_path)] = url
+                print(f"[S3] Uploaded {relative_path}")
         
         # Print upload summary
-        print(f"\n✅ Inference folder uploaded to S3")
-        if any('video/' in path for path in uploaded_files):
-            video_urls = [url for path, url in uploaded_files.items() if 'video/' in path]
-            print(f"   Videos: {len(video_urls)} file(s) uploaded")
-        if any('question/' in path for path in uploaded_files):
-            question_files = [path for path in uploaded_files if 'question/' in path]
-            print(f"   Question files: {len(question_files)} file(s) uploaded")
+        print(f"\n[S3] Inference folder uploaded to S3")
+        video_count = sum(1 for path in uploaded_files if 'video/' in path)
+        if video_count:
+            print(f"   Videos: {video_count} file(s) uploaded")
+        question_count = sum(1 for path in uploaded_files if 'question/' in path)
+        if question_count:
+            print(f"   Question files: {question_count} file(s) uploaded")
         
         return uploaded_files

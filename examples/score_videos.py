@@ -22,7 +22,7 @@ import json
 import logging
 import argparse
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Optional
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
@@ -141,9 +141,8 @@ def run_gpt4o_evaluation(config: EvalConfig):
     
     api_key = config.api_key or os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("\nError: OPENAI_API_KEY not set in config or environment!")
-        sys.exit(1)
-    
+        raise ValueError("OPENAI_API_KEY not set in config or environment!")
+
     scorer = GPT4OEvaluator(
         inference_dir=config.inference_dir,
         eval_output_dir=config.eval_output_dir,
@@ -241,8 +240,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     if evaluator_type == "gpt4o":
         api_key = config.api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print("\nError: OPENAI_API_KEY not set in config or environment!")
-            sys.exit(1)
+            raise ValueError("OPENAI_API_KEY not set in config or environment!")
         base_evaluator = GPT4OEvaluator(
             inference_dir=config.inference_dir,
             eval_output_dir=config.eval_output_dir,
@@ -271,8 +269,7 @@ def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
             temperature=config.temperature
         )
     else:
-        print(f"\nError: Unknown evaluator type: {evaluator_type}")
-        sys.exit(1)
+        raise ValueError(f"Unknown evaluator type: {evaluator_type}")
     
     # Initialize multi-frame evaluator
     evaluator = MultiFrameEvaluator(
@@ -310,59 +307,64 @@ def _check_existing_evaluations(eval_output_dir: str):
             print(f"\nFound {len(existing_files)} existing scorings - will resume from where left off")
 
 
+def _count_results_from_model_data(model_data: dict) -> tuple:
+    """Count total and evaluated tasks from model result data.
+
+    Supports two return formats:
+    - Enhanced format: model_data["tasks"][task_type]["samples"][task_id]
+    - Legacy format: model_data["evaluations"][task_type][task_id]
+
+    Returns:
+        Tuple of (total_tasks, evaluated_tasks)
+    """
+    total_tasks = 0
+    evaluated_tasks = 0
+
+    tasks = model_data.get("tasks", {})
+    if tasks:
+        for task_data in tasks.values():
+            for sample_data in task_data.get("samples", {}).values():
+                total_tasks += 1
+                if "error" not in sample_data and sample_data.get("status") != "failed":
+                    evaluated_tasks += 1
+    else:
+        for task_samples in model_data.get("evaluations", {}).values():
+            for result in task_samples.values():
+                total_tasks += 1
+                if "error" not in result and result.get("status") != "failed":
+                    evaluated_tasks += 1
+
+    return total_tasks, evaluated_tasks
+
+
 def _run_vlm_evaluation(scorer, name: str, eval_output_dir: str):
     """Run VLM evaluation with progress tracking."""
     print(f"\nStarting {name} scoring...")
     print("Tip: You can interrupt (Ctrl+C) and resume later - progress is saved after each task")
     print("=" * 60)
-    
+
     try:
         all_results = scorer.evaluate_all_models()
-        
+
         print(f"\n{name} EVALUATION RESULTS:")
         total_all = 0
         completed_all = 0
-        
-        # Adapter for new return format: all_results["models"][model_name]["tasks"]
-        models_data = all_results.get("models", {})
-        if not models_data:
-            # Fallback: try old format for backward compatibility
-            models_data = all_results
-        
+
+        # Enhanced format nests models under "models" key; legacy format is flat
+        models_data = all_results.get("models", all_results)
+
         for model_name, model_data in models_data.items():
-            # New format: model_data["tasks"][task_type]["samples"][task_id]
-            tasks = model_data.get("tasks", {})
-            if not tasks:
-                # Old format: model_data["evaluations"][task_type][task_id]
-                evaluations = model_data.get("evaluations", {})
-                total_tasks = 0
-                evaluated_tasks = 0
-                for task_type, task_samples in evaluations.items():
-                    for task_id, result in task_samples.items():
-                        total_tasks += 1
-                        if "error" not in result and result.get("status") != "failed":
-                            evaluated_tasks += 1
-            else:
-                # New format: iterate through tasks -> samples
-                total_tasks = 0
-                evaluated_tasks = 0
-                for task_type, task_data in tasks.items():
-                    samples = task_data.get("samples", {})
-                    for task_id, sample_data in samples.items():
-                        total_tasks += 1
-                        if "error" not in sample_data and sample_data.get("status") != "failed":
-                            evaluated_tasks += 1
-            
+            total_tasks, evaluated_tasks = _count_results_from_model_data(model_data)
             total_all += total_tasks
             completed_all += evaluated_tasks
-            
+
             status = "Complete" if evaluated_tasks == total_tasks else f"{evaluated_tasks}/{total_tasks}"
             print(f"  {model_name}: {status}")
-        
+
         print(f"\nEVALUATION COMPLETE!")
         print(f"Total: {completed_all}/{total_all} tasks evaluated successfully")
         print(f"Results saved to: {eval_output_dir}")
-        
+
     except KeyboardInterrupt:
         print(f"\n{name} scoring interrupted!")
         print("Progress has been saved. Run the same command again to resume.")
@@ -568,24 +570,19 @@ Available methods:
     # Test multi-frame pipeline
     if args.test_multiframe:
         if not args.video:
-            print("Error: --video is required when using --test-multiframe")
-            sys.exit(1)
+            parser.error("--video is required when using --test-multiframe")
         if not Path(args.video).exists():
-            print(f"Error: Video not found: {args.video}")
-            sys.exit(1)
+            raise FileNotFoundError(f"Video not found: {args.video}")
         test_multiframe_pipeline(args.video, args.output)
         return
     
     # Main evaluation mode
     if not args.eval_config:
-        print("Error: --eval-config is required for evaluation")
-        print("Use --help for more options")
-        sys.exit(1)
-    
+        parser.error("--eval-config is required for evaluation. Use --help for more options")
+
     config_path = Path(args.eval_config)
     if not config_path.exists():
-        print(f"Error: Config file not found: {config_path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"Config file not found: {config_path}")
     
     # Load and validate config
     with open(config_path) as f:
@@ -614,22 +611,17 @@ Available methods:
     # 2. Determine evaluator
     if args.evaluator:
         # Command line override
-        try:
-            evaluator = Evaluator(args.evaluator)
-            logger.info(f"Evaluator from command line: {evaluator.value}")
-        except ValueError:
-            print(f"❌ Error: Unknown evaluator: {args.evaluator}")
-            print(f"   Available: {[e.value for e in Evaluator]}")
-            sys.exit(1)
+        evaluator = Evaluator(args.evaluator)
+        logger.info(f"Evaluator from command line: {evaluator.value}")
     elif config.evaluator:
         # Explicitly specified in config
         evaluator = config.evaluator
         logger.info(f"Evaluator from config: {evaluator.value}")
     else:
-        print("❌ Error: No evaluator specified!")
-        print("   Please specify 'evaluator' in config file OR use --evaluator flag")
-        print("   Example: python score_videos.py --eval-config config.json --evaluator gpt4o")
-        sys.exit(1)
+        raise ValueError(
+            "No evaluator specified! Please specify 'evaluator' in config file OR use --evaluator flag. "
+            "Example: python score_videos.py --eval-config config.json --evaluator gpt4o"
+        )
     
     # 3. Update config with resolved values
     config.sampling_strategy = sampling_strategy
@@ -658,9 +650,9 @@ Available methods:
     # Check inference directory
     inference_path = Path(config.inference_dir)
     if not inference_path.exists():
-        print(f"Error: Inference directory not found: {inference_path}")
-        print("Please run inference first to generate videos.")
-        sys.exit(1)
+        raise FileNotFoundError(
+            f"Inference directory not found: {inference_path}. Please run inference first to generate videos."
+        )
     
     # Run evaluation based on sampling strategy and evaluator
     logger.info(f"Starting evaluation: {sampling_strategy.value} + {evaluator.value}")
@@ -676,17 +668,11 @@ Available methods:
         elif evaluator == Evaluator.QWEN:
             run_qwen_evaluation(config)
     
-    elif sampling_strategy in [SamplingStrategy.UNIFORM, SamplingStrategy.KEYFRAME, SamplingStrategy.HYBRID]:
-        # Multi-frame evaluation
-        if evaluator == Evaluator.HUMAN:
-            print("❌ Error: Human evaluation not supported for multi-frame")
-            sys.exit(1)
-        elif evaluator in [Evaluator.GPT4O, Evaluator.INTERNVL, Evaluator.QWEN]:
-            run_multiframe_evaluation(config, evaluator.value)
-    
     else:
-        print(f"❌ Error: Unknown sampling strategy: {sampling_strategy}")
-        sys.exit(1)
+        # Multi-frame evaluation (UNIFORM, KEYFRAME, HYBRID)
+        if evaluator == Evaluator.HUMAN:
+            raise ValueError("Human evaluation is not supported for multi-frame sampling")
+        run_multiframe_evaluation(config, evaluator.value)
 
 
 if __name__ == "__main__":

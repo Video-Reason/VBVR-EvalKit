@@ -8,10 +8,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional, List
-
-# Add parent directory to path
-sys.path.append(str(Path(__file__).parent.parent.parent))
+from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -23,6 +20,42 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+def _iter_legacy_results(model_results: dict):
+    """Iterate over legacy evaluation entries in model_results."""
+    for tasks in model_results.get("evaluations", {}).values():
+        for result in tasks.values():
+            yield result
+
+
+def _summarize_legacy_results(model_results: dict, include_review: bool = False) -> tuple[int, int, int]:
+    """Summarize total/scored/review counts from legacy evaluator output."""
+    total_tasks = 0
+    scored_tasks = 0
+    review_needed = 0
+
+    for result in _iter_legacy_results(model_results):
+        total_tasks += 1
+        if include_review:
+            if result.get("status") == "completed":
+                scored_tasks += 1
+                if result.get("needs_review"):
+                    review_needed += 1
+        else:
+            if "error" not in result:
+                scored_tasks += 1
+
+    return total_tasks, scored_tasks, review_needed
+
+
+def _log_summary(model_name: str, total_tasks: int, scored_tasks: int, review_needed: Optional[int] = None):
+    """Print standardized per-model summary logs."""
+    logger.info(f"\n{model_name}:")
+    logger.info(f"  Total tasks: {total_tasks}")
+    logger.info(f"  Scored: {scored_tasks}")
+    if review_needed is not None:
+        logger.info(f"  Needs review: {review_needed}")
 
 
 def run_human_scoring(
@@ -77,8 +110,7 @@ def run_gpt4o_scoring(
 
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
-        logger.error("OPENAI_API_KEY environment variable not set!")
-        sys.exit(1)
+        raise ValueError("OPENAI_API_KEY environment variable not set!")
 
     scorer = GPT4OEvaluator(
         inference_dir=inference_dir,
@@ -94,17 +126,8 @@ def run_gpt4o_scoring(
     # Print basic counts
     for model_name, model_results in results.items():
         if "evaluations" in model_results:
-            total_tasks = 0
-            scored_tasks = 0
-            for task_type, tasks in model_results["evaluations"].items():
-                for task_id, result in tasks.items():
-                    total_tasks += 1
-                    if "error" not in result:
-                        scored_tasks += 1
-
-            logger.info(f"\n{model_name}:")
-            logger.info(f"  Total tasks: {total_tasks}")
-            logger.info(f"  Scored: {scored_tasks}")
+            total_tasks, scored_tasks, _ = _summarize_legacy_results(model_results)
+            _log_summary(model_name, total_tasks, scored_tasks)
 
 
 def run_multiframe_gpt4o_scoring(
@@ -189,8 +212,7 @@ def run_multiframe_vlm_scoring(
     # Create base evaluator based on type
     if evaluator_type == "gpt4o":
         if not api_key and not os.getenv("OPENAI_API_KEY"):
-            logger.error("OPENAI_API_KEY environment variable not set!")
-            sys.exit(1)
+            raise ValueError("OPENAI_API_KEY environment variable not set!")
 
         base_evaluator = GPT4OEvaluator(
             inference_dir=inference_dir,
@@ -213,8 +235,7 @@ def run_multiframe_vlm_scoring(
         default_output_dir = "./evaluations/multiframe-internvl"
 
     else:
-        logger.error(f"Unknown evaluator type: {evaluator_type}")
-        sys.exit(1)
+        raise ValueError(f"Unknown evaluator type: {evaluator_type}")
 
     # Create multi-frame evaluator wrapper
     evaluator = MultiFrameEvaluator(
@@ -235,22 +256,58 @@ def run_multiframe_vlm_scoring(
     # Print summary
     for model_name, model_results in results.items():
         if "evaluations" in model_results:
-            total_tasks = 0
-            scored_tasks = 0
-            review_needed = 0
+            total_tasks, scored_tasks, review_needed = _summarize_legacy_results(
+                model_results, include_review=True
+            )
+            _log_summary(model_name, total_tasks, scored_tasks, review_needed)
 
-            for task_type, tasks in model_results["evaluations"].items():
-                for task_id, result in tasks.items():
-                    total_tasks += 1
-                    if result.get("status") == "completed":
-                        scored_tasks += 1
-                        if result.get("needs_review"):
-                            review_needed += 1
 
-            logger.info(f"\n{model_name}:")
-            logger.info(f"  Total tasks: {total_tasks}")
-            logger.info(f"  Scored: {scored_tasks}")
-            logger.info(f"  Needs review: {review_needed}")
+def run_rubrics_scoring(
+    inference_dir: str,
+    eval_output_dir: str = "./evaluations/rubrics",
+    gt_base_path: str = None,
+    device: str = "cuda",
+    task_specific_only: bool = True
+):
+    """Run VBVR-Bench rule-based evaluation (no API calls needed).
+
+    Args:
+        inference_dir: Directory containing inference outputs to score
+        eval_output_dir: Directory to save scoring results
+        gt_base_path: Optional path to VBVR-Bench GT data (for ground_truth.mp4)
+        device: Device for computation ('cuda' or 'cpu')
+        task_specific_only: If True, use only task-specific dimension score
+    """
+    from vmevalkit.eval.vbvr_bench_eval import VBVRBenchEvaluator
+
+    logger.info(f"Starting VBVR-Bench rubrics scoring for: {inference_dir}")
+    logger.info(f"Device: {device}, task_specific_only: {task_specific_only}")
+
+    scorer = VBVRBenchEvaluator(
+        inference_dir=inference_dir,
+        eval_output_dir=eval_output_dir,
+        gt_base_path=gt_base_path,
+        device=device,
+        task_specific_only=task_specific_only,
+    )
+
+    results = scorer.evaluate_all_models()
+    logger.info("Completed rubrics scoring for all models")
+
+    # Print summary
+    for model_name, model_data in results.get("models", {}).items():
+        stats = model_data.get("model_statistics", {})
+        logger.info(f"\n{model_name}:")
+        logger.info(f"  Total samples: {stats.get('total_samples', 0)}")
+        logger.info(f"  Mean score: {stats.get('mean_score', 'N/A')}")
+
+        by_split = model_data.get("by_split", {})
+        for split_name, split_data in by_split.items():
+            logger.info(f"  {split_name}: {split_data.get('mean_score', 'N/A')} ({split_data.get('num_samples', 0)} samples)")
+
+        by_cat = model_data.get("by_category", {})
+        for cat, cat_data in by_cat.items():
+            logger.info(f"  {cat}: {cat_data.get('mean_score', 'N/A')} ({cat_data.get('num_samples', 0)} samples)")
 
 
 def run_multiframe_scoring(
@@ -289,8 +346,7 @@ def run_multiframe_scoring(
 
     # Check for API key
     if not os.getenv("OPENAI_API_KEY"):
-        logger.error("OPENAI_API_KEY environment variable not set!")
-        sys.exit(1)
+        raise ValueError("OPENAI_API_KEY environment variable not set!")
 
     # Initialize components
     sampler = FrameSampler(n_frames=n_frames, last_seconds=last_seconds)
@@ -303,8 +359,7 @@ def run_multiframe_scoring(
     output_path.mkdir(parents=True, exist_ok=True)
 
     if not inference_path.exists():
-        logger.error(f"Inference directory not found: {inference_path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"Inference directory not found: {inference_path}")
 
     for model_dir in inference_path.iterdir():
         if not model_dir.is_dir():
@@ -334,55 +389,116 @@ def run_multiframe_scoring(
 
                 video_path = str(video_files[0])
 
-                try:
-                    # Sample frames
-                    frames = sampler.sample(video_path, strategy=strategy)
-                    if not frames:
-                        continue
+                # Sample frames
+                frames = sampler.sample(video_path, strategy=strategy)
+                if not frames:
+                    continue
 
-                    # Analyze consistency
-                    consistency = analyzer.analyze([f.image for f in frames])
+                # Analyze consistency
+                consistency = analyzer.analyze([f.image for f in frames])
 
-                    # Evaluate each frame
-                    scores = []
-                    for i, (frame, weight) in enumerate(zip(frames, consistency.weights)):
-                        result = evaluator.evaluate_single(
-                            model_name, task_type, f"{task_id}_f{i}", video_path
-                        )
-                        score = result.get("solution_correctness_score", 0)
-                        scores.append(FrameScore(
-                            score=score,
-                            timestamp=frame.timestamp,
-                            weight=weight,
-                            is_keyframe=frame.is_keyframe
-                        ))
+                # Evaluate each frame
+                scores = []
+                for i, (frame, weight) in enumerate(zip(frames, consistency.weights)):
+                    result = evaluator.evaluate_single(
+                        model_name, task_type, f"{task_id}_f{i}", video_path
+                    )
+                    score = result.get("solution_correctness_score", 0)
+                    scores.append(FrameScore(
+                        score=score,
+                        timestamp=frame.timestamp,
+                        weight=weight,
+                        is_keyframe=frame.is_keyframe
+                    ))
 
-                    # Aggregate
-                    voting_result = voter.aggregate(scores, stability_score=consistency.stability_score)
+                # Aggregate
+                voting_result = voter.aggregate(scores, stability_score=consistency.stability_score)
 
-                    # Save
-                    task_out = output_path / model_name / task_type / task_id
-                    task_out.mkdir(parents=True, exist_ok=True)
+                # Save
+                task_out = output_path / model_name / task_type / task_id
+                task_out.mkdir(parents=True, exist_ok=True)
 
-                    with open(task_out / "MultiFrameEvaluator.json", 'w') as f:
-                        json.dump({
-                            "metadata": {
-                                "evaluator": "MultiFrameEvaluator",
-                                "timestamp": datetime.now().isoformat()
-                            },
-                            "result": {
-                                "final_score": voting_result.final_score,
-                                "confidence": voting_result.confidence,
-                                "agreement_ratio": voting_result.agreement_ratio,
-                                "stability_score": voting_result.stability_score,
-                                "needs_review": voting_result.needs_review
-                            }
-                        }, f, indent=2)
+                with open(task_out / "MultiFrameEvaluator.json", 'w') as f:
+                    json.dump({
+                        "metadata": {
+                            "evaluator": "MultiFrameEvaluator",
+                            "timestamp": datetime.now().isoformat()
+                        },
+                        "result": {
+                            "final_score": voting_result.final_score,
+                            "confidence": voting_result.confidence,
+                            "agreement_ratio": voting_result.agreement_ratio,
+                            "stability_score": voting_result.stability_score,
+                            "needs_review": voting_result.needs_review
+                        }
+                    }, f, indent=2)
 
-                    logger.info(f"  {task_id}: score={voting_result.final_score}, conf={voting_result.confidence:.2f}")
+                logger.info(f"  {task_id}: score={voting_result.final_score}, conf={voting_result.confidence:.2f}")
 
-                except Exception as e:
-                    logger.error(f"  {task_id}: Error - {e}")
+
+def _run_method(args: argparse.Namespace) -> None:
+    """Dispatch parsed args to the selected scoring method."""
+    dispatch = {
+        "human": lambda: run_human_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            annotator_name=args.annotator,
+            port=args.port,
+            share=args.share,
+        ),
+        "gpt4o": lambda: run_gpt4o_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            max_frames=args.max_frames,
+            temperature=args.temperature,
+        ),
+        "multiframe": lambda: run_multiframe_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+        ),
+        "multiframe-gpt4o": lambda: run_multiframe_gpt4o_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+            temporal_weight=args.temporal_weight,
+            temperature=args.temperature,
+        ),
+        "multiframe-vlm": lambda: run_multiframe_vlm_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            evaluator_type=args.evaluator,
+            n_frames=args.n_frames,
+            last_seconds=args.last_seconds,
+            strategy=args.strategy,
+            voting=args.voting,
+            metric=args.metric,
+            temporal_weight=args.temporal_weight,
+            temperature=args.temperature,
+            api_key=args.api_key,
+            base_url=args.base_url,
+        ),
+        "rubrics": lambda: run_rubrics_scoring(
+            inference_dir=args.inference_dir,
+            eval_output_dir=args.eval_output_dir,
+            gt_base_path=args.gt_base_path,
+            device=args.device,
+            task_specific_only=not args.full_score,
+        ),
+    }
+
+    run = dispatch.get(args.method)
+    if run is None:
+        raise ValueError(f"Unknown scoring method: {args.method}")
+    run()
 
 
 def main():
@@ -409,6 +525,12 @@ Examples:
 
   # Use custom paths
   python -m vmevalkit.runner.score gpt4o --inference-dir ~/research/outputs --eval-output-dir ~/research/evaluations
+
+  # Run VBVR-Bench rule-based (rubrics) scoring (no API needed)
+  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+
+  # Rubrics with GT data and full 5-dimension score
+  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --full-score
         """
     )
 
@@ -537,68 +659,27 @@ Examples:
     mf_vlm_parser.add_argument('--base-url', default=None,
         help='Base URL for VLM API (only for internvl, fallback: VISION_API_BASE)')
 
+    # VBVR-Bench rule-based (rubrics) scoring subcommand
+    rubrics_parser = subparsers.add_parser('rubrics',
+        help='Run VBVR-Bench rule-based evaluation (no API calls needed)')
+    rubrics_parser.add_argument('--inference-dir', '-i', required=True,
+        help='Directory containing inference outputs to score')
+    rubrics_parser.add_argument('--eval-output-dir', '-o', default='./evaluations/rubrics',
+        help='Directory to save evaluation results')
+    rubrics_parser.add_argument('--gt-base-path', '-g', default=None,
+        help='Path to VBVR-Bench GT data (for ground_truth.mp4, optional)')
+    rubrics_parser.add_argument('--device', choices=['cuda', 'cpu'], default='cuda',
+        help='Device for computation')
+    rubrics_parser.add_argument('--full-score', action='store_true',
+        help='Use full 5-dimension weighted score (default: task_specific only)')
+
     args = parser.parse_args()
 
     if not args.method:
         parser.print_help()
-        sys.exit(1)
+        return
 
-    # Run the appropriate scoring method
-    if args.method == 'human':
-        run_human_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            annotator_name=args.annotator,
-            port=args.port,
-            share=args.share
-        )
-    elif args.method == 'gpt4o':
-        run_gpt4o_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            max_frames=args.max_frames,
-            temperature=args.temperature
-        )
-    elif args.method == 'multiframe':
-        run_multiframe_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric
-        )
-    elif args.method == 'multiframe-gpt4o':
-        run_multiframe_gpt4o_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric,
-            temporal_weight=args.temporal_weight,
-            temperature=args.temperature
-        )
-    elif args.method == 'multiframe-vlm':
-        run_multiframe_vlm_scoring(
-            inference_dir=args.inference_dir,
-            eval_output_dir=args.eval_output_dir,
-            evaluator_type=args.evaluator,
-            n_frames=args.n_frames,
-            last_seconds=args.last_seconds,
-            strategy=args.strategy,
-            voting=args.voting,
-            metric=args.metric,
-            temporal_weight=args.temporal_weight,
-            temperature=args.temperature,
-            api_key=args.api_key,
-            base_url=args.base_url
-        )
-    else:
-        logger.error(f"Unknown scoring method: {args.method}")
-        sys.exit(1)
+    _run_method(args)
 
 
 if __name__ == "__main__":

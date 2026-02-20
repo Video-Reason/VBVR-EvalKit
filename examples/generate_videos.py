@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """VMEvalKit Video Generation"""
 
-import sys
 import shutil
 import os
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from dotenv import load_dotenv
 
 load_dotenv()
-
-sys.path.append(str(Path(__file__).parent.parent))
 
 from vmevalkit.runner.inference import InferenceRunner
 from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
@@ -21,17 +18,28 @@ from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, get_model_family
 
 def get_video_frame_count(video_path: str) -> Optional[int]:
     """Get the number of frames in a video using ffprobe."""
+    if shutil.which("ffprobe") is None:
+        print("Warning: ffprobe not found; skipping frame count detection")
+        return None
+
+    cmd = [
+        'ffprobe', '-v', 'error', '-select_streams', 'v:0',
+        '-count_packets', '-show_entries', 'stream=nb_read_packets',
+        '-of', 'csv=p=0', video_path
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: ffprobe failed for {video_path}: {result.stderr.strip()}")
+        return None
+
+    value = result.stdout.strip()
+    if not value:
+        return None
+
     try:
-        cmd = [
-            'ffprobe', '-v', 'error', '-select_streams', 'v:0',
-            '-count_packets', '-show_entries', 'stream=nb_read_packets',
-            '-of', 'csv=p=0', video_path
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip():
-            return int(result.stdout.strip())
-    except Exception as e:
-        print(f"Warning: Could not get frame count from {video_path}: {e}")
+        return int(value)
+    except ValueError:
+        print(f"Warning: Could not parse frame count for {video_path}: {value!r}")
     return None
 
 
@@ -40,24 +48,10 @@ def get_image_dimensions(image_path: str) -> Optional[tuple]:
     try:
         with Image.open(image_path) as img:
             return img.height, img.width
-    except Exception as e:
+    except (FileNotFoundError, UnidentifiedImageError, OSError) as e:
         print(f"Warning: Could not get dimensions from {image_path}: {e}")
     return None
 
-
-def get_available_domains(questions_dir_path):
-    """Discover available domains from questions directory."""
-    questions_dir = Path(questions_dir_path)
-    if not questions_dir.exists():
-        return []
-    
-    domains = []
-    for item in questions_dir.iterdir():
-        if item.is_dir():
-            # Use directory name as domain (strip _task suffix if present)
-            domain = item.name.replace('_task', '') if item.name.endswith('_task') else item.name
-            domains.append(domain)
-    return sorted(domains)
 
 def discover_all_tasks_from_folders(questions_dir: Path, domain_filter: Optional[set] = None) -> Dict[str, List[Dict[str, Any]]]:
     """Discover all tasks by scanning questions directory.
@@ -165,7 +159,7 @@ def _ensure_real_png(image_path: str) -> bool:
     try:
         Image.open(image_path).verify()
         return True
-    except Exception:
+    except (UnidentifiedImageError, OSError):
         with open(image_path, 'rb') as f:
             head = f.read(1024)
         if b"<svg" in head.lower():
@@ -293,9 +287,8 @@ def run_pilot_experiment(
         statistics["by_domain"][domain] = {"completed": 0, "failed": 0, "skipped": 0}
     
     experiment_start = datetime.now()
-    
-    total_jobs = sum(len(tasks) for tasks in tasks_by_domain.values()) * len(models)
-    print(f"Total jobs: {total_jobs}")
+
+    print(f"Total jobs: {total_generations}")
     print("Starting sequential execution...\n")
     
     job_counter = 0
@@ -316,20 +309,14 @@ def run_pilot_experiment(
             for task in tasks:
                 job_counter += 1
                 task_id = task["id"]
-                job_id = f"{model_name}_{task_id}"
-                
-                print(f"    [{job_counter}/{total_jobs}] Processing: {task_id}")
-                
+
+                print(f"    [{job_counter}/{total_generations}] Processing: {task_id}")
+
                 domain_dir_name = task.get("domain_dir", domain)
                 domain_folder = model_output_dir / domain_dir_name
-                
-                # Check if {task_id}.mp4 exists in domain folder
-                has_valid_output = False
+
                 video_file = domain_folder / f"{task_id}.mp4"
-                if video_file.exists():
-                    has_valid_output = True
-                
-                if skip_existing and has_valid_output:
+                if skip_existing and video_file.exists():
                     statistics["skipped"] += 1
                     statistics["by_model"][model_name]["skipped"] += 1
                     statistics["by_domain"][domain]["skipped"] += 1
@@ -457,13 +444,6 @@ def main():
         type=int,
         default=None,
         help="GPU device ID to use"
-    )
-    
-    parser.add_argument(
-        "--only-model",
-        nargs="*",
-        default=None,
-        help="(Legacy) Same as --model"
     )
     
     args = parser.parse_args()

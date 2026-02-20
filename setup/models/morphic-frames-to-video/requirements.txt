@@ -1,0 +1,29 @@
+# -------------------------------------------------------------------
+# PyTorch — install the version matching your CUDA *before* these deps
+#   pip install torch>=2.4 torchvision --index-url https://download.pytorch.org/whl/cu1xx
+#
+# flash-attn — must build from source:
+#   pip install packaging ninja
+#   pip install flash-attn>=2.7,<3.0 --no-build-isolation
+# -------------------------------------------------------------------
+
+diffusers>=0.31,<0.33
+peft>=0.12,<0.13
+decord>=0.6,<1.0
+
+Pillow>=10.0
+
+# Config
+pydantic>=2.7,<3.0
+pydantic-settings>=2.7,<3.0
+python-dotenv>=1.0,<2.0
+
+# I/O
+requests>=2.31,<3.0
+httpx>=0.27,<1.0
+huggingface_hub[cli]>=0.26,<1.0
+
+# -------------------------------------------------------------------
+# Also install from submodule requirements:
+#   pip install -r submodules/morphic-frames-to-video/requirements.txt
+# -------------------------------------------------------------------

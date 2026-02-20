@@ -17,6 +17,7 @@ import io
 from PIL import Image
 from dotenv import load_dotenv
 from .base import ModelWrapper
+from ..utils.image import load_image_rgb
 
 logger = logging.getLogger(__name__)
 
@@ -156,10 +157,8 @@ class RunwayService:
             target_w, target_h = 1280, 720
         
         # Load and convert image
-        image = Image.open(image_path)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
+        image = load_image_rgb(image_path)
+
         original_w, original_h = image.size
         logger.info(f"Original image size: {original_w}×{original_h}")
         
@@ -417,9 +416,8 @@ class RunwayWrapper(ModelWrapper):
         Returns:
             Dictionary with generation results
         """
-        import time
         start_time = time.time()
-        
+
         # Convert duration to int (Runway expects int)
         duration_int = int(duration)
         

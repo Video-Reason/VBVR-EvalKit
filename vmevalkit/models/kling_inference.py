@@ -111,7 +111,6 @@ def get_kling_secret_key() -> str:
 
 def generate_jwt_token(access_key: str, secret_key: str) -> str:
     """Generate JWT token for Kling API authentication."""
-    import time
     headers = {
         "alg": "HS256",
         "typ": "JWT"
@@ -124,14 +123,10 @@ def generate_jwt_token(access_key: str, secret_key: str) -> str:
     return jwt.encode(payload, secret_key, headers=headers)
 
 
-# Model name mapping
-MODEL_NAME_MAPPING = {
-    "kling-v1": "kling-v1",
-    "kling-v1-6": "kling-v1-6",
-    "kling-v2-master": "kling-v2-master",
-    "kling-v2-1-master": "kling-v2-1-master",
-    "kling-v2-5-turbo": "kling-v2-5-turbo",
-    "kling-v2-6": "kling-v2-6",
+# Valid model identifiers
+SUPPORTED_MODELS = {
+    "kling-v1", "kling-v1-6", "kling-v2-master",
+    "kling-v2-1-master", "kling-v2-5-turbo", "kling-v2-6",
 }
 
 
@@ -152,8 +147,7 @@ class KlingService:
         mode: str = "std",  # "std" or "pro"
         **kwargs  # Accept and ignore extra kwargs from runner
     ):
-        # Ignore kwargs like output_dir that are passed by the runner
-        self.model = MODEL_NAME_MAPPING.get(model, model)
+        self.model = model
         self.duration = duration
         self.aspect_ratio = aspect_ratio
         self.mode = mode

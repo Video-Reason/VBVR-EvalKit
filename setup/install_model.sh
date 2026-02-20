@@ -158,20 +158,25 @@ SUCCESSFUL_MODELS=()
 
 for model in "${MODELS_TO_INSTALL[@]}"; do
     print_header "Installing: ${model}"
-    
-    # Run model-specific setup script
-    SETUP_SCRIPT="${SCRIPT_DIR}/models/${model}/setup.sh"
-    
-    if [[ ! -f "$SETUP_SCRIPT" ]]; then
-        print_error "Setup script not found: ${SETUP_SCRIPT}"
+
+    REQUIREMENTS_FILE="${SCRIPT_DIR}/models/${model}/requirements.txt"
+
+    if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
+        print_error "requirements.txt not found: ${REQUIREMENTS_FILE}"
         FAILED_MODELS+=("${model}")
         continue
     fi
-    
-    if bash "$SETUP_SCRIPT"; then
+
+    # Create venv and install from requirements.txt
+    create_model_venv "$model"
+    activate_model_venv "$model"
+
+    if pip install -q -r "$REQUIREMENTS_FILE"; then
+        deactivate
         print_success "${model} installed successfully"
         SUCCESSFUL_MODELS+=("${model}")
     else
+        deactivate
         print_error "${model} installation failed"
         FAILED_MODELS+=("${model}")
     fi

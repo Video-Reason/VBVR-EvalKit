@@ -14,10 +14,10 @@ create_model_venv "$MODEL"
 activate_model_venv "$MODEL"
 
 print_section "Dependencies"
-pip install -q torch==2.5.1+cu118 torchvision==0.20.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+pip install -q torch==2.7.1 torchvision==0.22.1
 pip install -q diffusers==0.32.2 transformers==4.46.2 accelerate==1.2.1 imageio-ffmpeg==0.5.1 sentencepiece==0.2.0
-pip install -q Pillow==10.4.0 numpy==1.24.4 pydantic==2.10.6 pydantic-settings==2.7.1 python-dotenv==1.2.1 requests==2.32.3
-pip install -q opencv-python==4.10.0.84
+pip install -q "Pillow>=10.0.0" "numpy>=2.0.0" pydantic==2.10.6 pydantic-settings==2.7.1 python-dotenv==1.2.1 requests==2.32.3
+pip install -q "opencv-python>=4.9.0"
 
 deactivate
 

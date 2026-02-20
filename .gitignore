@@ -11,6 +11,9 @@ __pycache__/
 
 analysis/figures/
 analysis/statistics/
+*.json
+outputs_rubrics/
+questions/
 
 # Distribution / packaging
 .Python
@@ -89,7 +92,7 @@ target/
 # IPython
 profile_default/
 ipython_config.py
-
+.claude/
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:
@@ -188,7 +191,7 @@ cython_debug/
 # Ignore directories containing user credentials, local state, and settings.
 # Learn more at https://abstra.io/docs
 .abstra/
-
+LTX-2/
 # Visual Studio Code
 #  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
 #  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore

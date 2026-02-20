@@ -1,4 +1,4 @@
-# VMEvalKit 评估打分
+# VBVR-EvalKit 评估打分
 
 用于评估视频生成模型推理能力的综合打分方法。
 
@@ -61,16 +61,16 @@ python examples/score_videos.py --eval-config eval_config.json
 
 ```bash
 # 基本用法
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
 
 # 指定 GT 数据路径和设备
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
 
 # 使用完整的 5 维加权评分（默认只用 task_specific 维度）
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --full-score
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --full-score
 
 # 指定输出目录
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
 ```
 
 **参数说明：**
@@ -142,7 +142,7 @@ VBVR-Bench 规则评估器产出 0-1 连续分数，有 5 个评估维度：
 Rubrics 评估通过命令行参数配置，不需要 `eval_config.json`：
 
 ```bash
-python -m vmevalkit.runner.score rubrics \
+python -m vbvrevalkit.runner.score rubrics \
   --inference-dir ./outputs \
   --eval-output-dir ./evaluations/rubrics \
   --gt-base-path /path/to/vbvr-bench-gt \
@@ -159,7 +159,7 @@ python examples/score_videos.py --eval-config eval_config.json
 python examples/score_videos.py --test-multiframe --video path/to/video.mp4
 
 # Rubrics 评估（命令行直接运行）
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
 ```
 
 ## 数据目录要求

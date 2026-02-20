@@ -1,5 +1,5 @@
 """
-VMEvalKit - A unified framework for video model inference and evaluation.
+VBVR-EvalKit - A unified framework for video model inference and evaluation.
 
 This framework provides a unified interface for 40+ video generation models 
 and comprehensive evaluation pipelines for reasoning capabilities.

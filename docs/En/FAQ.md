@@ -4,7 +4,7 @@
 
 ### Q: After `pip install -e .`, running an open-source model throws `ModuleNotFoundError: No module named 'diffusers'`
 
-**Cause:** Open-source model dependencies (torch, diffusers, transformers, etc.) are not included in VMEvalKit's core dependencies and must be installed separately.
+**Cause:** Open-source model dependencies (torch, diffusers, transformers, etc.) are not included in VBVR-EvalKit's core dependencies and must be installed separately.
 
 **Solutions:**
 
@@ -77,7 +77,7 @@ rm outputs/svd/test_task/test_0000.mp4
 **Solution:** List models directly via Python:
 ```bash
 python -c "
-from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
+from vbvrevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
 for f, ms in MODEL_FAMILIES.items():
     print(f'{f} ({len(ms)}):')
     for m in ms: print(f'  {m}')

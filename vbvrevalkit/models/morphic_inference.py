@@ -1,7 +1,7 @@
 """
-Morphic Inference Service for VMEvalKit
+Morphic Inference Service for VBVR-EvalKit
 
-Wrapper for the Morphic Frames-to-Video model (submodules/morphic-frames-to-video) to integrate with VMEvalKit's
+Wrapper for the Morphic Frames-to-Video model (submodules/morphic-frames-to-video) to integrate with VBVR-EvalKit's
 unified inference interface. Supports high-quality frame-to-video interpolation using Wan2.2.
 """
 
@@ -288,10 +288,10 @@ class MorphicService:
         return result
 
 
-# Wrapper class to match VMEvalKit's interface pattern
+# Wrapper class to match VBVR-EvalKit's interface pattern
 class MorphicWrapper(ModelWrapper):
     """
-    Wrapper for MorphicService to match VMEvalKit's standard interface.
+    Wrapper for MorphicService to match VBVR-EvalKit's standard interface.
     """
     
     def __init__(
@@ -333,7 +333,7 @@ class MorphicWrapper(ModelWrapper):
         **kwargs
     ) -> Dict[str, Any]:
         """
-        Generate video using Morphic Frames-to-Video (matches VMEvalKit interface).
+        Generate video using Morphic Frames-to-Video (matches VBVR-EvalKit interface).
         
         Args:
             image_path: Path to input image (first frame)

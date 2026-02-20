@@ -1,4 +1,4 @@
-"""Qwen3-VL automatic evaluation for VMEvalKit using OpenAI-compatible API server."""
+"""Vision model automatic evaluation for VBVR-EvalKit using OpenAI-compatible API server."""
 
 import json
 import os
@@ -35,14 +35,14 @@ TASK_GUIDANCE = {
 logger = logging.getLogger(__name__)
 
 
-class Qwen3VLEvaluator:
-    """Automatic evaluation using Qwen3-VL model via OpenAI-compatible API server."""
+class InternVLEvaluator:
+    """Automatic evaluation using vision model via OpenAI-compatible API server."""
     
     def __init__(self, 
                  inference_dir: str,
-                 eval_output_dir: str = "./evaluations/qwen3vl-eval",
+                 eval_output_dir: str = "./evaluations/internvl-eval",
                  api_key: Optional[str] = None,
-                 base_url: str = "http://localhost:8000/v1",
+                 base_url: str = "http://0.0.0.0:23333/v1",
                  model: Optional[str] = None,
                  temperature: float = 0.0,
                  evaluator_name: Optional[str] = None):
@@ -52,8 +52,8 @@ class Qwen3VLEvaluator:
         self.eval_output_dir.mkdir(parents=True, exist_ok=True)
         self.evaluator_name = evaluator_name or self.__class__.__name__
         
-        self.api_key = api_key or os.getenv("QWEN_API_KEY", "EMPTY")
-        self.base_url = base_url or os.getenv("QWEN_API_BASE", "http://localhost:8000/v1")
+        self.api_key = api_key or os.getenv("VISION_API_KEY", "YOUR_API_KEY")
+        self.base_url = base_url or os.getenv("VISION_API_BASE", "http://0.0.0.0:23333/v1")
         self.temperature = temperature
         
         self.client = OpenAI(
@@ -99,7 +99,7 @@ class Qwen3VLEvaluator:
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
     
     async def call_vlm(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Call Qwen3-VL model via OpenAI-compatible API server."""
+        """Call vision model via OpenAI-compatible API server."""
         def _sync_call():
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -208,7 +208,7 @@ class Qwen3VLEvaluator:
                 "evaluation_type": "final_frame_comparison",
                 "status": "completed"
             }
-        raise ValueError("Could not parse JSON from Qwen3-VL response")
+        raise ValueError("Could not parse JSON from vision model response")
     
     async def evaluate_single_goal_based_async(self, model_name: str, task_type: str, task_id: str,
                                                video_path: str, goal: Optional[str] = None) -> Dict[str, Any]:
@@ -281,7 +281,7 @@ class Qwen3VLEvaluator:
                 "goal": goal_text,
                 "status": "completed"
             }
-        raise ValueError("Could not parse JSON from Qwen3-VL response")
+        raise ValueError("Could not parse JSON from vision model response")
     
     def evaluate_single(self, model_name: str, task_type: str, task_id: str,
                        video_path: str) -> Dict[str, Any]:
@@ -319,10 +319,10 @@ class Qwen3VLEvaluator:
             
             # Check if this is a generator directory (3-layer)
             # Generator directories have names like "G-1_xxx_data-generator", "O-1_xxx-data-generator", etc.
-            # Support G-, O-, K- prefixes (aligned with GPT4OEvaluator)
+            # Support G-, O-, K- and other single-letter prefixes
             is_generator_dir = (
-                re.match(r'^[A-Z]-\d+', first_level_dir.name) and  # Match G-1, O-1, K-1, etc.
-                ("_data-generator" in first_level_dir.name or 
+                re.match(r'^[A-Z]-\d+', first_level_dir.name) and
+                ("_data-generator" in first_level_dir.name or
                  "-data-generator" in first_level_dir.name)
             )
             
@@ -419,7 +419,7 @@ class Qwen3VLEvaluator:
                         results["evaluations"][task_type][task_id] = {"error": str(e), "status": "failed"}
                         failed_tasks += 1
         
-        logger.info(f"Qwen3-VL Evaluation Summary for {model_name}:")
+        logger.info(f"Vision Model Evaluation Summary for {model_name}:")
         logger.info(f"  - Total tasks: {total_tasks}")
         logger.info(f"  - Already completed (skipped): {skipped_tasks}")
         logger.info(f"  - Newly evaluated: {evaluated_tasks}")
@@ -527,7 +527,7 @@ class Qwen3VLEvaluator:
         """
         Rebuild complete enhanced summary from all evaluation files.
         
-        This method scans all Qwen3VLEvaluator.json files and generates an enhanced
+        This method scans all InternVLEvaluator.json files and generates an enhanced
         summary with comprehensive statistics including:
         - Global statistics (overall performance across all models)
         - Model-level statistics (per-model performance)

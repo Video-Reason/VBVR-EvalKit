@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VMEvalKit Unified Video Scoring Script.
+VBVR-EvalKit Unified Video Scoring Script.
 
 Supports all evaluation methods:
 - human: Gradio-based human annotation interface
@@ -108,7 +108,7 @@ class EvalConfig(BaseModel):
 
 def run_human_evaluation(config: EvalConfig):
     """Run human evaluation with Gradio interface."""
-    from vmevalkit.eval import HumanEvaluator
+    from vbvrevalkit.eval import HumanEvaluator
     
     print("\n" + "=" * 60)
     print("HUMAN EVALUATION")
@@ -129,7 +129,7 @@ def run_human_evaluation(config: EvalConfig):
 
 def run_gpt4o_evaluation(config: EvalConfig):
     """Run single-frame GPT-4O evaluation."""
-    from vmevalkit.eval import GPT4OEvaluator
+    from vbvrevalkit.eval import GPT4OEvaluator
     
     print("\n" + "=" * 60)
     print("GPT-4O EVALUATION")
@@ -155,7 +155,7 @@ def run_gpt4o_evaluation(config: EvalConfig):
 
 def run_internvl_evaluation(config: EvalConfig):
     """Run single-frame InternVL evaluation."""
-    from vmevalkit.eval import InternVLEvaluator
+    from vbvrevalkit.eval import InternVLEvaluator
     
     print("\n" + "=" * 60)
     print("INTERNVL EVALUATION")
@@ -186,7 +186,7 @@ def run_internvl_evaluation(config: EvalConfig):
 
 def run_qwen_evaluation(config: EvalConfig):
     """Run single-frame Qwen3-VL evaluation."""
-    from vmevalkit.eval import Qwen3VLEvaluator
+    from vbvrevalkit.eval import Qwen3VLEvaluator
     
     print("\n" + "=" * 60)
     print("QWEN3-VL EVALUATION")
@@ -217,7 +217,7 @@ def run_qwen_evaluation(config: EvalConfig):
 
 def run_multiframe_evaluation(config: EvalConfig, evaluator_type: str):
     """Run multi-frame evaluation with voting aggregation."""
-    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator, Qwen3VLEvaluator
+    from vbvrevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator, Qwen3VLEvaluator
     
     mf = config.multiframe
     
@@ -421,9 +421,9 @@ def test_multiframe_pipeline(video_path: str, output_dir: str = "test_output"):
 
     This is useful for testing frame sampling and consistency analysis.
     """
-    from vmevalkit.eval.frame_sampler import FrameSampler
-    from vmevalkit.eval.consistency import FrameConsistencyAnalyzer
-    from vmevalkit.eval.voting import VotingAggregator, VotingMethod as VMethod, FrameScore
+    from vbvrevalkit.eval.frame_sampler import FrameSampler
+    from vbvrevalkit.eval.consistency import FrameConsistencyAnalyzer
+    from vbvrevalkit.eval.voting import VotingAggregator, VotingMethod as VMethod, FrameScore
     from PIL import Image
 
     print("\n" + "=" * 60)
@@ -499,7 +499,7 @@ def test_multiframe_pipeline(video_path: str, output_dir: str = "test_output"):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="VMEvalKit Unified Video Scoring",
+        description="VBVR-EvalKit Unified Video Scoring",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

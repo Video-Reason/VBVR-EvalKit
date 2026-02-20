@@ -1,5 +1,5 @@
 """
-S3 uploader for VMEvalKit - handles both individual files and structured inference outputs.
+S3 uploader for VBVR-EvalKit - handles both individual files and structured inference outputs.
 """
 
 import os
@@ -21,8 +21,8 @@ class S3ImageUploader:
         Args:
             bucket_name: S3 bucket name (defaults to S3_BUCKET env var)
         """
-        self.bucket_name = bucket_name or os.getenv("S3_BUCKET", "vmevalkit")
-        # Force us-east-2 region for vmevalkit bucket
+        self.bucket_name = bucket_name or os.getenv("S3_BUCKET", "vbvrevalkit")
+        # Force us-east-2 region for vbvrevalkit bucket
         # The bucket is in us-east-2 but AWS_REGION env var might be set to us-east-1
         self.region = "us-east-2"
         

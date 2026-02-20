@@ -3,12 +3,12 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vmevalkit"
+name = "vbvrevalkit"
 version = "0.1.0"
 description = "A unified inference and evaluation framework for video generation models"
 readme = "README.md"
 authors = [
-    {name = "VMEvalKit Team", email = "hokinxqdeng@gmail.com"}
+    {name = "VBVR-EvalKit Team", email = "hokinxqdeng@gmail.com"}
 ]
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
@@ -69,9 +69,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hokindeng/VMEvalKit"
-"Bug Reports" = "https://github.com/hokindeng/VMEvalKit/issues"
-Source = "https://github.com/hokindeng/VMEvalKit"
+Homepage = "https://github.com/hokindeng/VBVR-EvalKit"
+"Bug Reports" = "https://github.com/hokindeng/VBVR-EvalKit/issues"
+Source = "https://github.com/hokindeng/VBVR-EvalKit"
 
 [tool.setuptools.packages.find]
-include = ["vmevalkit*"]
+include = ["vbvrevalkit*"]

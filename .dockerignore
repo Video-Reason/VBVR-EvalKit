@@ -74,5 +74,5 @@ node_modules/
 !requirements.txt
 !Dockerfile
 !examples/**
-!vmevalkit/**
+!vbvrevalkit/**
 !.env

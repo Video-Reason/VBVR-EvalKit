@@ -1,7 +1,7 @@
 
 # Supported Models
 
-VMEvalKit provides unified access to **37 video generation models** across **15 provider families**.
+VBVR-EvalKit provides unified access to **37 video generation models** across **15 provider families**.
 
 ## Commercial APIs (19 models)
 

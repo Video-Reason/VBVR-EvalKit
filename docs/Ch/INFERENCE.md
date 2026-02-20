@@ -1,4 +1,4 @@
-# VMEvalKit 推理模块
+# VBVR-EvalKit 推理模块
 
 ## 快速开始
 
@@ -17,7 +17,7 @@ python examples/generate_videos.py --questions-dir ./questions --output-dir ./ou
 
 ### 任务对：评估单元
 
-VMEvalKit 通过**任务对**来评估视频模型的推理能力——这些是精心设计的视觉推理问题：
+VBVR-EvalKit 通过**任务对**来评估视频模型的推理能力——这些是精心设计的视觉推理问题：
 
 | 组件 | 文件 | 用途 | 是否必需 |
 |------|------|------|----------|
@@ -44,7 +44,7 @@ questions/
 
 ## 架构
 
-VMEvalKit 使用**模块化架构**和动态加载机制：
+VBVR-EvalKit 使用**模块化架构**和动态加载机制：
 
 - **MODEL_CATALOG**：包含 33 个模型（覆盖 13 个家族）的注册表
 - **动态加载**：通过 importlib 按需加载模型
@@ -73,7 +73,7 @@ outputs/
 ## Python API
 
 ```python
-from vmevalkit.runner.inference import InferenceRunner
+from vbvrevalkit.runner.inference import InferenceRunner
 
 runner = InferenceRunner(output_dir="./outputs")
 result = runner.run(

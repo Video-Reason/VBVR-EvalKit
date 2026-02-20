@@ -291,9 +291,9 @@ class MultiFrameEvaluationPipeline:
     into a single unified workflow.
 
     Example:
-        >>> from vmevalkit.eval.frame_sampler import FrameSampler
-        >>> from vmevalkit.eval.consistency import FrameConsistencyAnalyzer
-        >>> from vmevalkit.eval.voting import MultiFrameEvaluationPipeline
+        >>> from vbvrevalkit.eval.frame_sampler import FrameSampler
+        >>> from vbvrevalkit.eval.consistency import FrameConsistencyAnalyzer
+        >>> from vbvrevalkit.eval.voting import MultiFrameEvaluationPipeline
         >>>
         >>> pipeline = MultiFrameEvaluationPipeline(
         ...     sampler=FrameSampler(n_frames=5),

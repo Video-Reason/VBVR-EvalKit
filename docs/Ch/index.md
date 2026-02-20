@@ -1,10 +1,10 @@
-# VMEvalKit 项目结构说明
+# VBVR-EvalKit 项目结构说明
 
 ## 顶层目录
 
 ```
-VMEvalKit/
-├── vmevalkit/          # 核心 Python 包（推理、评估、任务生成）
+VBVR-EvalKit/
+├── vbvrevalkit/          # 核心 Python 包（推理、评估、任务生成）
 ├── examples/           # 用户入口脚本
 ├── setup/              # 模型安装与测试脚本
 ├── submodules/         # 第三方 Git 子模块（开源模型仓库 & 任务数据生成器）
@@ -21,11 +21,11 @@ VMEvalKit/
 
 ---
 
-## `vmevalkit/` — 核心 Python 包
+## `vbvrevalkit/` — 核心 Python 包
 
 整个框架的主体代码，按职责分为以下子包：
 
-### `vmevalkit/models/` — 模型推理封装
+### `vbvrevalkit/models/` — 模型推理封装
 
 每个文件对应一个模型家族的推理实现，遵循 **Service + Wrapper** 模式：
 - `base.py` — 抽象基类 `ModelWrapper` 和 `ModelService`，定义统一的 `generate()` 接口
@@ -42,14 +42,14 @@ VMEvalKit/
 - `sana_inference.py` — SANA Video（本地开源）
 - `morphic_inference.py` — Morphic Frames-to-Video（本地开源）
 
-### `vmevalkit/runner/` — 推理调度
+### `vbvrevalkit/runner/` — 推理调度
 
 将模型注册、加载、批量推理和评分串联起来的调度层：
 - `MODEL_CATALOG.py` — 模型注册表，纯数据（无 import），记录所有 33 个模型的 wrapper 路径、类名、家族信息等，供 `importlib` 动态加载
 - `inference.py` — `run_inference()` 函数和 `InferenceRunner` 类，负责任务发现、模型加载、批量生成视频
 - `score.py` — 评分调度，串联各评估器
 
-### `vmevalkit/eval/` — 评估模块
+### `vbvrevalkit/eval/` — 评估模块
 
 多种评估方法的实现：
 - `human_eval.py` — 基于 Gradio 的人工评分界面
@@ -63,7 +63,7 @@ VMEvalKit/
 - `eval_prompt.py` — 评估用的 Prompt 模板
 - `run_selector.py` — 辅助工具，用于选择待评估的推理结果
 
-### `vmevalkit/tasks/` — 任务域实现
+### `vbvrevalkit/tasks/` — 任务域实现
 
 每个子目录对应一种视觉推理任务的题目生成逻辑：
 - `chess_task/` — 国际象棋（找将杀步骤等）
@@ -75,7 +75,7 @@ VMEvalKit/
 - `physical_causality_task/` — 物理因果推理
 - `match3/` — 三消游戏推理
 
-### `vmevalkit/utils/` — 通用工具
+### `vbvrevalkit/utils/` — 通用工具
 
 - `s3_uploader.py` — S3 图片上传工具（部分商业 API 如 Luma 需要图片 URL 而非本地路径）
 

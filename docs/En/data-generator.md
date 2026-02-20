@@ -5,8 +5,8 @@ This document walks through the complete pipeline — from generating questions,
 ## Prerequisites
 
 ```bash
-# 1. Install VMEvalKit
-cd /path/to/VMEvalKit
+# 1. Install VBVR-EvalKit
+cd /path/to/VBVR-EvalKit
 pip install -e .
 
 # 2. Install at least one video generation model (SVD as example)
@@ -28,16 +28,16 @@ Use the data-generator to produce task samples. Each sample contains: first fram
 cd /path/to/O-9_shape_scaling_data-generator
 
 # Generate 1 sample (for testing)
-python examples/generate.py --num-samples 1 --seed 42 --output /path/to/VMEvalKit/questions
+python examples/generate.py --num-samples 1 --seed 42 --output /path/to/VBVR-EvalKit/questions
 
 # Generate 100 samples (for full evaluation)
-python examples/generate.py --num-samples 100 --seed 42 --output /path/to/VMEvalKit/questions
+python examples/generate.py --num-samples 100 --seed 42 --output /path/to/VBVR-EvalKit/questions
 ```
 
 Output structure:
 
 ```
-VMEvalKit/questions/
+VBVR-EvalKit/questions/
 └── shape_scaling_task/
     └── shape_scaling_00000000/
         ├── first_frame.png       # Initial state (analogy A:B :: C:?)
@@ -49,10 +49,10 @@ VMEvalKit/questions/
 
 ### Step 2: Run Model Inference
 
-Use VMEvalKit's inference pipeline to generate videos.
+Use VBVR-EvalKit's inference pipeline to generate videos.
 
 ```bash
-cd /path/to/VMEvalKit
+cd /path/to/VBVR-EvalKit
 
 # Generate with SVD
 python examples/generate_videos.py \
@@ -75,7 +75,7 @@ outputs/svd/shape_scaling_task/shape_scaling_00000000.mp4
 
 ### Step 3: Organize Directory Structure
 
-The rubrics evaluator requires VMEvalKit's run directory structure (with `video/` and `question/` subdirectories). Reorganize the inference output:
+The rubrics evaluator requires VBVR-EvalKit's run directory structure (with `video/` and `question/` subdirectories). Reorganize the inference output:
 
 ```bash
 # Set variables
@@ -123,10 +123,10 @@ outputs_rubrics/
 ### Step 4: Run Rubrics Evaluation
 
 ```bash
-cd /path/to/VMEvalKit
+cd /path/to/VBVR-EvalKit
 
 # Run evaluation
-python -m vmevalkit.runner.score rubrics \
+python -m vbvrevalkit.runner.score rubrics \
   --inference-dir ./outputs_rubrics \
   --eval-output-dir ./evaluations/rubrics \
   --device cuda
@@ -200,7 +200,7 @@ outputs_rubrics/
 The evaluation command stays the same — the evaluator automatically walks all generators and matches them to the corresponding rule-based evaluators:
 
 ```bash
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
 ```
 
 The summary file automatically includes score breakdowns by category (6 categories) and by split (In_Domain / Out_of_Domain).
@@ -228,7 +228,7 @@ The summary file automatically includes score breakdowns by category (6 categori
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `--inference-dir, -i` | (required) | Inference output directory (VMEvalKit structure required) |
+| `--inference-dir, -i` | (required) | Inference output directory (VBVR-EvalKit structure required) |
 | `--eval-output-dir, -o` | `./evaluations/rubrics` | Directory to save evaluation results |
 | `--gt-base-path, -g` | None | Path to VBVR-Bench GT data (optional) |
 | `--device` | `cuda` | Computation device (`cuda` / `cpu`) |

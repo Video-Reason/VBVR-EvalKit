@@ -1,5 +1,5 @@
 """
-Model Catalog for VMEvalKit - Registry of all available video generation models.
+Model Catalog for VBVR-EvalKit - Registry of all available video generation models.
 
 Pure registry with no imports or logic - just model definitions organized by families.
 Uses string module paths for flexible dynamic loading.
@@ -15,7 +15,7 @@ from typing import Dict, Any
 # Luma Dream Machine Models
 LUMA_MODELS = {
     "luma-ray-2": {
-        "wrapper_module": "vmevalkit.models.luma_inference",
+        "wrapper_module": "vbvrevalkit.models.luma_inference",
         "wrapper_class": "LumaWrapper",
         "service_class": "LumaInference",
         "model": "ray-2",
@@ -23,7 +23,7 @@ LUMA_MODELS = {
         "family": "Luma Dream Machine"
     },
     "luma-ray-flash-2": {
-        "wrapper_module": "vmevalkit.models.luma_inference",
+        "wrapper_module": "vbvrevalkit.models.luma_inference",
         "wrapper_class": "LumaWrapper",
         "service_class": "LumaInference",
         "model": "ray-flash-2", 
@@ -35,7 +35,7 @@ LUMA_MODELS = {
 # Google Veo Models (Gemini API with GEMINI_API_KEY)
 VEO_MODELS = {
     "veo-2": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-2.0-generate-001",
@@ -43,7 +43,7 @@ VEO_MODELS = {
         "family": "Google Veo"
     },
     "veo-2.0-generate": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-2.0-generate-001",
@@ -51,7 +51,7 @@ VEO_MODELS = {
         "family": "Google Veo"
     },
     "veo-3.0-generate": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.0-generate-001",
@@ -59,7 +59,7 @@ VEO_MODELS = {
         "family": "Google Veo"
     },
     "veo-3.0-fast-generate": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.0-fast-generate-001",
@@ -67,7 +67,7 @@ VEO_MODELS = {
         "family": "Google Veo"
     },
     "veo-3.1-generate": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.1-generate-preview",
@@ -75,7 +75,7 @@ VEO_MODELS = {
         "family": "Google Veo"
     },
     "veo-3.1-fast": {
-        "wrapper_module": "vmevalkit.models.veo_inference",
+        "wrapper_module": "vbvrevalkit.models.veo_inference",
         "wrapper_class": "VeoWrapper",
         "service_class": "VeoService",
         "model": "veo-3.1-fast-generate-preview",
@@ -87,7 +87,7 @@ VEO_MODELS = {
 # Kling AI Models
 KLING_MODELS = {
     "kling-v2-6": {
-        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_module": "vbvrevalkit.models.kling_inference",
         "wrapper_class": "KlingWrapper",
         "service_class": "KlingService",
         "model": "kling-v2-6",
@@ -95,7 +95,7 @@ KLING_MODELS = {
         "family": "Kling AI"
     },
     "kling-v2-5-turbo": {
-        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_module": "vbvrevalkit.models.kling_inference",
         "wrapper_class": "KlingWrapper",
         "service_class": "KlingService",
         "model": "kling-v2-5-turbo",
@@ -103,7 +103,7 @@ KLING_MODELS = {
         "family": "Kling AI"
     },
     "kling-v2-1-master": {
-        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_module": "vbvrevalkit.models.kling_inference",
         "wrapper_class": "KlingWrapper",
         "service_class": "KlingService",
         "model": "kling-v2-1-master",
@@ -111,7 +111,7 @@ KLING_MODELS = {
         "family": "Kling AI"
     },
     "kling-v2-master": {
-        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_module": "vbvrevalkit.models.kling_inference",
         "wrapper_class": "KlingWrapper",
         "service_class": "KlingService",
         "model": "kling-v2-master",
@@ -119,7 +119,7 @@ KLING_MODELS = {
         "family": "Kling AI"
     },
     "kling-v1-6": {
-        "wrapper_module": "vmevalkit.models.kling_inference",
+        "wrapper_module": "vbvrevalkit.models.kling_inference",
         "wrapper_class": "KlingWrapper",
         "service_class": "KlingService",
         "model": "kling-v1-6",
@@ -131,7 +131,7 @@ KLING_MODELS = {
 # Runway ML Models
 RUNWAY_MODELS = {
     "runway-gen45": {
-        "wrapper_module": "vmevalkit.models.runway_inference",
+        "wrapper_module": "vbvrevalkit.models.runway_inference",
         "wrapper_class": "RunwayWrapper",
         "service_class": "RunwayService",
         "model": "gen4.5",
@@ -139,7 +139,7 @@ RUNWAY_MODELS = {
         "family": "Runway ML"
     },
     "runway-gen4-turbo": {
-        "wrapper_module": "vmevalkit.models.runway_inference",
+        "wrapper_module": "vbvrevalkit.models.runway_inference",
         "wrapper_class": "RunwayWrapper",
         "service_class": "RunwayService",
         "model": "gen4_turbo",
@@ -147,7 +147,7 @@ RUNWAY_MODELS = {
         "family": "Runway ML"
     },
     "runway-gen4-aleph": {
-        "wrapper_module": "vmevalkit.models.runway_inference",
+        "wrapper_module": "vbvrevalkit.models.runway_inference",
         "wrapper_class": "RunwayWrapper",
         "service_class": "RunwayService",
         "model": "gen4_aleph",
@@ -155,7 +155,7 @@ RUNWAY_MODELS = {
         "family": "Runway ML"
     },
     "runway-gen3a-turbo": {
-        "wrapper_module": "vmevalkit.models.runway_inference",
+        "wrapper_module": "vbvrevalkit.models.runway_inference",
         "wrapper_class": "RunwayWrapper",
         "service_class": "RunwayService",
         "model": "gen3a_turbo",
@@ -167,7 +167,7 @@ RUNWAY_MODELS = {
 # OpenAI Sora Models
 OPENAI_SORA_MODELS = {
     "openai-sora-2": {
-        "wrapper_module": "vmevalkit.models.openai_inference",
+        "wrapper_module": "vbvrevalkit.models.openai_inference",
         "wrapper_class": "OpenAIWrapper",
         "service_class": "SoraService",
         "model": "sora-2",
@@ -175,7 +175,7 @@ OPENAI_SORA_MODELS = {
         "family": "OpenAI Sora"
     },
     "openai-sora-2-pro": {
-        "wrapper_module": "vmevalkit.models.openai_inference",
+        "wrapper_module": "vbvrevalkit.models.openai_inference",
         "wrapper_class": "OpenAIWrapper",
         "service_class": "SoraService",
         "model": "sora-2-pro",
@@ -191,7 +191,7 @@ OPENAI_SORA_MODELS = {
 # LTX-Video Models (Lightricks)
 LTX_VIDEO_MODELS = {
     "ltx-video": {
-        "wrapper_module": "vmevalkit.models.ltx_inference",
+        "wrapper_module": "vbvrevalkit.models.ltx_inference",
         "wrapper_class": "LTXVideoWrapper",
         "service_class": "LTXVideoService",
         "model": "Lightricks/LTX-Video",
@@ -199,7 +199,7 @@ LTX_VIDEO_MODELS = {
         "family": "LTX-Video"
     },
     "ltx-video-13b-distilled": {
-        "wrapper_module": "vmevalkit.models.ltx_inference",
+        "wrapper_module": "vbvrevalkit.models.ltx_inference",
         "wrapper_class": "LTXVideoWrapper",
         "service_class": "LTXVideoService",
         "model": "Lightricks/LTX-Video-0.9.8-13B-distilled",
@@ -207,7 +207,7 @@ LTX_VIDEO_MODELS = {
         "family": "LTX-Video"
     },
     "LTX-2": {
-        "wrapper_module": "vmevalkit.models.ltx2_inference",
+        "wrapper_module": "vbvrevalkit.models.ltx2_inference",
         "wrapper_class": "LTX2Wrapper",
         "service_class": "LTX2Service",
         "model": "LTX-2",
@@ -219,7 +219,7 @@ LTX_VIDEO_MODELS = {
 # HunyuanVideo-I2V Models (Tencent)
 HUNYUAN_VIDEO_MODELS = {
     "hunyuan-video-i2v": {
-        "wrapper_module": "vmevalkit.models.hunyuan_inference",
+        "wrapper_module": "vbvrevalkit.models.hunyuan_inference",
         "wrapper_class": "HunyuanVideoWrapper",
         "service_class": "HunyuanVideoService",
         "model": "hunyuan-video-i2v",
@@ -231,7 +231,7 @@ HUNYUAN_VIDEO_MODELS = {
 # Morphic Frames-to-Video Models
 MORPHIC_MODELS = {
     "morphic-frames-to-video": {
-        "wrapper_module": "vmevalkit.models.morphic_inference",
+        "wrapper_module": "vbvrevalkit.models.morphic_inference",
         "wrapper_class": "MorphicWrapper",
         "service_class": "MorphicService",
         "model": "morphic-frames-to-video",
@@ -248,7 +248,7 @@ MORPHIC_MODELS = {
 # Stable Video Diffusion Models (Stability AI)
 SVD_MODELS = {
     "svd": {
-        "wrapper_module": "vmevalkit.models.svd_inference",
+        "wrapper_module": "vbvrevalkit.models.svd_inference",
         "wrapper_class": "SVDWrapper",
         "service_class": "SVDService",
         "model": "stabilityai/stable-video-diffusion-img2vid-xt",
@@ -260,7 +260,7 @@ SVD_MODELS = {
 # WAN Models (Wan-AI, local diffusers implementation)
 WAN_MODELS = {
     "wan-2.1-i2v-480p": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_module": "vbvrevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.1-I2V-14B-480P-Diffusers",
@@ -268,7 +268,7 @@ WAN_MODELS = {
         "family": "WAN (Wan-AI)"
     },
     "wan-2.1-i2v-720p": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_module": "vbvrevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.1-I2V-14B-720P-Diffusers",
@@ -276,7 +276,7 @@ WAN_MODELS = {
         "family": "WAN (Wan-AI)"
     },
     "wan-2.2-i2v-a14b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_module": "vbvrevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.2-I2V-A14B-Diffusers",
@@ -284,7 +284,7 @@ WAN_MODELS = {
         "family": "WAN (Wan-AI)"
     },
     "wan-2.2-ti2v-5b": {
-        "wrapper_module": "vmevalkit.models.wan_inference",
+        "wrapper_module": "vbvrevalkit.models.wan_inference",
         "wrapper_class": "WanWrapper",
         "service_class": "WanService",
         "model": "Wan-AI/Wan2.2-TI2V-5B-Diffusers",
@@ -296,7 +296,7 @@ WAN_MODELS = {
 # CogVideoX Models (Zhipu AI/THUDM)
 COGVIDEOX_MODELS = {
     "cogvideox-5b-i2v": {
-        "wrapper_module": "vmevalkit.models.cogvideox_inference",
+        "wrapper_module": "vbvrevalkit.models.cogvideox_inference",
         "wrapper_class": "CogVideoXWrapper",
         "service_class": "CogVideoXService",
         "model": "THUDM/CogVideoX-5b-I2V",
@@ -310,7 +310,7 @@ COGVIDEOX_MODELS = {
         "family": "CogVideoX"
     },
     "cogvideox1.5-5b-i2v": {
-        "wrapper_module": "vmevalkit.models.cogvideox_inference",
+        "wrapper_module": "vbvrevalkit.models.cogvideox_inference",
         "wrapper_class": "CogVideoXWrapper",
         "service_class": "CogVideoXService",
         "model": "THUDM/CogVideoX1.5-5B-I2V",
@@ -328,7 +328,7 @@ COGVIDEOX_MODELS = {
 # SANA-Video Models (NVLabs/Efficient-Large-Model)
 SANA_VIDEO_MODELS = {
     "sana-video-2b-480p": {
-        "wrapper_module": "vmevalkit.models.sana_inference",
+        "wrapper_module": "vbvrevalkit.models.sana_inference",
         "wrapper_class": "SanaVideoWrapper",
         "service_class": "SanaVideoService",
         "model": "Efficient-Large-Model/SANA-Video_2B_480p_diffusers",

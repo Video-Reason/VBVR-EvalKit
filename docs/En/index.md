@@ -1,10 +1,10 @@
-# VMEvalKit Project Structure
+# VBVR-EvalKit Project Structure
 
 ## Top-Level Directory
 
 ```
-VMEvalKit/
-├── vmevalkit/          # Core Python package (inference, evaluation, task generation)
+VBVR-EvalKit/
+├── vbvrevalkit/          # Core Python package (inference, evaluation, task generation)
 ├── examples/           # User-facing entry scripts
 ├── setup/              # Model installation and test scripts
 ├── submodules/         # Third-party Git submodules (open-source model repos & task data generators)
@@ -21,11 +21,11 @@ VMEvalKit/
 
 ---
 
-## `vmevalkit/` — Core Python Package
+## `vbvrevalkit/` — Core Python Package
 
 The main framework code, organized into the following subpackages by responsibility:
 
-### `vmevalkit/models/` — Model Inference Wrappers
+### `vbvrevalkit/models/` — Model Inference Wrappers
 
 Each file corresponds to one model family's inference implementation, following the **Service + Wrapper** pattern:
 - `base.py` — Abstract base classes `ModelWrapper` and `ModelService`, defining the unified `generate()` interface
@@ -42,14 +42,14 @@ Each file corresponds to one model family's inference implementation, following 
 - `sana_inference.py` — SANA Video (local open-source)
 - `morphic_inference.py` — Morphic Frames-to-Video (local open-source)
 
-### `vmevalkit/runner/` — Inference Orchestration
+### `vbvrevalkit/runner/` — Inference Orchestration
 
 The orchestration layer that ties together model registration, loading, batch inference, and scoring:
 - `MODEL_CATALOG.py` — Model registry, pure data (no imports), records all 33 models' wrapper paths, class names, family info, etc., for dynamic loading via `importlib`
 - `inference.py` — `run_inference()` function and `InferenceRunner` class, responsible for task discovery, model loading, and batch video generation
 - `score.py` — Scoring orchestration, connecting various evaluators
 
-### `vmevalkit/eval/` — Evaluation Module
+### `vbvrevalkit/eval/` — Evaluation Module
 
 Implementations of multiple evaluation methods:
 - `human_eval.py` — Gradio-based interactive human scoring interface
@@ -63,7 +63,7 @@ Implementations of multiple evaluation methods:
 - `eval_prompt.py` — Prompt templates for evaluation
 - `run_selector.py` — Utility for selecting inference results to evaluate
 
-### `vmevalkit/tasks/` — Task Domain Implementations
+### `vbvrevalkit/tasks/` — Task Domain Implementations
 
 Each subdirectory corresponds to one type of visual reasoning task's question generation logic:
 - `chess_task/` — Chess (finding checkmate moves, etc.)
@@ -75,7 +75,7 @@ Each subdirectory corresponds to one type of visual reasoning task's question ge
 - `physical_causality_task/` — Physical causality reasoning
 - `match3/` — Match-3 game reasoning
 
-### `vmevalkit/utils/` — Common Utilities
+### `vbvrevalkit/utils/` — Common Utilities
 
 - `s3_uploader.py` — S3 image upload tool (some commercial APIs like Luma require image URLs instead of local paths)
 

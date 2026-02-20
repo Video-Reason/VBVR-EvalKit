@@ -1,4 +1,4 @@
-"""Evaluation module for VMEvalKit.
+"""Evaluation module for VBVR-EvalKit.
 
 This module contains various evaluation methods for assessing video generation models'
 reasoning capabilities.
@@ -59,7 +59,7 @@ _LAZY_MODULES = {
 
 # Evaluators outside VLMasjudge (different parent package)
 _EXTERNAL_MODULES = {
-    'VBVRBenchEvaluator': 'vmevalkit.eval.vbvr_bench_eval',
+    'VBVRBenchEvaluator': 'vbvrevalkit.eval.vbvr_bench_eval',
 }
 
 

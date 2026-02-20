@@ -1,6 +1,6 @@
-# 向 VMEvalKit 添加模型
+# 向 VBVR-EvalKit 添加模型
 
-VMEvalKit 支持两种模型类型，分别采用不同的集成方式：
+VBVR-EvalKit 支持两种模型类型，分别采用不同的集成方式：
 
 ## 快速参考
 
@@ -26,7 +26,7 @@ VMEvalKit 支持两种模型类型，分别采用不同的集成方式：
 
 ## 架构
 
-VMEvalKit 采用 **Service + Wrapper 模式**：
+VBVR-EvalKit 采用 **Service + Wrapper 模式**：
 - **Service**：处理 API 调用或模型推理
 - **Wrapper**：继承自 `ModelWrapper`，提供统一接口
 - **注册表**：`MODEL_CATALOG.py` 列出所有模型的动态加载路径
@@ -113,10 +113,10 @@ MODEL_CHECKPOINT_PATHS["your-model-name"]="your-model/model.ckpt"
 ### 添加到 MODEL_CATALOG.py
 
 ```python
-# 在 vmevalkit/runner/MODEL_CATALOG.py 中
+# 在 vbvrevalkit/runner/MODEL_CATALOG.py 中
 YOUR_MODELS = {
     "your-model-v1": {
-        "wrapper_module": "vmevalkit.models.your_inference",
+        "wrapper_module": "vbvrevalkit.models.your_inference",
         "wrapper_class": "YourWrapper",
         "model": "v1",
         "description": "Your model description",
@@ -151,6 +151,6 @@ python examples/generate_videos.py --model your-model-name --task-id test_0001
 
 ## 参考示例
 
-- **商业 API**：`vmevalkit/models/luma_inference.py`、`vmevalkit/models/kling_inference.py`
-- **开源模型**：`vmevalkit/models/svd_inference.py`、`vmevalkit/models/ltx_inference.py`、`vmevalkit/models/ltx2_inference.py`
+- **商业 API**：`vbvrevalkit/models/luma_inference.py`、`vbvrevalkit/models/kling_inference.py`
+- **开源模型**：`vbvrevalkit/models/svd_inference.py`、`vbvrevalkit/models/ltx_inference.py`、`vbvrevalkit/models/ltx2_inference.py`
 - **安装脚本**：`setup/models/*/setup.sh`

@@ -4,7 +4,7 @@
 
 ### Q: `pip install -e .` 安装后，运行开源模型报 `ModuleNotFoundError: No module named 'diffusers'`
 
-**原因：** 开源模型（如 SVD、LTX-Video 等）的依赖（torch、diffusers、transformers 等）不包含在 VMEvalKit 核心依赖中，需要额外安装。
+**原因：** 开源模型（如 SVD、LTX-Video 等）的依赖（torch、diffusers、transformers 等）不包含在 VBVR-EvalKit 核心依赖中，需要额外安装。
 
 **解决方法：**
 
@@ -77,7 +77,7 @@ rm outputs/svd/test_task/test_0000.mp4
 **解决方法：** 使用 Python 直接列出模型：
 ```bash
 python -c "
-from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
+from vbvrevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS, MODEL_FAMILIES
 for f, ms in MODEL_FAMILIES.items():
     print(f'{f} ({len(ms)}):')
     for m in ms: print(f'  {m}')

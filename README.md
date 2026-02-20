@@ -1,4 +1,4 @@
-# VMEvalKit 🎥🧠
+# VBVR-EvalKit 🎥🧠
 
 **Unified inference and evaluation framework for 37 video generation models.**
 
@@ -10,7 +10,7 @@
 
 ## Data Format
 
-Organize your questions outside VMEvalKit with the following structure:
+Organize your questions outside VBVR-EvalKit with the following structure:
 
 ```
 questions/
@@ -49,8 +49,8 @@ questions/
 
 ```bash
 # 1. Install
-git clone https://github.com/Video-Reason/VMEvalKit.git
-cd VMEvalKit
+git clone https://github.com/Video-Reason/VBVR-EvalKit.git
+cd VBVR-EvalKit
 
 python -m venv venv
 source venv/bin/activate
@@ -89,7 +89,7 @@ cp env.template .env
 
 ```python
 # Inherit from ModelWrapper
-from vmevalkit.models.base import ModelWrapper
+from vbvrevalkit.models.base import ModelWrapper
 
 class MyModelWrapper(ModelWrapper):
     def generate(self, image_path, text_prompt, **kwargs):
@@ -97,10 +97,10 @@ class MyModelWrapper(ModelWrapper):
         return {"success": True, "video_path": "...", ...}
 ```
 
-Register in `vmevalkit/runner/MODEL_CATALOG.py`:
+Register in `vbvrevalkit/runner/MODEL_CATALOG.py`:
 ```python
 "my-model": {
-    "wrapper_module": "vmevalkit.models.my_model_inference",
+    "wrapper_module": "vbvrevalkit.models.my_model_inference",
     "wrapper_class": "MyModelWrapper", 
     "family": "MyCompany"
 }

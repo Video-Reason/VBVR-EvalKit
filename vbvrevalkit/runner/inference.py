@@ -1,4 +1,4 @@
-"""VMEvalKit Inference Runner - Multi-Provider Video Generation"""
+"""VBVR-EvalKit Inference Runner - Multi-Provider Video Generation"""
 
 import importlib
 import json
@@ -14,8 +14,8 @@ from ..models.base import ModelWrapper
 # Path to the subprocess worker script
 _WORKER_SCRIPT = Path(__file__).parent.parent / "models" / "_subprocess_worker.py"
 
-# VMEvalKit root directory
-_VMEVAL_ROOT = Path(__file__).parent.parent.parent
+# VBVR-EvalKit root directory
+_VBVR_ROOT = Path(__file__).parent.parent.parent
 _UNKNOWN_DOMAIN = "unknown_task"
 _UNKNOWN_TASK_ID = "unknown"
 
@@ -78,7 +78,7 @@ def _get_model_venv_python(model_name: str) -> Optional[str]:
     # Check catalog for venv_id override, otherwise use model_name
     config = AVAILABLE_MODELS.get(model_name, {})
     venv_id = config.get("venv_id", model_name)
-    venv_python = _VMEVAL_ROOT / "envs" / venv_id / "bin" / "python"
+    venv_python = _VBVR_ROOT / "envs" / venv_id / "bin" / "python"
     if venv_python.exists():
         return str(venv_python)
     return None
@@ -112,7 +112,7 @@ def _run_via_subprocess(
     try:
         result = subprocess.run(
             cmd,
-            cwd=str(_VMEVAL_ROOT),
+            cwd=str(_VBVR_ROOT),
             capture_output=True,
             text=True,
             timeout=7200,  # 2 hour timeout
@@ -130,8 +130,8 @@ def _run_via_subprocess(
         # Find the result JSON in stdout
         parsed_result = None
         for line in stdout.split("\n"):
-            if line.startswith("__VMEVAL_RESULT__"):
-                json_str = line[len("__VMEVAL_RESULT__"):]
+            if line.startswith("__VBVR_RESULT__"):
+                json_str = line[len("__VBVR_RESULT__"):]
                 parsed_result = json.loads(json_str)
                 break
 

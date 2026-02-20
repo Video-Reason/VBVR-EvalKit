@@ -1,5 +1,5 @@
 """
-CogVideoX Image-to-Video Generation Integration for VMEvalKit.
+CogVideoX Image-to-Video Generation Integration for VBVR-EvalKit.
 
 Implements CogVideoX-5B-I2V and CogVideoX1.5-5B-I2V models from Zhipu AI/THUDM
 using Hugging Face Diffusers pipelines.
@@ -255,12 +255,12 @@ class CogVideoXService:
 
 
 # ============================================================================
-# Wrapper Class (VMEvalKit Interface)
+# Wrapper Class (VBVR-EvalKit Interface)
 # ============================================================================
 
 class CogVideoXWrapper(ModelWrapper):
     """
-    Wrapper for CogVideoX models conforming to VMEvalKit interface.
+    Wrapper for CogVideoX models conforming to VBVR-EvalKit interface.
     
     Supports:
     - CogVideoX-5B-I2V: 6s videos at 720x480 (49 frames @ 8fps)
@@ -310,7 +310,7 @@ class CogVideoXWrapper(ModelWrapper):
         """
         Generate video from image and text prompt.
         
-        Returns standardized VMEvalKit result dictionary with all 8 required fields.
+        Returns standardized VBVR-EvalKit result dictionary with all 8 required fields.
         
         Args:
             image_path: Path to input image (first frame)
@@ -320,7 +320,7 @@ class CogVideoXWrapper(ModelWrapper):
             **kwargs: Additional parameters
             
         Returns:
-            Dictionary with standardized VMEvalKit keys:
+            Dictionary with standardized VBVR-EvalKit keys:
             - success: bool
             - video_path: str | None
             - error: str | None
@@ -367,7 +367,7 @@ class CogVideoXWrapper(ModelWrapper):
             **kwargs
         )
         
-        # Convert to VMEvalKit standardized format
+        # Convert to VBVR-EvalKit standardized format
         total_duration = time.time() - start_time
         
         return GenerationResult(

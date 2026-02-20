@@ -1,4 +1,4 @@
-# VMEvalKit Scoring
+# VBVR-EvalKit Scoring
 
 Comprehensive scoring methods for assessing video generation models' reasoning capabilities.
 
@@ -61,16 +61,16 @@ Deterministic, fully reproducible evaluation using VBVR-Bench's 100 task-specifi
 
 ```bash
 # Basic usage
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
 
 # With GT data and device selection
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
 
 # Full 5-dimension weighted score (default: task_specific only)
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --full-score
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --full-score
 
 # Custom output directory
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
 ```
 
 **Parameters:**
@@ -142,7 +142,7 @@ For multi-frame scoring, add a `multiframe` block:
 Rubrics evaluation is configured via CLI arguments — no `eval_config.json` needed:
 
 ```bash
-python -m vmevalkit.runner.score rubrics \
+python -m vbvrevalkit.runner.score rubrics \
   --inference-dir ./outputs \
   --eval-output-dir ./evaluations/rubrics \
   --gt-base-path /path/to/vbvr-bench-gt \
@@ -159,7 +159,7 @@ python examples/score_videos.py --eval-config eval_config.json
 python examples/score_videos.py --test-multiframe --video path/to/video.mp4
 
 # Rubrics evaluation (direct CLI)
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
 ```
 
 ## Data Directory Requirements

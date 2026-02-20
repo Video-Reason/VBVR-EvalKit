@@ -1,6 +1,6 @@
-# Adding Models to VMEvalKit
+# Adding Models to VBVR-EvalKit
 
-VMEvalKit supports two model types with different integration approaches:
+VBVR-EvalKit supports two model types with different integration approaches:
 
 ## 📋 Quick Reference
 
@@ -26,7 +26,7 @@ VMEvalKit supports two model types with different integration approaches:
 
 ## 🏗️ Architecture
 
-VMEvalKit uses a **Service + Wrapper pattern**:
+VBVR-EvalKit uses a **Service + Wrapper pattern**:
 - **Service**: Handles API calls or model inference
 - **Wrapper**: Inherits from `ModelWrapper`, provides unified interface
 - **Registry**: `MODEL_CATALOG.py` lists all models with dynamic loading paths
@@ -113,10 +113,10 @@ MODEL_CHECKPOINT_PATHS["your-model-name"]="your-model/model.ckpt"
 ### Add to MODEL_CATALOG.py
 
 ```python
-# In vmevalkit/runner/MODEL_CATALOG.py
+# In vbvrevalkit/runner/MODEL_CATALOG.py
 YOUR_MODELS = {
     "your-model-v1": {
-        "wrapper_module": "vmevalkit.models.your_inference",
+        "wrapper_module": "vbvrevalkit.models.your_inference",
         "wrapper_class": "YourWrapper", 
         "model": "v1",
         "description": "Your model description",
@@ -151,8 +151,8 @@ python examples/generate_videos.py --model your-model-name --task-id test_0001
 
 ## 📚 Study Examples
 
-- **Commercial API**: `vmevalkit/models/luma_inference.py`, `vmevalkit/models/kling_inference.py`
-- **Open-Source**: `vmevalkit/models/svd_inference.py`, `vmevalkit/models/ltx_inference.py`, `vmevalkit/models/ltx2_inference.py`
+- **Commercial API**: `vbvrevalkit/models/luma_inference.py`, `vbvrevalkit/models/kling_inference.py`
+- **Open-Source**: `vbvrevalkit/models/svd_inference.py`, `vbvrevalkit/models/ltx_inference.py`, `vbvrevalkit/models/ltx2_inference.py`
 - **Setup Scripts**: `setup/models/*/setup.sh`
 
 Ready to add your model? Follow the patterns above and test thoroughly! 🚀

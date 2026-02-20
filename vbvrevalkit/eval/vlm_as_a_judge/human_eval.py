@@ -1,4 +1,4 @@
-"""Human evaluation interface for VMEvalKit using Gradio."""
+"""Human evaluation interface for VBVR-EvalKit using Gradio."""
 
 import json
 from pathlib import Path
@@ -148,8 +148,8 @@ class HumanEvaluator:
     
     def launch_interface(self, share: bool = False, port: int = 7860):
         """Launch Gradio interface."""
-        with gr.Blocks(title="VMEvalKit Human Evaluation") as interface:
-            gr.Markdown(f"# VMEvalKit Human Evaluation\n**Experiment:** {self.experiment_name}")
+        with gr.Blocks(title="VBVR-EvalKit Human Evaluation") as interface:
+            gr.Markdown(f"# VBVR-EvalKit Human Evaluation\n**Experiment:** {self.experiment_name}")
             
             # Annotator name input
             with gr.Row():

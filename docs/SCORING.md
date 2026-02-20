@@ -1,4 +1,4 @@
-# VMEvalKit Scoring
+# VBVR-EvalKit Scoring
 
 Comprehensive scoring methods for assessing video generation models' reasoning capabilities.
 

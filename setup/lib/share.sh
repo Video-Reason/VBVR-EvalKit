@@ -1,18 +1,18 @@
 #!/bin/bash
 ##############################################################################
-# VMEvalKit Setup - Shared Library
+# VBVR-EvalKit Setup - Shared Library
 ##############################################################################
 
 set -euo pipefail
 
 # Project root - dynamically determine from script location
 SHARE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export VMEVAL_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
-export ENVS_DIR="${VMEVAL_ROOT}/envs"
-export SUBMODULES_DIR="${VMEVAL_ROOT}/submodules"
-export LOGS_DIR="${VMEVAL_ROOT}/logs"
-export TESTS_DIR="${VMEVAL_ROOT}/setup/test_assets/test_task"
-export WEIGHTS_DIR="${VMEVAL_ROOT}/weights"
+export VBVR_ROOT="$(cd "${SHARE_LIB_DIR}/../.." && pwd)"
+export ENVS_DIR="${VBVR_ROOT}/envs"
+export SUBMODULES_DIR="${VBVR_ROOT}/submodules"
+export LOGS_DIR="${VBVR_ROOT}/logs"
+export TESTS_DIR="${VBVR_ROOT}/setup/test_assets/test_task"
+export WEIGHTS_DIR="${VBVR_ROOT}/weights"
 
 # ============================================================================
 # MODEL REGISTRY
@@ -264,7 +264,7 @@ check_api_key() {
 }
 
 load_env_file() {
-    local env_file="${VMEVAL_ROOT}/.env"
+    local env_file="${VBVR_ROOT}/.env"
     if [[ -f "$env_file" ]]; then
         set -a
         source "$env_file"
@@ -278,7 +278,7 @@ load_env_file() {
 
 validate_model() {
     local model="$1"
-    local test_output="${VMEVAL_ROOT}/test_outputs"
+    local test_output="${VBVR_ROOT}/test_outputs"
     
     # Set timeout based on model complexity
     # High-quality distributed models need more time
@@ -289,7 +289,7 @@ validate_model() {
     
     activate_model_venv "$model"
     set +e
-    timeout "$timeout_seconds" python "${VMEVAL_ROOT}/examples/generate_videos.py" \
+    timeout "$timeout_seconds" python "${VBVR_ROOT}/examples/generate_videos.py" \
         --questions-dir "${TESTS_DIR}" \
         --output-dir "$test_output" \
         --model "$model" \
@@ -342,4 +342,4 @@ ensure_ffmpeg_dependencies() {
     print_success "FFmpeg dependencies installed"
 }
 
-cd "${VMEVAL_ROOT}"
+cd "${VBVR_ROOT}"

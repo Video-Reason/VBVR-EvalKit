@@ -366,12 +366,12 @@ class SoraService:
 
 
 # ========================================
-# VMEVALKIT WRAPPER CLASS
+# VBVREVALKIT WRAPPER CLASS
 # ========================================
 
 class OpenAIWrapper(ModelWrapper):
     """
-    VMEvalKit wrapper for SoraService to match the standard interface.
+    VBVR-EvalKit wrapper for SoraService to match the standard interface.
     """
     
     def __init__(

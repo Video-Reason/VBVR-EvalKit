@@ -1,5 +1,5 @@
 """
-Generic Multi-frame evaluation for VMEvalKit.
+Generic Multi-frame evaluation for VBVR-EvalKit.
 
 This module provides a base multi-frame evaluator that can wrap any single-frame
 evaluator (GPT4OEvaluator, InternVLEvaluator, etc.) and add multi-frame capabilities:
@@ -10,12 +10,12 @@ evaluator (GPT4OEvaluator, InternVLEvaluator, etc.) and add multi-frame capabili
 
 Usage:
     # With GPT-4O
-    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator
+    from vbvrevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator
     base = GPT4OEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/gpt4o")
     evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
 
     # With InternVL
-    from vmevalkit.eval import MultiFrameEvaluator, InternVLEvaluator
+    from vbvrevalkit.eval import MultiFrameEvaluator, InternVLEvaluator
     base = InternVLEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/internvl")
     evaluator = MultiFrameEvaluator(base_evaluator=base, n_frames=5)
 """
@@ -71,7 +71,7 @@ class MultiFrameEvaluator:
         n_frames: Number of frames to sample per video
 
     Example:
-        >>> from vmevalkit.eval import GPT4OEvaluator, InternVLEvaluator
+        >>> from vbvrevalkit.eval import GPT4OEvaluator, InternVLEvaluator
         >>>
         >>> # With GPT-4O
         >>> base = GPT4OEvaluator(inference_dir="./outputs", eval_output_dir="./evaluations/gpt4o")

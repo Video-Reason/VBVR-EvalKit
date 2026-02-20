@@ -25,7 +25,7 @@ if check_api_key "$ENV_VAR"; then
     value="${!ENV_VAR}"
     print_success "${ENV_VAR} configured (${value:0:8}...${value: -4})"
 else
-    print_warning "${ENV_VAR} not set. Add to ${VMEVAL_ROOT}/.env"
+    print_warning "${ENV_VAR} not set. Add to ${VBVR_ROOT}/.env"
 fi
 
 print_success "${MODEL} setup complete"

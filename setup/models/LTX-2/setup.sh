@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../../lib/share.sh"
 
 MODEL="LTX-2"
-LTX2_DIR="${VMEVAL_ROOT}/LTX-2"
+LTX2_DIR="${VBVR_ROOT}/LTX-2"
 
 print_section "Clone & Install"
 # Clone LTX-2 repository to project root
@@ -26,9 +26,9 @@ uv sync
 
 # Symlink .venv -> envs/LTX-2 so the inference runner can find the Python interpreter
 print_info "Creating venv symlink..."
-mkdir -p "${VMEVAL_ROOT}/envs"
-rm -rf "${VMEVAL_ROOT}/envs/${MODEL}"
-ln -s "${LTX2_DIR}/.venv" "${VMEVAL_ROOT}/envs/${MODEL}"
+mkdir -p "${VBVR_ROOT}/envs"
+rm -rf "${VBVR_ROOT}/envs/${MODEL}"
+ln -s "${LTX2_DIR}/.venv" "${VBVR_ROOT}/envs/${MODEL}"
 print_success "Symlinked envs/${MODEL} -> LTX-2/.venv"
 
 print_section "Checkpoints"

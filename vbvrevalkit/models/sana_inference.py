@@ -1,4 +1,4 @@
-"""SANA-Video Integration for VMEvalKit
+"""SANA-Video Integration for VBVR-EvalKit
 
 Uses SanaImageToVideoPipeline from diffusers for image → video generation.
 
@@ -224,7 +224,7 @@ class SanaVideoService:
 
 
 class SanaVideoWrapper(ModelWrapper):
-    """Wrapper for SANA-Video models conforming to VMEvalKit interface.
+    """Wrapper for SANA-Video models conforming to VBVR-EvalKit interface.
     
     Supports both base 480p model and LongLive extended variant.
     Provides advanced features:

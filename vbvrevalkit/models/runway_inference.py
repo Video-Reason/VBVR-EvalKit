@@ -370,12 +370,12 @@ class RunwayService:
 
 
 # ========================================
-# VMEVALKIT WRAPPER CLASS
+# VBVREVALKIT WRAPPER CLASS
 # ========================================
 
 class RunwayWrapper(ModelWrapper):
     """
-    VMEvalKit wrapper for RunwayService to match the standard interface.
+    VBVR-EvalKit wrapper for RunwayService to match the standard interface.
     """
     
     def __init__(

@@ -5,8 +5,8 @@
 ## 前置条件
 
 ```bash
-# 1. 安装 VMEvalKit
-cd /path/to/VMEvalKit
+# 1. 安装 VBVR-EvalKit
+cd /path/to/VBVR-EvalKit
 pip install -e .
 
 # 2. 安装至少一个视频生成模型（以 SVD 为例）
@@ -28,16 +28,16 @@ pip install -r requirements.txt
 cd /path/to/O-9_shape_scaling_data-generator
 
 # 生成 1 个样本（测试用）
-python examples/generate.py --num-samples 1 --seed 42 --output /path/to/VMEvalKit/questions
+python examples/generate.py --num-samples 1 --seed 42 --output /path/to/VBVR-EvalKit/questions
 
 # 生成 100 个样本（正式评估）
-python examples/generate.py --num-samples 100 --seed 42 --output /path/to/VMEvalKit/questions
+python examples/generate.py --num-samples 100 --seed 42 --output /path/to/VBVR-EvalKit/questions
 ```
 
 生成结果：
 
 ```
-VMEvalKit/questions/
+VBVR-EvalKit/questions/
 └── shape_scaling_task/
     └── shape_scaling_00000000/
         ├── first_frame.png       # 初始状态（类比 A:B :: C:?）
@@ -49,10 +49,10 @@ VMEvalKit/questions/
 
 ### 第二步：模型推理
 
-使用 VMEvalKit 的推理管线生成视频。
+使用 VBVR-EvalKit 的推理管线生成视频。
 
 ```bash
-cd /path/to/VMEvalKit
+cd /path/to/VBVR-EvalKit
 
 # 使用 SVD 模型生成
 python examples/generate_videos.py \
@@ -75,7 +75,7 @@ outputs/svd/shape_scaling_task/shape_scaling_00000000.mp4
 
 ### 第三步：组织目录结构
 
-Rubrics 评估器要求 VMEvalKit 的运行目录结构（含 `video/` 和 `question/` 子目录）。需要将推理输出重新组织：
+Rubrics 评估器要求 VBVR-EvalKit 的运行目录结构（含 `video/` 和 `question/` 子目录）。需要将推理输出重新组织：
 
 ```bash
 # 设置变量
@@ -123,10 +123,10 @@ outputs_rubrics/
 ### 第四步：Rubrics 评估
 
 ```bash
-cd /path/to/VMEvalKit
+cd /path/to/VBVR-EvalKit
 
 # 运行评估
-python -m vmevalkit.runner.score rubrics \
+python -m vbvrevalkit.runner.score rubrics \
   --inference-dir ./outputs_rubrics \
   --eval-output-dir ./evaluations/rubrics \
   --device cuda
@@ -200,7 +200,7 @@ outputs_rubrics/
 评估命令不变，评估器会自动遍历所有 generator 并匹配对应的规则评估器：
 
 ```bash
-python -m vmevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
+python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
 ```
 
 汇总文件会自动包含按类别（6 类）和按划分（In_Domain / Out_of_Domain）的分数统计。
@@ -228,7 +228,7 @@ python -m vmevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--inference-dir, -i` | （必填） | 推理输出目录（需 VMEvalKit 目录结构） |
+| `--inference-dir, -i` | （必填） | 推理输出目录（需 VBVR-EvalKit 目录结构） |
 | `--eval-output-dir, -o` | `./evaluations/rubrics` | 评估结果保存目录 |
 | `--gt-base-path, -g` | 无 | VBVR-Bench GT 数据路径（可选） |
 | `--device` | `cuda` | 计算设备 (`cuda` / `cpu`) |

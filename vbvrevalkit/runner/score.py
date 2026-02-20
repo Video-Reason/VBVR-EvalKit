@@ -1,4 +1,4 @@
-"""Scoring runner for VMEvalKit.
+"""Scoring runner for VBVR-EvalKit.
 
 This script runs various scoring methods on generated videos.
 """
@@ -74,7 +74,7 @@ def run_human_scoring(
         port: Port to run Gradio interface on
         share: Whether to create a public share link
     """
-    from vmevalkit.eval import HumanEvaluator
+    from vbvrevalkit.eval import HumanEvaluator
 
     logger.info(f"Starting human scoring for inference results: {inference_dir}")
     logger.info(f"Annotator: {annotator_name}")
@@ -104,7 +104,7 @@ def run_gpt4o_scoring(
         max_frames: Maximum frames to extract per video
         temperature: Temperature for GPT-4O responses
     """
-    from vmevalkit.eval import GPT4OEvaluator
+    from vbvrevalkit.eval import GPT4OEvaluator
 
     logger.info(f"Starting GPT-4O scoring for inference results: {inference_dir}")
 
@@ -204,7 +204,7 @@ def run_multiframe_vlm_scoring(
         api_key: API key (env var fallback: OPENAI_API_KEY or VISION_API_KEY)
         base_url: Base URL for VLM API (only for internvl)
     """
-    from vmevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator
+    from vbvrevalkit.eval import MultiFrameEvaluator, GPT4OEvaluator, InternVLEvaluator
 
     logger.info(f"Starting multi-frame {evaluator_type.upper()} scoring for inference results: {inference_dir}")
     logger.info(f"Config: n_frames={n_frames}, strategy={strategy}, voting={voting}")
@@ -278,7 +278,7 @@ def run_rubrics_scoring(
         device: Device for computation ('cuda' or 'cpu')
         task_specific_only: If True, use only task-specific dimension score
     """
-    from vmevalkit.eval.vbvr_bench_eval import VBVRBenchEvaluator
+    from vbvrevalkit.eval.vbvr_bench_eval import VBVRBenchEvaluator
 
     logger.info(f"Starting VBVR-Bench rubrics scoring for: {inference_dir}")
     logger.info(f"Device: {device}, task_specific_only: {task_specific_only}")
@@ -330,7 +330,7 @@ def run_multiframe_scoring(
         voting: Voting method
         metric: Similarity metric for consistency
     """
-    from vmevalkit.eval import (
+    from vbvrevalkit.eval import (
         FrameSampler,
         FrameConsistencyAnalyzer,
         VotingAggregator,
@@ -504,33 +504,33 @@ def _run_method(args: argparse.Namespace) -> None:
 def main():
     """Main entry point for scoring runner."""
     parser = argparse.ArgumentParser(
-        description="Run scoring on VMEvalKit experiments",
+        description="Run scoring on VBVR-EvalKit experiments",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Run human scoring
-  python -m vmevalkit.runner.score human --inference-dir ./outputs --annotator "John Doe"
+  python -m vbvrevalkit.runner.score human --inference-dir ./outputs --annotator "John Doe"
 
   # Run GPT-4O scoring on all models
-  python -m vmevalkit.runner.score gpt4o --inference-dir ./outputs --eval-output-dir ./evaluations/gpt4o
+  python -m vbvrevalkit.runner.score gpt4o --inference-dir ./outputs --eval-output-dir ./evaluations/gpt4o
 
   # Run multi-frame GPT-4O scoring (recommended)
-  python -m vmevalkit.runner.score multiframe-gpt4o --inference-dir ./outputs --n-frames 5
+  python -m vbvrevalkit.runner.score multiframe-gpt4o --inference-dir ./outputs --n-frames 5
 
   # Run multi-frame InternVL scoring (local VLM)
-  python -m vmevalkit.runner.score multiframe-vlm --inference-dir ./outputs --evaluator internvl
+  python -m vbvrevalkit.runner.score multiframe-vlm --inference-dir ./outputs --evaluator internvl
 
   # Run multi-frame with custom settings
-  python -m vmevalkit.runner.score multiframe-vlm --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_eval --evaluator gpt4o --n-frames 7
+  python -m vbvrevalkit.runner.score multiframe-vlm --inference-dir ~/experiments/run1 --eval-output-dir ~/experiments/run1_eval --evaluator gpt4o --n-frames 7
 
   # Use custom paths
-  python -m vmevalkit.runner.score gpt4o --inference-dir ~/research/outputs --eval-output-dir ~/research/evaluations
+  python -m vbvrevalkit.runner.score gpt4o --inference-dir ~/research/outputs --eval-output-dir ~/research/evaluations
 
   # Run VBVR-Bench rule-based (rubrics) scoring (no API needed)
-  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs
+  python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
 
   # Rubrics with GT data and full 5-dimension score
-  python -m vmevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --full-score
+  python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --full-score
         """
     )
 

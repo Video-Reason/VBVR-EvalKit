@@ -1,5 +1,5 @@
 """
-Base classes for VMEvalKit model wrappers.
+Base classes for VBVR-EvalKit model wrappers.
 
 Provides abstract interfaces to ensure consistency across all video generation models.
 """
@@ -12,7 +12,7 @@ import sys
 
 class ModelWrapper(ABC):
     """
-    Abstract base class for all model wrappers in VMEvalKit.
+    Abstract base class for all model wrappers in VBVR-EvalKit.
     
     Ensures consistent interface across all video generation models while allowing
     each implementation to handle their specific service logic.
@@ -32,8 +32,8 @@ class ModelWrapper(ABC):
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.kwargs = kwargs
         
-        # Get VMEvalKit root directory
-        self.vmeval_root = Path(__file__).parent.parent.parent
+        # Get VBVR-EvalKit root directory
+        self.vbvr_root = Path(__file__).parent.parent.parent
     
     def get_model_python_interpreter(self, model_id: Optional[str] = None) -> str:
         """
@@ -48,7 +48,7 @@ class ModelWrapper(ABC):
         if model_id is None:
             model_id = self.model
             
-        model_venv_python = self.vmeval_root / "envs" / model_id / "bin" / "python"
+        model_venv_python = self.vbvr_root / "envs" / model_id / "bin" / "python"
         
         if model_venv_python.exists():
             print(f"Using model-specific Python: {model_venv_python}")

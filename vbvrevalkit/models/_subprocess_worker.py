@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generic subprocess worker for VMEvalKit model inference.
+"""Generic subprocess worker for VBVR-EvalKit model inference.
 
 This script runs inside a model-specific virtual environment.
 It imports the model wrapper (which may have heavy dependencies like
@@ -23,7 +23,7 @@ from pathlib import Path
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VMEvalKit subprocess worker")
+    parser = argparse.ArgumentParser(description="VBVR-EvalKit subprocess worker")
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--image-path", required=True)
     parser.add_argument("--prompt", required=True)
@@ -31,15 +31,15 @@ def main():
     parser.add_argument("--kwargs-json", default="{}")
     args = parser.parse_args()
 
-    # Ensure VMEvalKit root is on sys.path
-    vmeval_root = str(Path(__file__).parent.parent.parent)
-    if vmeval_root not in sys.path:
-        sys.path.insert(0, vmeval_root)
+    # Ensure VBVR-EvalKit root is on sys.path
+    vbvr_root = str(Path(__file__).parent.parent.parent)
+    if vbvr_root not in sys.path:
+        sys.path.insert(0, vbvr_root)
 
     start_time = time.time()
 
     # Import catalog (light - no heavy deps)
-    from vmevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS
+    from vbvrevalkit.runner.MODEL_CATALOG import AVAILABLE_MODELS
 
     if args.model_name not in AVAILABLE_MODELS:
         result = {
@@ -87,7 +87,7 @@ def main():
             serializable_result[key] = str(value)
 
     # Output result as JSON on stdout (last line)
-    print("__VMEVAL_RESULT__" + json.dumps(serializable_result, default=str))
+    print("__VBVR_RESULT__" + json.dumps(serializable_result, default=str))
 
 
 if __name__ == "__main__":

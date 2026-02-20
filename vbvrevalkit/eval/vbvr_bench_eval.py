@@ -1,4 +1,4 @@
-"""VBVR-Bench rule-based evaluator for VMEvalKit.
+"""VBVR-Bench rule-based evaluator for VBVR-EvalKit.
 
 Provides deterministic, rule-based evaluation using VBVR-Bench's 100 task-specific
 evaluators. Unlike VLM-based scoring (GPT-4O, InternVL), this requires no API calls
@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from vmevalkit.eval.vbvr_bench import is_out_of_domain
-from vmevalkit.eval.vbvr_bench.evaluators import (
+from vbvrevalkit.eval.vbvr_bench import is_out_of_domain
+from vbvrevalkit.eval.vbvr_bench.evaluators import (
     get_evaluator, TASK_EVALUATOR_MAP, get_task_category,
 )
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class VBVRBenchEvaluator:
     """Rule-based evaluator using VBVR-Bench's 100 task-specific evaluators.
 
-    Walks VMEvalKit's inference directory structure (2-layer or 3-layer),
+    Walks VBVR-EvalKit's inference directory structure (2-layer or 3-layer),
     maps each task to a VBVR-Bench evaluator, and produces 0-1 scores.
     """
 
@@ -37,7 +37,7 @@ class VBVRBenchEvaluator:
     ):
         """
         Args:
-            inference_dir: Directory containing inference outputs (VMEvalKit structure).
+            inference_dir: Directory containing inference outputs (VBVR-EvalKit structure).
             eval_output_dir: Directory to save evaluation results.
             gt_base_path: Optional path to VBVR-Bench GT data (for ground_truth.mp4).
             device: 'cuda' or 'cpu'.
@@ -86,7 +86,7 @@ class VBVRBenchEvaluator:
         run_dir: Path,
         task_name: str,
     ) -> Dict[str, Any]:
-        """Map VMEvalKit paths to VBVR-Bench eval_info dict."""
+        """Map VBVR-EvalKit paths to VBVR-Bench eval_info dict."""
         question_dir = run_dir / "question"
 
         eval_info: Dict[str, Any] = {
@@ -216,7 +216,7 @@ class VBVRBenchEvaluator:
         counters: Dict[str, int],
     ) -> None:
         """Evaluate all task samples in a directory, updating results and counters."""
-        from vmevalkit.eval.VLMasjudge.run_selector import select_latest_run
+        from vbvrevalkit.eval.VLMasjudge.run_selector import select_latest_run
 
         results["evaluations"].setdefault(task_type, {})
 

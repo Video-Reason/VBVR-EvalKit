@@ -1,110 +1,75 @@
-# VMEvalKit 🎥🧠
+<p align="center">
+  <img src="assets/logo.png" alt="VBVR Logo" width="200">
+</p>
 
-**Unified inference and evaluation framework for 37 video generation models.**
+<h1 align="center">VBVR-EvalKit</h1>
 
-## Features
+<p align="center">
+  <b>The official evaluation toolkit for <a href="https://video-reason.com/">Very Big Video Reasoning (VBVR)</a></b><br>
+  Unified inference and evaluation across 37 video generation models.
+</p>
 
-- **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
-- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL)  
-- **☁️ Cloud Integration**: S3 + HuggingFace Hub support
-
-## Data Format
-
-Organize your questions outside VMEvalKit with the following structure:
-
-```
-questions/
-└── {domain}_task/                    # task folder (e.g., chess_task, matching_object_task)
-    ├── {domain}_0000/                # individual question folder
-    │   ├── first_frame.png           # required: input image for video generation
-    │   ├── prompt.txt                # required: text prompt describing the video
-    │   ├── final_frame.png           # optional: expected final frame for evaluation
-    │   └── ground_truth.mp4          # optional: reference video for evaluation
-    ├── {domain}_0001/
-    │   └── ...
-    └── {domain}_0002/
-        └── ...
-```
-
-**Example** with domain `chess`:
-```
-questions/
-└── chess_task/
-    ├── chess_0000/
-    │   ├── first_frame.png
-    │   ├── prompt.txt
-    │   ├── final_frame.png
-    │   └── ground_truth.mp4
-    ├── chess_0001/
-    │   └── ...
-    └── chess_0002/
-        └── ...
-```
-
-**Naming Convention:**
-- **Task folder**: `{domain}_task` (e.g., `chess_task`, `matching_object_task`)
-- **Question folders**: `{domain}_{i:04d}` where `i` is zero-padded (e.g., `chess_0000`, `chess_0064`). Padding automatically expands beyond 4 digits when needed—no dataset size limit.
+- **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, etc.)
+- **VBVR-Bench**: 100+ rule-based evaluators, deterministic 0-1 scores, no API calls
+- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4O, InternVL, Qwen3-VL)
 
 ## Quick Start
 
 ```bash
-# 1. Install
-git clone https://github.com/Video-Reason/VMEvalKit.git
-cd VMEvalKit
-
-python -m venv venv
-source venv/bin/activate
-
+# Install
+git clone https://github.com/Video-Reason/VBVR-EvalKit.git && cd VBVR-EvalKit
+python -m venv venv && source venv/bin/activate
 pip install -e .
 
-# 2. Setup models
+# Setup a model
 bash setup/install_model.sh --model svd --validate
 
-# # 3. Organize your questions data (see format above)
-# mkdir -p ~/my_research/questions
-
-# 4. Run inference
+# Inference
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
-python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model LTX-2
-# 5. Run evaluation  
-# Create eval_config.json first:
-echo '{"method": "human", "inference_dir": "~/my_research/outputs", "eval_output_dir": "~/my_research/evaluations"}' > eval_config.json
-python examples/score_videos.py --eval-config eval_config.json
+
+# Evaluation (VBVR-Bench)
+python examples/score_videos.py --inference-dir ./outputs
 ```
 
-## API Keys
+## Evaluation
 
-Set in `.env` file:
+VBVR-Bench matches each task to a rule-based evaluator by the **generator name** in the directory path. The evaluator needs both the generated video and reference data side by side:
+
+```
+{model}/{generator_name}/{task_type}/{task_id}/{run_id}/
+    ├── video/output.mp4          # generated video
+    └── question/                 # reference data
+        ├── first_frame.png
+        ├── final_frame.png
+        ├── prompt.txt
+        └── ground_truth.mp4     # optional
+```
+
+```bash
+python examples/score_videos.py --inference-dir ./outputs           # task_specific score only
+python examples/score_videos.py --inference-dir ./outputs --full-score  # all 5 dimensions
+```
+
+See [docs/En/SCORING.md](docs/En/SCORING.md) for the full end-to-end workflow, scoring dimensions, output format, and CLI reference.
+
+## API Keys (Inference Only)
+
 ```bash
 cp env.template .env
-# Edit .env with your API keys:
-# LUMA_API_KEY=...
-# OPENAI_API_KEY=...
-# GEMINI_API_KEY=...
-# KLING_API_KEY=...
-# RUNWAYML_API_SECRET=...
+# LUMA_API_KEY=... OPENAI_API_KEY=... GEMINI_API_KEY=... KLING_API_KEY=... RUNWAYML_API_SECRET=...
 ```
 
-## Adding Models
+## Docs
 
-```python
-# Inherit from ModelWrapper
-from vmevalkit.models.base import ModelWrapper
-
-class MyModelWrapper(ModelWrapper):
-    def generate(self, image_path, text_prompt, **kwargs):
-        # Your inference logic
-        return {"success": True, "video_path": "...", ...}
-```
-
-Register in `vmevalkit/runner/MODEL_CATALOG.py`:
-```python
-"my-model": {
-    "wrapper_module": "vmevalkit.models.my_model_inference",
-    "wrapper_class": "MyModelWrapper", 
-    "family": "MyCompany"
-}
-```
+| Topic | Link |
+|-------|------|
+| Scoring (VBVR-Bench) | [docs/SCORING.md](docs/SCORING.md) |
+| Inference | [docs/INFERENCE.md](docs/INFERENCE.md) |
+| Supported Models | [docs/MODELS.md](docs/MODELS.md) |
+| Adding Models | [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) |
+| End-to-End Workflow | [docs/DATA_GENERATOR.md](docs/DATA_GENERATOR.md) |
+| FAQ | [docs/FAQ.md](docs/FAQ.md) |
+| Project Structure | [docs/INDEX.md](docs/INDEX.md) |
 
 ## License
 

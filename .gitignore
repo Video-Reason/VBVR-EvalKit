@@ -217,11 +217,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# VMEvalKit outputs and data
+# VBVR-EvalKit outputs and data
 outputs/
 deprecated/
 
-# VMEvalKit data folder - ignore large datasets but keep scripts and logging
+# VBVR-EvalKit data folder - ignore large datasets but keep scripts and logging
 data/questions/*
 !data/questions/test_task/
 data/outputs/

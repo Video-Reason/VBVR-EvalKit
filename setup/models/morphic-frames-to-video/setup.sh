@@ -35,12 +35,12 @@ pip install -q decord==0.6.0
 # Install from requirements.txt (respects version ranges from original)
 pip install -q -r "${SUBMODULES_DIR}/morphic-frames-to-video/requirements.txt"
 
-# Additional utilities for VMEvalKit validation and runtime
+# Additional utilities for VBVR-EvalKit validation and runtime
 pip install -q Pillow==10.4.0
 pip install -q pydantic==2.12.5 pydantic-settings==2.12.0 python-dotenv==1.2.1
 pip install -q requests==2.32.5 httpx==0.28.1
 # Note: This version conflicts with transformers 4.51.3's preference (>=0.30.0)
-# but is pinned for VMEvalKit consistency. The warning is non-critical.
+# but is pinned for VBVR-EvalKit consistency. The warning is non-critical.
 pip install -q "huggingface_hub[cli]>=0.26.2"
 
 print_section "Checkpoints"

@@ -1,16 +1,16 @@
-# 图片 Resize 策略
+# Image Resize Strategy
 
-## 问题
+## Problem
 
-Wan 等 diffusion pipeline 要求 `height` 和 `width` 必须能被 `mod_value`（通常为 16）整除，否则报错。
+Diffusion pipelines like Wan require `height` and `width` to be divisible by `mod_value` (typically 16), otherwise they error out.
 
-## 两条路径
+## Two Paths
 
-`WanService.generate_video` 中有两条 resize 路径：
+`WanService.generate_video` has two resize paths:
 
-### 1. Ground-truth 路径（传了 height/width）
+### 1. Ground-truth Path (height/width provided)
 
-保留原始分辨率，仅对齐到 `mod_value`：
+Preserves the original resolution, only aligns to `mod_value`:
 
 ```python
 mod_value = vae_scale_factor_spatial * patch_size[1]
@@ -19,19 +19,22 @@ width = round(width / mod_value) * mod_value
 image = image.resize((width, height))
 ```
 
-尺寸变化很小（最多 ±8 像素），保持原图比例和大小。
+Size change is minimal (at most +/-8 pixels), preserving the original aspect ratio and dimensions.
 
-### 2. Aspect-ratio 路径（没传 height/width）
+### 2. Aspect-ratio Path (no height/width provided)
 
-按 `max_area`（默认 720×1280 = 921600）重新计算尺寸：
+Recalculates dimensions based on `max_area` (default 720x1280 = 921600):
 
 ```python
 height = round(sqrt(max_area * aspect_ratio)) // mod_value * mod_value
 width  = round(sqrt(max_area / aspect_ratio)) // mod_value * mod_value
 ```
 
-输出面积总是 ≈ `max_area`，不管原图大小。自动对齐到 `mod_value`。
+Output area is always approximately `max_area`, regardless of original image size. Automatically aligned to `mod_value`.
 
-## 选择逻辑
+## Selection Logic
 
-| 条件 | 路径 | 效
+| Condition | Path | Effect |
+|-----------|------|--------|
+| Caller provides height/width | ground-truth | Preserves original resolution + alignment |
+| No height/width provided | aspect-ratio | Scales to max_area + alignment |

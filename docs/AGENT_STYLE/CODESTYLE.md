@@ -1,11 +1,11 @@
-# 代码风格
+# Code Style
 
-- 不要用 `sys.exit(1)`，用 raise 或 return。
-- 不要用 `sys.path.append`，包通过 `pip install -e .` 安装。
+- Do not use `sys.exit(1)` — use `raise` or `return` instead.
+- Do not use `sys.path.append` — the package is installed via `pip install -e .`.
 
-## 图片加载
+## Image Loading
 
-所有 model wrapper 统一使用 `vbvrevalkit.utils.image.load_image_rgb(path)` 加载图片并转 RGB，不要在每个 wrapper 里重复写 `Image.open(...).convert("RGB")`。
+All model wrappers must use `vbvrevalkit.utils.image.load_image_rgb(path)` to load images and convert to RGB. Do not write `Image.open(...).convert("RGB")` in each wrapper.
 
 ```python
 from vbvrevalkit.utils.image import load_image_rgb
@@ -13,8 +13,8 @@ from vbvrevalkit.utils.image import load_image_rgb
 image = load_image_rgb(image_path)
 ```
 
-例外：如果需要 `with Image.open() as img:` 管理文件句柄（如 openai_inference.py 的 pad 逻辑），保留原写法。
+Exception: if you need `with Image.open() as img:` to manage the file handle (e.g., padding logic in `openai_inference.py`), keep the original approach.
 
-## utils 模块
+## Utils Module
 
-`vbvrevalkit/utils/__init__.py` 使用 `__getattr__` 懒加载重依赖（如 boto3 的 S3ImageUploader），避免在模型 venv 中拉入不必要的依赖。轻量工具（如 `load_image_rgb`）直接 import。
+`vbvrevalkit/utils/__init__.py` uses `__getattr__` to lazy-load heavy dependencies (e.g., boto3's `S3ImageUploader`), avoiding pulling unnecessary dependencies into model venvs. Lightweight utilities (e.g., `load_image_rgb`) are imported directly.

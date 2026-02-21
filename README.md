@@ -1,77 +1,32 @@
-<div align="center">
-
-<img src="assets/logo.png" alt="VBVR Logo" width="160">
-
 # VBVR-EvalKit
 
-**The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/)**
+The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). Unified inference and evaluation across 37 video generation models.
 
-Unified inference and evaluation across 37 video generation models.
-
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
-[![Models](https://img.shields.io/badge/Models-37-green.svg)](docs/MODELS.md)
-[![Evaluators](https://img.shields.io/badge/Evaluators-100%2B-orange.svg)](docs/SCORING.md)
-
-</div>
-
----
-
-<table>
-<tr>
-<td width="33%" valign="top">
-
-### Commercial APIs
-Luma · Veo · Kling · Sora · Runway
-<br><sub>19 models, instant setup</sub>
-
-</td>
-<td width="33%" valign="top">
-
-### Open-Source
-LTX-Video · LTX-2 · HunyuanVideo · SVD · WAN · CogVideoX
-<br><sub>18 models, local GPU</sub>
-
-</td>
-<td width="33%" valign="top">
-
-### VBVR-Bench
-100+ rule-based evaluators
-<br><sub>Deterministic 0-1 scores, no API calls</sub>
-
-</td>
-</tr>
-</table>
-
-> **Coming Soon** — Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4O, InternVL, Qwen3-VL)
-
----
+- **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) and open-source models (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, and more)
+- **VBVR-Bench**: 100+ rule-based evaluators with deterministic 0–1 scores and no API calls
+- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4o, InternVL, Qwen3-VL)
 
 ## Quick Start
 
 ```bash
+# Install
 git clone https://github.com/Video-Reason/VBVR-EvalKit.git && cd VBVR-EvalKit
 python -m venv venv && source venv/bin/activate
 pip install -e .
-```
 
-**Generate videos** with any supported model:
-```bash
+# Setup a model
 bash setup/install_model.sh --model svd --validate
+
+# Inference
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
-```
 
-**Evaluate** with VBVR-Bench:
-```bash
+# Evaluation (VBVR-Bench)
 python examples/score_videos.py --inference-dir ./outputs
-python examples/score_videos.py --inference-dir ./outputs --full-score   # all 5 dimensions
 ```
-
----
 
 ## Evaluation
 
-VBVR-Bench matches each task to a rule-based evaluator by the **generator name** in the directory path. The evaluator reads both the generated video and reference data:
+VBVR-Bench matches each task to a rule-based evaluator by the **generator name** in the directory path. The evaluator needs both the generated video and reference data side by side:
 
 ```
 {model}/{generator_name}/{task_type}/{task_id}/{run_id}/
@@ -83,56 +38,45 @@ VBVR-Bench matches each task to a rule-based evaluator by the **generator name**
         └── ground_truth.mp4     # optional
 ```
 
-<details>
-<summary><b>Scoring dimensions</b></summary>
-<br>
+```bash
+python examples/score_videos.py --inference-dir ./outputs           # task_specific score only
+python examples/score_videos.py --inference-dir ./outputs --full-score  # all 5 dimensions
+```
 
-| Dimension | Weight | Description |
-|:--|:--:|:--|
-| `task_specific` | 25 % | Task-specific reasoning logic |
-| `final_frame_accuracy` | 35 % | Does the final frame match the expected result? |
-| `first_frame_consistency` | 15 % | Does the first frame match the input image? |
-| `temporal_smoothness` | 15 % | Are frame transitions smooth? |
-| `visual_quality` | 10 % | Sharpness and noise levels |
+See [docs/En/SCORING.md](docs/En/SCORING.md) for the full end-to-end workflow, scoring dimensions, output format, and CLI reference.
 
-</details>
-
-See [docs/SCORING.md](docs/SCORING.md) for the full end-to-end workflow, output format, and CLI reference.
-
----
-
-## API Keys
-
-Only needed for commercial model inference.
+## API Keys (Inference Only)
 
 ```bash
 cp env.template .env
+# LUMA_API_KEY=... OPENAI_API_KEY=... GEMINI_API_KEY=... KLING_API_KEY=... RUNWAYML_API_SECRET=...
 ```
 
-```env
-LUMA_API_KEY=...
-OPENAI_API_KEY=...
-GEMINI_API_KEY=...
-KLING_API_KEY=...
-RUNWAYML_API_SECRET=...
+## Docs
+
+| Topic | Link |
+|-------|------|
+| Scoring (VBVR-Bench) | [docs/SCORING.md](docs/SCORING.md) |
+| Inference | [docs/INFERENCE.md](docs/INFERENCE.md) |
+| Supported Models | [docs/MODELS.md](docs/MODELS.md) |
+| Adding Models | [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) |
+| End-to-End Workflow | [docs/DATA_GENERATOR.md](docs/DATA_GENERATOR.md) |
+| FAQ | [docs/FAQ.md](docs/FAQ.md) |
+
+## Citation
+
+```bibtex
+@article{vbvr2026,
+  title={A Very Big Video Reasoning Suite},
+  author={Wang, Maijunxian and Wang, Ruisi and Lin, Juyi and Ji, Ran and Wiedemer, Thaddäus and Gao, Qingying and Luo, Dezhi and Qian, Yaoyao and Huang, Lianyu and Hong, Zelong and Ge, Jiahui and Ma, Qianli and He, Hang and Zhou, Yifan and Guo, Lingzi and Mei, Lantao and Li, Jiachen and Xing, Hanwen and Zhao, Tianqi and Yu, Fengyuan and Xiao, Weihang and Jiao, Yizheng and Hou, Jianheng and Zhang, Danyang and Xu, Pengcheng and Zhong, Boyang and Zhao, Zehong and Fang, Gaoyun and Kitaoka, John and Xu, Yile and Xu, Hua and Blacutt, Kenton and Nguyen, Tin and Song, Siyuan and Sun, Haoran and Wen, Shaoyue and He, Linyang and Wang, Runming and Wang, Yanzhi and Yang, Mengyue and Ma, Ziqiao and Millière, Raphaël and Shi, Freda and Vasconcelos, Nuno and Khashabi, Daniel and Yuille, Alan and Du, Yilun and Liu, Ziming and Lin, Dahua and Liu, Ziwei and Kumar, Vikash and Li, Yijiang and Yang, Lei and Cai, Zhongang and Deng, Hokin},
+  year={2026}
+}
 ```
 
----
+## License
 
-## Documentation
+Apache 2.0
 
-| | Topic | |
-|:--|:--|:--|
-| **Eval** | [Scoring (VBVR-Bench)](docs/SCORING.md) | Evaluators, dimensions, output format |
-| **Run** | [Inference](docs/INFERENCE.md) | Running models end-to-end |
-| **Models** | [Supported Models](docs/MODELS.md) | All 37 models with setup commands |
-| **Extend** | [Adding Models](docs/ADDING_MODELS.md) | Integrate your own model |
-| **Data** | [End-to-End Workflow](docs/DATA_GENERATOR.md) | Question generation pipeline |
-| **Help** | [FAQ](docs/FAQ.md) | Common issues and solutions |
-| **Map** | [Project Structure](docs/INDEX.md) | Codebase layout |
-
----
-
-<div align="center">
-<sub>Apache 2.0 · <a href="https://video-reason.com/">video-reason.com</a></sub>
-</div>
+<p align="center">
+  <img src="assets/logo.png" alt="VBVR Logo" width="200">
+</p>

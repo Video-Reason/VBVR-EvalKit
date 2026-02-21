@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/logo.png" alt="VBVR Logo" width="200">
-</p>
-
 <h1 align="center">VBVR-EvalKit</h1>
 
 <p align="center">
@@ -61,16 +57,17 @@ cp env.template .env
 
 ## Docs
 
-| Topic | Link |
-|-------|------|
-| Scoring (VBVR-Bench) | [docs/SCORING.md](docs/SCORING.md) |
-| Inference | [docs/INFERENCE.md](docs/INFERENCE.md) |
-| Supported Models | [docs/MODELS.md](docs/MODELS.md) |
-| Adding Models | [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) |
-| End-to-End Workflow | [docs/DATA_GENERATOR.md](docs/DATA_GENERATOR.md) |
-| FAQ | [docs/FAQ.md](docs/FAQ.md) |
-| Project Structure | [docs/INDEX.md](docs/INDEX.md) |
+- [Scoring (VBVR-Bench)](docs/SCORING.md)
+- [Inference](docs/INFERENCE.md)
+- [Supported Models](docs/MODELS.md)
+- [Adding Models](docs/ADDING_MODELS.md)
+- [End-to-End Workflow](docs/DATA_GENERATOR.md)
+- [FAQ](docs/FAQ.md)
 
 ## License
 
 Apache 2.0
+
+<p align="center">
+  <img src="assets/logo.png" alt="VBVR Logo" width="200">
+</p>

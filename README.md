@@ -1,7 +1,6 @@
 # VBVR-EvalKit
 
-**The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/).**  
-Unified inference and evaluation across 37 video generation models.
+The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). Unified inference and evaluation across 37 video generation models.
 
 - **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) and open-source models (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, and more)
 - **VBVR-Bench**: 100+ rule-based evaluators with deterministic 0–1 scores and no API calls

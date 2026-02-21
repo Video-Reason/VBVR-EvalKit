@@ -72,92 +72,74 @@ class BaseEvaluator(ABC):
             'details': {}
         }
         
-        try:
-            # Load videos and frames
-            video_frames = self._load_video_frames(eval_info['video_path'])
-            gt_first_frame = self._load_gt_first_frame(eval_info)
-            gt_final_frame = self._load_gt_final_frame(eval_info)
-            gt_frames = self._load_gt_video_frames(eval_info)
-            
-            # Get GT video info for reference
-            gt_video_path = eval_info.get('gt_video_path')
-            if gt_video_path and os.path.exists(gt_video_path):
-                gt_info = get_video_info(gt_video_path)
-                result['details']['gt_frame_count'] = gt_info['frame_count']
-            
-            result['details']['video_frame_count'] = len(video_frames)
-            
-            # CRITICAL: Normalize video frames to match GT frame size
-            # This handles different video resolutions (e.g., 720x1280 vs 1024x1024)
-            target_frame = gt_first_frame if gt_first_frame is not None else gt_final_frame
-            if target_frame is not None and len(video_frames) > 0:
-                if video_frames[0].shape != target_frame.shape:
-                    result['details']['frame_normalization'] = f'{video_frames[0].shape} -> {target_frame.shape}'
-                    video_frames = [normalize_frame_size(f, target_frame) for f in video_frames]
-                    # Also normalize GT frames if loaded
-                    if gt_frames and len(gt_frames) > 0:
-                        gt_frames = [normalize_frame_size(f, target_frame) for f in gt_frames]
-            
-            # Compute dimension scores using STANDARD dimension names
-            # These names MUST match DEFAULT_WEIGHTS keys
-            dimensions = {}
-            
-            # 1. First frame consistency (weight: 0.15)
-            if gt_first_frame is not None and len(video_frames) > 0:
-                dimensions['first_frame_consistency'] = self._evaluate_first_frame(
-                    video_frames[0], gt_first_frame
-                )
-            else:
-                dimensions['first_frame_consistency'] = 0.5  # Default if no GT
-            
-            # 2. Final frame accuracy (weight: 0.35)
-            if gt_final_frame is not None and len(video_frames) > 0:
-                dimensions['final_frame_accuracy'] = self._evaluate_final_frame(
-                    video_frames[-1], gt_final_frame
-                )
-            else:
-                dimensions['final_frame_accuracy'] = 0.0  # No GT means we can't evaluate
-            
-            # 3. Temporal smoothness (weight: 0.15)
-            if len(video_frames) > 1:
-                dimensions['temporal_smoothness'] = self._evaluate_temporal_smoothness(
-                    video_frames
-                )
-            else:
-                dimensions['temporal_smoothness'] = 0.5  # Default for single frame
-            
-            # 4. Visual quality (weight: 0.10)
-            if len(video_frames) > 0:
-                dimensions['visual_quality'] = self._evaluate_visual_quality(
-                    video_frames
-                )
-            else:
-                dimensions['visual_quality'] = 0.0
-            
-            # 5. Task-specific evaluation (weight: 0.25)
-            task_score = self._evaluate_task_specific(
-                video_frames, gt_frames, gt_first_frame, gt_final_frame, eval_info
+        video_frames = self._load_video_frames(eval_info['video_path'])
+        gt_first_frame = self._load_gt_first_frame(eval_info)
+        gt_final_frame = self._load_gt_final_frame(eval_info)
+        gt_frames = self._load_gt_video_frames(eval_info)
+        
+        gt_video_path = eval_info.get('gt_video_path')
+        if gt_video_path and os.path.exists(gt_video_path):
+            gt_info = get_video_info(gt_video_path)
+            result['details']['gt_frame_count'] = gt_info['frame_count']
+        
+        result['details']['video_frame_count'] = len(video_frames)
+        
+        # Normalize video frames to match GT frame size
+        # This handles different video resolutions (e.g., 720x1280 vs 1024x1024)
+        target_frame = gt_first_frame if gt_first_frame is not None else gt_final_frame
+        if target_frame is not None and len(video_frames) > 0:
+            if video_frames[0].shape != target_frame.shape:
+                result['details']['frame_normalization'] = f'{video_frames[0].shape} -> {target_frame.shape}'
+                video_frames = [normalize_frame_size(f, target_frame) for f in video_frames]
+                if gt_frames and len(gt_frames) > 0:
+                    gt_frames = [normalize_frame_size(f, target_frame) for f in gt_frames]
+        
+        dimensions = {}
+        
+        if gt_first_frame is not None and len(video_frames) > 0:
+            dimensions['first_frame_consistency'] = self._evaluate_first_frame(
+                video_frames[0], gt_first_frame
             )
-            # SAFETY: Clamp task score to [0, 1] range
-            task_score = max(0.0, min(1.0, task_score))
-            dimensions['task_specific'] = task_score
+        else:
+            dimensions['first_frame_consistency'] = 0.5
+        
+        if gt_final_frame is not None and len(video_frames) > 0:
+            dimensions['final_frame_accuracy'] = self._evaluate_final_frame(
+                video_frames[-1], gt_final_frame
+            )
+        else:
+            dimensions['final_frame_accuracy'] = 0.0
+        
+        if len(video_frames) > 1:
+            dimensions['temporal_smoothness'] = self._evaluate_temporal_smoothness(
+                video_frames
+            )
+        else:
+            dimensions['temporal_smoothness'] = 0.5
+        
+        if len(video_frames) > 0:
+            dimensions['visual_quality'] = self._evaluate_visual_quality(
+                video_frames
+            )
+        else:
+            dimensions['visual_quality'] = 0.0
+        
+        task_score = self._evaluate_task_specific(
+            video_frames, gt_frames, gt_first_frame, gt_final_frame, eval_info
+        )
+        task_score = max(0.0, min(1.0, task_score))
+        dimensions['task_specific'] = task_score
 
-            if hasattr(self, '_last_task_details'):
-                result['details']['task_specific_details'] = self._last_task_details
+        if hasattr(self, '_last_task_details'):
+            result['details']['task_specific_details'] = self._last_task_details
 
-            # Optionally focus on task-specific score only
-            if kwargs.get('task_specific_only'):
-                result['dimensions'] = {'task_specific': task_score}
-                result['score'] = task_score
-                result['details']['task_specific_only'] = True
-            else:
-                # Calculate weighted overall score using standard weights
-                result['dimensions'] = dimensions
-                result['score'] = self._calculate_overall_score(dimensions)
-            
-        except Exception as e:
-            result['error'] = str(e)
-            result['score'] = 0.0
+        if kwargs.get('task_specific_only'):
+            result['dimensions'] = {'task_specific': task_score}
+            result['score'] = task_score
+            result['details']['task_specific_only'] = True
+        else:
+            result['dimensions'] = dimensions
+            result['score'] = self._calculate_overall_score(dimensions)
         
         return result
     

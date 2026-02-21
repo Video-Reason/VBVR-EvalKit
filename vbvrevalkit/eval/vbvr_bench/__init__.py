@@ -226,16 +226,7 @@ class VBVRBench:
             # Get appropriate evaluator for this task
             evaluator = get_evaluator(task_name, self.device)
             
-            # Run evaluation
-            try:
-                video_result = evaluator.evaluate(eval_info, **kwargs)
-            except Exception as e:
-                print(f"Error evaluating {eval_info['video_path']}: {e}")
-                video_result = {
-                    'score': 0.0,
-                    'error': str(e),
-                    'dimensions': {}
-                }
+            video_result = evaluator.evaluate(eval_info, **kwargs)
             
             # Add metadata
             video_result['video_path'] = eval_info['video_path']

@@ -8,220 +8,180 @@ Each evaluator implements rule-based evaluation following documented criteria.
 from typing import Dict, Any, Optional
 from .base_evaluator import BaseEvaluator
 
-# Import specialized Hidden_40 evaluators (Part 1)
-from .hidden40_evaluators import (
-    MultipleKeysForOneDoorEvaluator,
-    SelectNextFigureAlternatingEvaluator,
-    LocatePointInOverlappingAreaEvaluator,
-    LocateTopmostFigureEvaluator as Hidden40LocateTopmostFigureEvaluator,
-    IdentifyUniqueFigureEvaluator as Hidden40IdentifyUniqueFigureEvaluator,
-    CircleLargestNumericalValueEvaluator as Hidden40CircleLargestEvaluator,
-    MarkSecondLargestShapeEvaluator as Hidden40MarkSecondLargestEvaluator,
-    SelectLongestPolygonSideEvaluator as Hidden40SelectLongestSideEvaluator,
-    ArrangeCirclesByCircumferenceEvaluator as Hidden40ArrangeCirclesEvaluator,
-    DrawNextSizedShapeEvaluator as Hidden40DrawNextShapeEvaluator,
-)
-
-# Import specialized Hidden_40 evaluators (Part 2)
-from .hidden40_evaluators_part2 import (
-    MarkWavePeaksEvaluator,
-    FindIncorrectArrowDirectionEvaluator,
-    CircleCentralDotEvaluator,
-    IdentifyLargestAngleEvaluator,
-    SelectLeftmostShapeEvaluator,
-    OutlineInnermostSquareEvaluator,
-    AddBordersToUnborderedEvaluator,
-    IdentifyChineseCharacterEvaluator,
-    MarkAsymmetricalShapeEvaluator,
-    HighDensityLiquidEvaluator,
-)
-
-# Import specialized Hidden_40 evaluators (Part 3)
-from .hidden40_evaluators_part3 import (
-    PigmentColorMixingEvaluator as Hidden40PigmentMixingEvaluator,
-    SymbolDeletionEvaluator as Hidden40SymbolDeletionEvaluator,
-    GeometricTransformationEvaluator as Hidden40GeometricTransformEvaluator,
-    ShapeScalingAnalogyEvaluator as Hidden40ShapeScalingEvaluator,
-    ShapeColorThenMoveEvaluator as Hidden40ShapeColorMoveEvaluator,
-    ConstructionStackEvaluator as Hidden40ConstructionStackEvaluator,
-    MazePathfindingEvaluator as Hidden40MazeEvaluator,
-    ObjectSubtractionEvaluator as Hidden40ObjectSubtractionEvaluator,
-    ShapeSorterEvaluator as Hidden40ShapeSorterEvaluator,
-    SymmetryCompletionEvaluator as Hidden40SymmetryEvaluator,
-)
-
-# Import specialized Hidden_40 evaluators (Part 4)
-from .hidden40_evaluators_part4 import (
-    ControlPanelEvaluator as Hidden40ControlPanelEvaluator,
-    RavenMatrixEvaluator as Hidden40RavenMatrixEvaluator,
-    SymbolDeleteEvaluator as Hidden40SymbolDeleteEvaluator,
-    SymbolInsertEvaluator as Hidden40SymbolInsertEvaluator,
-    SymbolSubstituteEvaluator as Hidden40SymbolSubstituteEvaluator,
-    SymbolEditConstraintEvaluator as Hidden40SymbolEditEvaluator,
-    GravityPhysicsEvaluator as Hidden40GravityPhysicsEvaluator,
-    AnimalMatchingEvaluator as Hidden40AnimalMatchingEvaluator,
-    AnimalSizeSortingEvaluator as Hidden40AnimalSizeSortingEvaluator,
-    ObjectRotation2DEvaluator as Hidden40ObjectRotation2DEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 1)
-from .open60_evaluators import (
-    StableSortEvaluator as Open60StableSortEvaluator,
-    MultiObjectPlacementEvaluator as Open60MultiObjectPlacementEvaluator,
-    TrackObjectMovementEvaluator as Open60TrackObjectMovementEvaluator,
-    IdentifyObjectsInRegionEvaluator as Open60IdentifyObjectsInRegionEvaluator,
-    GridNumberSequenceEvaluator as Open60GridNumberSequenceEvaluator,
-    GridAvoidObstaclesEvaluator as Open60GridAvoidObstaclesEvaluator,
-    GridGoThroughBlockEvaluator as Open60GridGoThroughBlockEvaluator,
-    SeparateObjectsNoSpinEvaluator as Open60SeparateObjectsNoSpinEvaluator,
-    GridShortestPathEvaluator as Open60GridShortestPathEvaluator,
-    MultipleOcclusionsVerticalEvaluator as Open60MultipleOcclusionsEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 2)
-from .open60_evaluators_part2 import (
-    SeparateObjectsSpinningEvaluator as Open60SeparateObjectsSpinningEvaluator,
-    ChartExtremeEvaluator as Open60ChartExtremeEvaluator,
-    DirectedGraphNavigationEvaluator as Open60DirectedGraphNavigationEvaluator,
-    AttentionShiftEvaluator as Open60AttentionShiftEvaluator,
-    GridHighestCostEvaluator as Open60GridHighestCostEvaluator,
-    UnderstandSceneStructureEvaluator as Open60UnderstandSceneStructureEvaluator,
-    KeyDoorMatchingEvaluator as Open60KeyDoorMatchingEvaluator,
-    PredictNextColorEvaluator as Open60PredictNextColorEvaluator,
-    ConnectingColorEvaluator as Open60ConnectingColorEvaluator,
-    SelectNextFigureIncreasingEvaluator as Open60SelectNextFigureIncreasingEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 3)
-from .open60_evaluators_part3 import (
-    SelectNextFigureLargeSmallEvaluator as Open60SelectNextFigureLargeSmallEvaluator,
-    SpotUniqueColorEvaluator as Open60SpotUniqueColorEvaluator,
-    IdentifyAllHollowPointsEvaluator as Open60IdentifyAllHollowPointsEvaluator,
-    IdentifyNearestSquareRectangleEvaluator as Open60IdentifyNearestSquareRectangleEvaluator,
-    LocateSegmentIntersectionEvaluator as Open60LocateSegmentIntersectionEvaluator,
-    DrawMidpointPerpendicularEvaluator as Open60DrawMidpointPerpendicularEvaluator,
-    ConstructConcentricRingEvaluator as Open60ConstructConcentricRingEvaluator,
-    IdentifyPentagonsEvaluator as Open60IdentifyPentagonsEvaluator,
-    MarkTangentPointEvaluator as Open60MarkTangentPointEvaluator,
-    HighlightHorizontalLinesEvaluator as Open60HighlightHorizontalLinesEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 4)
-from .open60_evaluators_part4 import (
-    ColorTripleIntersectionEvaluator as Open60ColorTripleIntersectionEvaluator,
-    ShapeOutlineFillEvaluator as Open60ShapeOutlineFillEvaluator,
-    ShapeColorThenScaleEvaluator as Open60ShapeColorThenScaleEvaluator,
-    ShapeOutlineThenMoveEvaluator as Open60ShapeOutlineThenMoveEvaluator,
-    ShapeScaleThenOutlineEvaluator as Open60ShapeScaleThenOutlineEvaluator,
-    BallBounceEvaluator as Open60BallBounceEvaluator,
-    ColorAdditionEvaluator as Open60ColorAdditionEvaluator,
-    ConstructionBlueprintEvaluator as Open60ConstructionBlueprintEvaluator,
-    GlassRefractionEvaluator as Open60GlassRefractionEvaluator,
-    MirrorReflectionEvaluator as Open60MirrorReflectionEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 5)
-from .open60_evaluators_part5 import (
-    DominoChainBranchEvaluator as Open60DominoChainBranchEvaluator,
-    DominoChainGapEvaluator as Open60DominoChainGapEvaluator,
-    LEGOConstructionEvaluator as Open60LEGOConstructionEvaluator,
-    MoveObjectsToTargetEvaluator as Open60MoveObjectsToTargetEvaluator,
-    BallColorEvaluator as Open60BallColorEvaluator,
-    BookshelfEvaluator as Open60BookshelfEvaluator,
-    BallEatingEvaluator as Open60BallEatingEvaluator,
-    RollingBallEvaluator as Open60RollingBallEvaluator,
-    CountingObjectEvaluator as Open60CountingObjectEvaluator,
-    DotToDotEvaluator as Open60DotToDotEvaluator,
-)
-
-# Import specialized Open_60 evaluators (Part 6)
-from .open60_evaluators_part6 import (
-    GridShiftEvaluator as Open60GridShiftEvaluator,
-    LightSequenceEvaluator as Open60LightSequenceEvaluator,
-    MajorityColorEvaluator as Open60MajorityColorEvaluator,
-    RotationPuzzleEvaluator as Open60RotationPuzzleEvaluator,
-    SequenceCompletionEvaluator as Open60SequenceCompletionEvaluator,
-    SlidingPuzzleEvaluator as Open60SlidingPuzzleEvaluator,
-    TrafficLightEvaluator as Open60TrafficLightEvaluator,
-    ClockTimeEvaluator as Open60ClockTimeEvaluator,
-    RotationEvaluator as Open60RotationEvaluator,
-    CommunicatingVesselsEvaluator as Open60CommunicatingVesselsEvaluator,
-)
+from .add_borders_to_unbordered import AddBordersToUnborderedEvaluator
+from .animal_matching import AnimalMatchingEvaluator
+from .animal_size_sorting import AnimalSizeSortingEvaluator
+from .arrange_circles_by_circumference import ArrangeCirclesByCircumferenceEvaluator
+from .attention_shift import AttentionShiftEvaluator
+from .ball_bounce import BallBounceEvaluator
+from .ball_color import BallColorEvaluator
+from .ball_eating import BallEatingEvaluator
+from .bookshelf import BookshelfEvaluator
+from .chart_extreme import ChartExtremeEvaluator
+from .circle_central_dot import CircleCentralDotEvaluator
+from .circle_largest_numerical_value import CircleLargestNumericalValueEvaluator
+from .clock_time import ClockTimeEvaluator
+from .color_addition import ColorAdditionEvaluator
+from .color_triple_intersection import ColorTripleIntersectionEvaluator
+from .communicating_vessels import CommunicatingVesselsEvaluator
+from .connecting_color import ConnectingColorEvaluator
+from .construct_concentric_ring import ConstructConcentricRingEvaluator
+from .construction_blueprint import ConstructionBlueprintEvaluator
+from .construction_stack import ConstructionStackEvaluator
+from .control_panel import ControlPanelEvaluator
+from .counting_object import CountingObjectEvaluator
+from .directed_graph_navigation import DirectedGraphNavigationEvaluator
+from .domino_chain_branch import DominoChainBranchEvaluator
+from .domino_chain_gap import DominoChainGapEvaluator
+from .dot_to_dot import DotToDotEvaluator
+from .draw_midpoint_perpendicular import DrawMidpointPerpendicularEvaluator
+from .draw_next_sized_shape import DrawNextSizedShapeEvaluator
+from .find_incorrect_arrow_direction import FindIncorrectArrowDirectionEvaluator
+from .geometric_transformation import GeometricTransformationEvaluator
+from .glass_refraction import GlassRefractionEvaluator
+from .gravity_physics import GravityPhysicsEvaluator
+from .grid_avoid_obstacles import GridAvoidObstaclesEvaluator
+from .grid_go_through_block import GridGoThroughBlockEvaluator
+from .grid_highest_cost import GridHighestCostEvaluator
+from .grid_number_sequence import GridNumberSequenceEvaluator
+from .grid_shift import GridShiftEvaluator
+from .grid_shortest_path import GridShortestPathEvaluator
+from .high_density_liquid import HighDensityLiquidEvaluator
+from .highlight_horizontal_lines import HighlightHorizontalLinesEvaluator
+from .identify_all_hollow_points import IdentifyAllHollowPointsEvaluator
+from .identify_chinese_character import IdentifyChineseCharacterEvaluator
+from .identify_largest_angle import IdentifyLargestAngleEvaluator
+from .identify_nearest_square_rectangle import IdentifyNearestSquareRectangleEvaluator
+from .identify_objects_in_region import IdentifyObjectsInRegionEvaluator
+from .identify_pentagons import IdentifyPentagonsEvaluator
+from .identify_unique_figure import IdentifyUniqueFigureEvaluator
+from .key_door_matching import KeyDoorMatchingEvaluator
+from .lego_construction import LEGOConstructionEvaluator
+from .light_sequence import LightSequenceEvaluator
+from .locate_point_in_overlapping_area import LocatePointInOverlappingAreaEvaluator
+from .locate_segment_intersection import LocateSegmentIntersectionEvaluator
+from .locate_topmost_figure import LocateTopmostFigureEvaluator
+from .majority_color import MajorityColorEvaluator
+from .mark_asymmetrical_shape import MarkAsymmetricalShapeEvaluator
+from .mark_second_largest_shape import MarkSecondLargestShapeEvaluator
+from .mark_tangent_point import MarkTangentPointEvaluator
+from .mark_wave_peaks import MarkWavePeaksEvaluator
+from .maze_pathfinding import MazePathfindingEvaluator
+from .mirror_reflection import MirrorReflectionEvaluator
+from .move_objects_to_target import MoveObjectsToTargetEvaluator
+from .multi_object_placement import MultiObjectPlacementEvaluator
+from .multiple_keys_for_one_door import MultipleKeysForOneDoorEvaluator
+from .multiple_occlusions_vertical import MultipleOcclusionsVerticalEvaluator
+from .object_rotation2_d import ObjectRotation2DEvaluator
+from .object_subtraction import ObjectSubtractionEvaluator
+from .outline_innermost_square import OutlineInnermostSquareEvaluator
+from .pigment_color_mixing import PigmentColorMixingEvaluator
+from .predict_next_color import PredictNextColorEvaluator
+from .raven_matrix import RavenMatrixEvaluator
+from .rolling_ball import RollingBallEvaluator
+from .rotation import RotationEvaluator
+from .rotation_puzzle import RotationPuzzleEvaluator
+from .select_leftmost_shape import SelectLeftmostShapeEvaluator
+from .select_longest_polygon_side import SelectLongestPolygonSideEvaluator
+from .select_next_figure_alternating import SelectNextFigureAlternatingEvaluator
+from .select_next_figure_increasing import SelectNextFigureIncreasingEvaluator
+from .select_next_figure_large_small import SelectNextFigureLargeSmallEvaluator
+from .separate_objects_no_spin import SeparateObjectsNoSpinEvaluator
+from .separate_objects_spinning import SeparateObjectsSpinningEvaluator
+from .sequence_completion import SequenceCompletionEvaluator
+from .shape_color_then_move import ShapeColorThenMoveEvaluator
+from .shape_color_then_scale import ShapeColorThenScaleEvaluator
+from .shape_outline_fill import ShapeOutlineFillEvaluator
+from .shape_outline_then_move import ShapeOutlineThenMoveEvaluator
+from .shape_scale_then_outline import ShapeScaleThenOutlineEvaluator
+from .shape_scaling_analogy import ShapeScalingAnalogyEvaluator
+from .shape_sorter import ShapeSorterEvaluator
+from .sliding_puzzle import SlidingPuzzleEvaluator
+from .spot_unique_color import SpotUniqueColorEvaluator
+from .stable_sort import StableSortEvaluator
+from .symbol_delete import SymbolDeleteEvaluator
+from .symbol_deletion import SymbolDeletionEvaluator
+from .symbol_edit_constraint import SymbolEditConstraintEvaluator
+from .symbol_insert import SymbolInsertEvaluator
+from .symbol_substitute import SymbolSubstituteEvaluator
+from .symmetry_completion import SymmetryCompletionEvaluator
+from .track_object_movement import TrackObjectMovementEvaluator
+from .traffic_light import TrafficLightEvaluator
+from .understand_scene_structure import UnderstandSceneStructureEvaluator
 
 
-# Task to evaluator mapping
 TASK_EVALUATOR_MAP = {
-    # Open_60 Tasks (60 tasks)
-    'G-3_stable_sort_data-generator': Open60StableSortEvaluator,
-    'G-13_grid_number_sequence_data-generator': Open60GridNumberSequenceEvaluator,
-    'G-15_grid_avoid_obstacles_data-generator': Open60GridAvoidObstaclesEvaluator,
-    'G-16_grid_go_through_block_data-generator': Open60GridGoThroughBlockEvaluator,
-    'G-18_grid_shortest_path_data-generator': Open60GridShortestPathEvaluator,
-    'G-31_directed_graph_navigation_data-generator': Open60DirectedGraphNavigationEvaluator,
-    'G-41_grid_highest_cost_data-generator': Open60GridHighestCostEvaluator,
-    'G-131_select_next_figure_increasing_size_sequence_data-generator': Open60SelectNextFigureIncreasingEvaluator,
-    'G-134_select_next_figure_large_small_alternating_sequence_data-generator': Open60SelectNextFigureLargeSmallEvaluator,
-    'G-51_predict_next_color_data-generator': Open60PredictNextColorEvaluator,
-    'G-138_spot_unique_non_repeated_color_data-generator': Open60SpotUniqueColorEvaluator,
-    'G-54_connecting_color_data-generator': Open60ConnectingColorEvaluator,
-    'G-250_color_triple_intersection_red_data-generator': Open60ColorTripleIntersectionEvaluator,
-    'G-158_identify_all_hollow_points_data-generator': Open60IdentifyAllHollowPointsEvaluator,
-    'G-168_identify_nearest_to_square_rectangle_data-generator': Open60IdentifyNearestSquareRectangleEvaluator,
-    'G-169_locate_intersection_of_segments_data-generator': Open60LocateSegmentIntersectionEvaluator,
-    'G-189_draw_midpoint_perpendicular_line_data-generator': Open60DrawMidpointPerpendicularEvaluator,
-    'G-194_construct_concentric_ring_data-generator': Open60ConstructConcentricRingEvaluator,
-    'G-206_identify_pentagons_data-generator': Open60IdentifyPentagonsEvaluator,
-    'G-21_multiple_occlusions_vertical_data-generator': Open60MultipleOcclusionsEvaluator,
-    'G-222_mark_tangent_point_of_circles_data-generator': Open60MarkTangentPointEvaluator,
-    'G-223_highlight_horizontal_lines_data-generator': Open60HighlightHorizontalLinesEvaluator,
-    'G-24_separate_objects_no_spin_data-generator': Open60SeparateObjectsNoSpinEvaluator,
-    'G-25_seperate_object_spinning_data-generator': Open60SeparateObjectsSpinningEvaluator,
-    'G-29_chart_extreme_with_data_data-generator': Open60ChartExtremeEvaluator,
-    'G-39_attention_shift_different_data-generator': Open60AttentionShiftEvaluator,
-    'G-43_understand_scene_structure_data-generator': Open60UnderstandSceneStructureEvaluator,
-    'G-45_key_door_matching_data-generator': Open60KeyDoorMatchingEvaluator,
-    'G-5_multi_object_placement_data-generator': Open60MultiObjectPlacementEvaluator,
-    'G-8_track_object_movement_data-generator': Open60TrackObjectMovementEvaluator,
-    'G-9_identify_objects_in_region_data-generator': Open60IdentifyObjectsInRegionEvaluator,
-    'O-10_shape_outline_fill_data-generator': Open60ShapeOutlineFillEvaluator,
-    'O-12_shape_color_then_scale_data-generator': Open60ShapeColorThenScaleEvaluator,
-    'O-13_shape_outline_then_move_data-generator': Open60ShapeOutlineThenMoveEvaluator,
-    'O-14_shape_scale_then_outline_data-generator': Open60ShapeScaleThenOutlineEvaluator,
-    'O-15_ball_bounces_given_time_data-generator': Open60BallBounceEvaluator,
-    'O-31_ball_eating_data-generator': Open60BallEatingEvaluator,
-    'O-32_rolling_ball_data-generator': Open60RollingBallEvaluator,
-    'O-75_communicating_vessels_data-generator': Open60CommunicatingVesselsEvaluator,
-    'O-16_color_addition_data-generator': Open60ColorAdditionEvaluator,
-    'O-29_ballcolor_data-generator': Open60BallColorEvaluator,
-    'O-38_majority_color_data-generator': Open60MajorityColorEvaluator,
-    'O-18_glass_refraction_data-generator': Open60GlassRefractionEvaluator,
-    'O-19_mirror_reflection_data-generator': Open60MirrorReflectionEvaluator,
-    'O-21_construction_blueprint_data-generator': Open60ConstructionBlueprintEvaluator,
-    'O-23_domino_chain_branch_path_prediction_data-generator': Open60DominoChainBranchEvaluator,
-    'O-24_domino_chain_gap_analysis_data-generator': Open60DominoChainGapEvaluator,
-    'O-25_LEGO_construction_assembly_data-generator': Open60LEGOConstructionEvaluator,
-    'O-27_move_2_object_to_2_target_data-generator': Open60MoveObjectsToTargetEvaluator,
-    'O-30_bookshelf_data-generator': Open60BookshelfEvaluator,
-    'O-33_counting_object_data-generator': Open60CountingObjectEvaluator,
-    'O-34_dot_to_dot_task_data-generator': Open60DotToDotEvaluator,
-    'O-36_grid_shift_data-generator': Open60GridShiftEvaluator,
-    'O-37_light_sequence_data-generator': Open60LightSequenceEvaluator,
-    'O-44_rotation_puzzle_data-generator': Open60RotationPuzzleEvaluator,
-    'O-45_sequence_completion_data-generator': Open60SequenceCompletionEvaluator,
-    'O-47_sliding_puzzle_data-generator': Open60SlidingPuzzleEvaluator,
-    'O-52_traffic_light_data-generator': Open60TrafficLightEvaluator,
-    'O-53_clock_data-generator': Open60ClockTimeEvaluator,
-    'O-55_rotation_data-generator': Open60RotationEvaluator,
-    
-    # Hidden_40 Tasks (40 tasks)
+    # Open_60 Tasks
+    'G-3_stable_sort_data-generator': StableSortEvaluator,
+    'G-13_grid_number_sequence_data-generator': GridNumberSequenceEvaluator,
+    'G-15_grid_avoid_obstacles_data-generator': GridAvoidObstaclesEvaluator,
+    'G-16_grid_go_through_block_data-generator': GridGoThroughBlockEvaluator,
+    'G-18_grid_shortest_path_data-generator': GridShortestPathEvaluator,
+    'G-31_directed_graph_navigation_data-generator': DirectedGraphNavigationEvaluator,
+    'G-41_grid_highest_cost_data-generator': GridHighestCostEvaluator,
+    'G-131_select_next_figure_increasing_size_sequence_data-generator': SelectNextFigureIncreasingEvaluator,
+    'G-134_select_next_figure_large_small_alternating_sequence_data-generator': SelectNextFigureLargeSmallEvaluator,
+    'G-51_predict_next_color_data-generator': PredictNextColorEvaluator,
+    'G-138_spot_unique_non_repeated_color_data-generator': SpotUniqueColorEvaluator,
+    'G-54_connecting_color_data-generator': ConnectingColorEvaluator,
+    'G-250_color_triple_intersection_red_data-generator': ColorTripleIntersectionEvaluator,
+    'G-158_identify_all_hollow_points_data-generator': IdentifyAllHollowPointsEvaluator,
+    'G-168_identify_nearest_to_square_rectangle_data-generator': IdentifyNearestSquareRectangleEvaluator,
+    'G-169_locate_intersection_of_segments_data-generator': LocateSegmentIntersectionEvaluator,
+    'G-189_draw_midpoint_perpendicular_line_data-generator': DrawMidpointPerpendicularEvaluator,
+    'G-194_construct_concentric_ring_data-generator': ConstructConcentricRingEvaluator,
+    'G-206_identify_pentagons_data-generator': IdentifyPentagonsEvaluator,
+    'G-21_multiple_occlusions_vertical_data-generator': MultipleOcclusionsVerticalEvaluator,
+    'G-222_mark_tangent_point_of_circles_data-generator': MarkTangentPointEvaluator,
+    'G-223_highlight_horizontal_lines_data-generator': HighlightHorizontalLinesEvaluator,
+    'G-24_separate_objects_no_spin_data-generator': SeparateObjectsNoSpinEvaluator,
+    'G-25_seperate_object_spinning_data-generator': SeparateObjectsSpinningEvaluator,
+    'G-29_chart_extreme_with_data_data-generator': ChartExtremeEvaluator,
+    'G-39_attention_shift_different_data-generator': AttentionShiftEvaluator,
+    'G-43_understand_scene_structure_data-generator': UnderstandSceneStructureEvaluator,
+    'G-45_key_door_matching_data-generator': KeyDoorMatchingEvaluator,
+    'G-5_multi_object_placement_data-generator': MultiObjectPlacementEvaluator,
+    'G-8_track_object_movement_data-generator': TrackObjectMovementEvaluator,
+    'G-9_identify_objects_in_region_data-generator': IdentifyObjectsInRegionEvaluator,
+    'O-10_shape_outline_fill_data-generator': ShapeOutlineFillEvaluator,
+    'O-12_shape_color_then_scale_data-generator': ShapeColorThenScaleEvaluator,
+    'O-13_shape_outline_then_move_data-generator': ShapeOutlineThenMoveEvaluator,
+    'O-14_shape_scale_then_outline_data-generator': ShapeScaleThenOutlineEvaluator,
+    'O-15_ball_bounces_given_time_data-generator': BallBounceEvaluator,
+    'O-31_ball_eating_data-generator': BallEatingEvaluator,
+    'O-32_rolling_ball_data-generator': RollingBallEvaluator,
+    'O-75_communicating_vessels_data-generator': CommunicatingVesselsEvaluator,
+    'O-16_color_addition_data-generator': ColorAdditionEvaluator,
+    'O-29_ballcolor_data-generator': BallColorEvaluator,
+    'O-38_majority_color_data-generator': MajorityColorEvaluator,
+    'O-18_glass_refraction_data-generator': GlassRefractionEvaluator,
+    'O-19_mirror_reflection_data-generator': MirrorReflectionEvaluator,
+    'O-21_construction_blueprint_data-generator': ConstructionBlueprintEvaluator,
+    'O-23_domino_chain_branch_path_prediction_data-generator': DominoChainBranchEvaluator,
+    'O-24_domino_chain_gap_analysis_data-generator': DominoChainGapEvaluator,
+    'O-25_LEGO_construction_assembly_data-generator': LEGOConstructionEvaluator,
+    'O-27_move_2_object_to_2_target_data-generator': MoveObjectsToTargetEvaluator,
+    'O-30_bookshelf_data-generator': BookshelfEvaluator,
+    'O-33_counting_object_data-generator': CountingObjectEvaluator,
+    'O-34_dot_to_dot_task_data-generator': DotToDotEvaluator,
+    'O-36_grid_shift_data-generator': GridShiftEvaluator,
+    'O-37_light_sequence_data-generator': LightSequenceEvaluator,
+    'O-44_rotation_puzzle_data-generator': RotationPuzzleEvaluator,
+    'O-45_sequence_completion_data-generator': SequenceCompletionEvaluator,
+    'O-47_sliding_puzzle_data-generator': SlidingPuzzleEvaluator,
+    'O-52_traffic_light_data-generator': TrafficLightEvaluator,
+    'O-53_clock_data-generator': ClockTimeEvaluator,
+    'O-55_rotation_data-generator': RotationEvaluator,
+
+    # Hidden_40 Tasks
     'G-135_select_next_figure_small_large_alternating_sequence_data-generator': SelectNextFigureAlternatingEvaluator,
-    'G-193_draw_next_sized_shape_data-generator': Hidden40DrawNextShapeEvaluator,
+    'G-193_draw_next_sized_shape_data-generator': DrawNextSizedShapeEvaluator,
     'G-136_locate_point_in_overlapping_area_data-generator': LocatePointInOverlappingAreaEvaluator,
-    'G-140_locate_topmost_unobscured_figure_data-generator': Hidden40LocateTopmostFigureEvaluator,
-    'G-147_identify_unique_figure_in_uniform_set_data-generator': Hidden40IdentifyUniqueFigureEvaluator,
-    'G-160_circle_largest_numerical_value_data-generator': Hidden40CircleLargestEvaluator,
-    'G-161_mark_second_largest_shape_data-generator': Hidden40MarkSecondLargestEvaluator,
-    'G-167_select_longest_polygon_side_data-generator': Hidden40SelectLongestSideEvaluator,
+    'G-140_locate_topmost_unobscured_figure_data-generator': LocateTopmostFigureEvaluator,
+    'G-147_identify_unique_figure_in_uniform_set_data-generator': IdentifyUniqueFigureEvaluator,
+    'G-160_circle_largest_numerical_value_data-generator': CircleLargestNumericalValueEvaluator,
+    'G-161_mark_second_largest_shape_data-generator': MarkSecondLargestShapeEvaluator,
+    'G-167_select_longest_polygon_side_data-generator': SelectLongestPolygonSideEvaluator,
     'G-202_mark_wave_peaks_data-generator': MarkWavePeaksEvaluator,
     'G-212_find_incorrect_arrow_direction_data-generator': FindIncorrectArrowDirectionEvaluator,
     'G-217_circle_central_dot_data-generator': CircleCentralDotEvaluator,
@@ -231,29 +191,29 @@ TASK_EVALUATOR_MAP = {
     'G-240_add_borders_to_unbordered_shapes_data-generator': AddBordersToUnborderedEvaluator,
     'G-247_identify_chinese_character_data-generator': IdentifyChineseCharacterEvaluator,
     'G-248_mark_asymmetrical_shape_data-generator': MarkAsymmetricalShapeEvaluator,
-    'G-174_arrange_circles_by_circumference_data-generator': Hidden40ArrangeCirclesEvaluator,
+    'G-174_arrange_circles_by_circumference_data-generator': ArrangeCirclesByCircumferenceEvaluator,
     'G-273_high_density_liquid_data-generator': HighDensityLiquidEvaluator,
     'G-47_multiple_keys_for_one_door_data-generator': MultipleKeysForOneDoorEvaluator,
-    'O-11_shape_color_then_move_data-generator': Hidden40ShapeColorMoveEvaluator,
-    'O-56_raven_data-generator': Hidden40RavenMatrixEvaluator,
-    'O-22_construction_stack_data-generator': Hidden40ConstructionStackEvaluator,
-    'O-2_pigment_color_mixing_subtractive_data-generator': Hidden40PigmentMixingEvaluator,
-    'O-39_maze_data-generator': Hidden40MazeEvaluator,
-    'O-43_object_subtraction_data-generator': Hidden40ObjectSubtractionEvaluator,
-    'O-46_shape_sorter_data-generator': Hidden40ShapeSorterEvaluator,
-    'O-49_symmetry_completion_data-generator': Hidden40SymmetryEvaluator,
-    'O-5_symbol_deletion_data-generator': Hidden40SymbolDeletionEvaluator,
-    'O-54_control_panel_data-generator': Hidden40ControlPanelEvaluator,
-    'O-58_symbol_delete_data-generator': Hidden40SymbolDeleteEvaluator,
-    'O-59_symbol_insert_data-generator': Hidden40SymbolInsertEvaluator,
-    'O-60_symbol_substitute_data-generator': Hidden40SymbolSubstituteEvaluator,
-    'O-61_symbol_edit_data-generator': Hidden40SymbolEditEvaluator,
-    'O-62_gravity_physics_data-generator': Hidden40GravityPhysicsEvaluator,
-    'O-64_animal_matching_data-generator': Hidden40AnimalMatchingEvaluator,
-    'O-65_animal_size_sorting_data-generator': Hidden40AnimalSizeSortingEvaluator,
-    'O-6_2d_geometric_transformation_data-generator': Hidden40GeometricTransformEvaluator,
-    'O-85_2d_object_rotation_data-generator': Hidden40ObjectRotation2DEvaluator,
-    'O-9_shape_scaling_data-generator': Hidden40ShapeScalingEvaluator,
+    'O-11_shape_color_then_move_data-generator': ShapeColorThenMoveEvaluator,
+    'O-56_raven_data-generator': RavenMatrixEvaluator,
+    'O-22_construction_stack_data-generator': ConstructionStackEvaluator,
+    'O-2_pigment_color_mixing_subtractive_data-generator': PigmentColorMixingEvaluator,
+    'O-39_maze_data-generator': MazePathfindingEvaluator,
+    'O-43_object_subtraction_data-generator': ObjectSubtractionEvaluator,
+    'O-46_shape_sorter_data-generator': ShapeSorterEvaluator,
+    'O-49_symmetry_completion_data-generator': SymmetryCompletionEvaluator,
+    'O-5_symbol_deletion_data-generator': SymbolDeletionEvaluator,
+    'O-54_control_panel_data-generator': ControlPanelEvaluator,
+    'O-58_symbol_delete_data-generator': SymbolDeleteEvaluator,
+    'O-59_symbol_insert_data-generator': SymbolInsertEvaluator,
+    'O-60_symbol_substitute_data-generator': SymbolSubstituteEvaluator,
+    'O-61_symbol_edit_data-generator': SymbolEditConstraintEvaluator,
+    'O-62_gravity_physics_data-generator': GravityPhysicsEvaluator,
+    'O-64_animal_matching_data-generator': AnimalMatchingEvaluator,
+    'O-65_animal_size_sorting_data-generator': AnimalSizeSortingEvaluator,
+    'O-6_2d_geometric_transformation_data-generator': GeometricTransformationEvaluator,
+    'O-85_2d_object_rotation_data-generator': ObjectRotation2DEvaluator,
+    'O-9_shape_scaling_data-generator': ShapeScalingAnalogyEvaluator,
 }
 
 
@@ -268,9 +228,8 @@ def list_all_tasks():
     return list(TASK_EVALUATOR_MAP.keys())
 
 
-# Task category mapping - based on user specification
 TASK_CATEGORY_MAP = {
-    # Abstraction (17 tasks)
+    # Abstraction
     'G-13_grid_number_sequence_data-generator': 'Abstraction',
     'G-51_predict_next_color_data-generator': 'Abstraction',
     'G-131_select_next_figure_increasing_size_sequence_data-generator': 'Abstraction',
@@ -282,16 +241,16 @@ TASK_CATEGORY_MAP = {
     'O-10_shape_outline_fill_data-generator': 'Abstraction',
     'G-43_understand_scene_structure_data-generator': 'Abstraction',
     'O-21_construction_blueprint_data-generator': 'Abstraction',
-    
-    # Categorization (12 tasks)
+
+    # Categorization
     'G-3_stable_sort_data-generator': 'Categorization',
     'O-30_bookshelf_data-generator': 'Categorization',
     'O-29_ballcolor_data-generator': 'Categorization',
     'O-38_majority_color_data-generator': 'Categorization',
     'G-39_attention_shift_different_data-generator': 'Categorization',
     'G-29_chart_extreme_with_data_data-generator': 'Categorization',
-    
-    # Navigation (15 tasks)
+
+    # Navigation
     'G-5_multi_object_placement_data-generator': 'Navigation',
     'G-15_grid_avoid_obstacles_data-generator': 'Navigation',
     'G-16_grid_go_through_block_data-generator': 'Navigation',
@@ -302,8 +261,8 @@ TASK_CATEGORY_MAP = {
     'O-34_dot_to_dot_task_data-generator': 'Navigation',
     'O-47_sliding_puzzle_data-generator': 'Navigation',
     'G-47_multiple_keys_for_one_door_data-generator': 'Navigation',
-    
-    # Perception (many tasks)
+
+    # Perception
     'O-33_counting_object_data-generator': 'Perception',
     'G-8_track_object_movement_data-generator': 'Perception',
     'G-9_identify_objects_in_region_data-generator': 'Perception',
@@ -337,8 +296,8 @@ TASK_CATEGORY_MAP = {
     'G-248_mark_asymmetrical_shape_data-generator': 'Perception',
     'G-250_color_triple_intersection_red_data-generator': 'Perception',
     'G-54_connecting_color_data-generator': 'Perception',
-    
-    # Physics (many tasks)
+
+    # Physics
     'G-273_high_density_liquid_data-generator': 'Physics',
     'O-15_ball_bounces_given_time_data-generator': 'Physics',
     'O-18_glass_refraction_data-generator': 'Physics',
@@ -355,8 +314,8 @@ TASK_CATEGORY_MAP = {
     'O-62_gravity_physics_data-generator': 'Physics',
     'O-75_communicating_vessels_data-generator': 'Physics',
     'O-85_2d_object_rotation_data-generator': 'Physics',
-    
-    # Transformation (many tasks)
+
+    # Transformation
     'O-2_pigment_color_mixing_subtractive_data-generator': 'Transformation',
     'O-5_symbol_deletion_data-generator': 'Transformation',
     'O-6_2d_geometric_transformation_data-generator': 'Transformation',

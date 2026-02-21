@@ -1,13 +1,11 @@
-<h1 align="center">VBVR-EvalKit</h1>
+# VBVR-EvalKit
 
-<p align="center">
-  <b>The official evaluation toolkit for <a href="https://video-reason.com/">Very Big Video Reasoning (VBVR)</a></b><br>
-  Unified inference and evaluation across 37 video generation models.
-</p>
+**The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/).**  
+Unified inference and evaluation across 37 video generation models.
 
-- **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, etc.)
-- **VBVR-Bench**: 100+ rule-based evaluators, deterministic 0-1 scores, no API calls
-- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4O, InternVL, Qwen3-VL)
+- **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) and open-source models (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, and more)
+- **VBVR-Bench**: 100+ rule-based evaluators with deterministic 0–1 scores and no API calls
+- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4o, InternVL, Qwen3-VL)
 
 ## Quick Start
 
@@ -57,12 +55,24 @@ cp env.template .env
 
 ## Docs
 
-- [Scoring (VBVR-Bench)](docs/SCORING.md)
-- [Inference](docs/INFERENCE.md)
-- [Supported Models](docs/MODELS.md)
-- [Adding Models](docs/ADDING_MODELS.md)
-- [End-to-End Workflow](docs/DATA_GENERATOR.md)
-- [FAQ](docs/FAQ.md)
+| Topic | Link |
+|-------|------|
+| Scoring (VBVR-Bench) | [docs/SCORING.md](docs/SCORING.md) |
+| Inference | [docs/INFERENCE.md](docs/INFERENCE.md) |
+| Supported Models | [docs/MODELS.md](docs/MODELS.md) |
+| Adding Models | [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) |
+| End-to-End Workflow | [docs/DATA_GENERATOR.md](docs/DATA_GENERATOR.md) |
+| FAQ | [docs/FAQ.md](docs/FAQ.md) |
+
+## Citation
+
+```bibtex
+@article{vbvr2026,
+  title={A Very Big Video Reasoning Suite},
+  author={Wang, Maijunxian and Wang, Ruisi and Lin, Juyi and Ji, Ran and Wiedemer, Thaddäus and Gao, Qingying and Luo, Dezhi and Qian, Yaoyao and Huang, Lianyu and Hong, Zelong and Ge, Jiahui and Ma, Qianli and He, Hang and Zhou, Yifan and Guo, Lingzi and Mei, Lantao and Li, Jiachen and Xing, Hanwen and Zhao, Tianqi and Yu, Fengyuan and Xiao, Weihang and Jiao, Yizheng and Hou, Jianheng and Zhang, Danyang and Xu, Pengcheng and Zhong, Boyang and Zhao, Zehong and Fang, Gaoyun and Kitaoka, John and Xu, Yile and Xu, Hua and Blacutt, Kenton and Nguyen, Tin and Song, Siyuan and Sun, Haoran and Wen, Shaoyue and He, Linyang and Wang, Runming and Wang, Yanzhi and Yang, Mengyue and Ma, Ziqiao and Millière, Raphaël and Shi, Freda and Vasconcelos, Nuno and Khashabi, Daniel and Yuille, Alan and Du, Yilun and Liu, Ziming and Lin, Dahua and Liu, Ziwei and Kumar, Vikash and Li, Yijiang and Yang, Lei and Cai, Zhongang and Deng, Hokin},
+  year={2026}
+}
+```
 
 ## License
 

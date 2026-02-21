@@ -104,21 +104,48 @@ print(f'\nTotal: {len(AVAILABLE_MODELS)} models')
 
 ## 评估相关
 
-### Q: 如何选择评估方法？
+### Q: 如何运行 VBVR-Bench 评估？
 
-| 方法 | 配置值 | 依赖 | 适用场景 |
-|------|--------|------|----------|
-| 人工评估 | `"human"` | Gradio | 小规模精确评估 |
-| GPT-4O | `"gpt4o"` | `OPENAI_API_KEY` | 大规模自动评估 |
-| InternVL | `"internvl"` | 本地部署（30GB 显存） | 无 API 预算的自动评估 |
-| Qwen3-VL | `"qwen"` | 本地部署 | 无 API 预算的自动评估 |
-| 多帧 | `"multiframe_gpt4o"` 等 | 同上 | 需要更高准确率的评估 |
+VBVR-Bench 是 VBVR-EvalKit 的评估系统，使用 100+ 个任务专用规则评估器，无需 API 调用：
+
+```bash
+# 基本评估（仅 task_specific 维度）
+python examples/score_videos.py --inference-dir ./outputs
+
+# 完整 5 维加权评分
+python examples/score_videos.py --inference-dir ./outputs --full-score
+
+# 指定 GT 数据
+python examples/score_videos.py --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+```
+
+---
+
+### Q: 评分维度是什么意思？
+
+| 维度 | 权重 | 说明 |
+|------|------|------|
+| `first_frame_consistency` | 15% | 首帧与输入图像的匹配程度 |
+| `final_frame_accuracy` | 35% | 末帧与预期结果的匹配程度 |
+| `temporal_smoothness` | 15% | 相邻帧之间的连续性 |
+| `visual_quality` | 10% | 清晰度、噪声水平 |
+| `task_specific` | 25% | 任务特定推理正确性 |
+
+默认模式只返回 `task_specific`。使用 `--full-score` 获取加权组合分数。
+
+---
+
+### Q: 中断的评估可以恢复吗？
+
+可以。VBVR-Bench 在每个任务完成后保存进度。只需重新运行相同命令，已评估的任务会自动跳过。
 
 ---
 
 ## 环境变量
 
 ### Q: 需要哪些 API Key？
+
+API Key 仅在使用商业模型进行**推理**时需要，评估不需要 API Key。
 
 | 模型家族 | 环境变量 | 获取方式 |
 |----------|----------|----------|
@@ -127,7 +154,6 @@ print(f'\nTotal: {len(AVAILABLE_MODELS)} models')
 | Kling AI | `KLING_API_KEY` | Kling AI 官网 |
 | Runway | `RUNWAYML_API_SECRET` | Runway ML 官网 |
 | OpenAI Sora | `OPENAI_API_KEY` | OpenAI 平台 |
-| GPT-4O 评估 | `OPENAI_API_KEY` | 同上 |
 
 ```bash
 cp env.template .env

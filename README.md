@@ -1,12 +1,12 @@
-# VBVR-EvalKit 🎥🧠
+# VBVR-EvalKit
 
 **Unified inference and evaluation framework for 37 video generation models.**
 
 ## Features
 
-- **🚀 37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD, etc.)
-- **⚖️ Evaluation Pipeline**: Human scoring (Gradio) + automated scoring (GPT-4O, InternVL, Qwen3-VL)  
-- **☁️ Cloud Integration**: S3 + HuggingFace Hub support
+- **37 Models**: Unified interface for commercial APIs (Luma, Veo, Kling, Sora, Runway) + open-source (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, etc.)
+- **VBVR-Bench Evaluation**: 100+ task-specific rule-based evaluators producing deterministic, reproducible 0-1 scores — no API calls needed
+- **Cloud Integration**: S3 + HuggingFace Hub support
 
 ## Data Format
 
@@ -43,7 +43,7 @@ questions/
 
 **Naming Convention:**
 - **Task folder**: `{domain}_task` (e.g., `chess_task`, `matching_object_task`)
-- **Question folders**: `{domain}_{i:04d}` where `i` is zero-padded (e.g., `chess_0000`, `chess_0064`). Padding automatically expands beyond 4 digits when needed—no dataset size limit.
+- **Question folders**: `{domain}_{i:04d}` where `i` is zero-padded (e.g., `chess_0000`, `chess_0064`). Padding automatically expands beyond 4 digits when needed.
 
 ## Quick Start
 
@@ -60,17 +60,59 @@ pip install -e .
 # 2. Setup models
 bash setup/install_model.sh --model svd --validate
 
-# # 3. Organize your questions data (see format above)
-# mkdir -p ~/my_research/questions
-
-# 4. Run inference
+# 3. Run inference
 python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
-python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model LTX-2
-# 5. Run evaluation  
-# Create eval_config.json first:
-echo '{"method": "human", "inference_dir": "~/my_research/outputs", "eval_output_dir": "~/my_research/evaluations"}' > eval_config.json
-python examples/score_videos.py --eval-config eval_config.json
+
+# 4. Run evaluation (VBVR-Bench)
+python examples/score_videos.py --inference-dir ./outputs
+python examples/score_videos.py --inference-dir ./outputs --full-score --device cuda
 ```
+
+## Evaluation: VBVR-Bench
+
+VBVR-EvalKit uses **VBVR-Bench** for evaluation — a rule-based system with 100+ task-specific evaluators. No API calls, fully deterministic, and reproducible.
+
+### Scoring Dimensions
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| `first_frame_consistency` | 15% | First frame alignment with ground truth |
+| `final_frame_accuracy` | 35% | Final frame correctness |
+| `temporal_smoothness` | 15% | Temporal coherence between frames |
+| `visual_quality` | 10% | Visual fidelity (sharpness, noise) |
+| `task_specific` | 25% | Task-specific reasoning logic |
+
+Default mode returns only the `task_specific` dimension score, focusing on reasoning correctness. Use `--full-score` for all 5 dimensions.
+
+### Usage
+
+```bash
+# Basic evaluation
+python examples/score_videos.py --inference-dir ./outputs
+
+# Full 5-dimension weighted score
+python examples/score_videos.py --inference-dir ./outputs --full-score
+
+# With GT data and device selection
+python examples/score_videos.py --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+
+# Via the runner module
+python -m vbvrevalkit.runner.score --inference-dir ./outputs
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--inference-dir, -i` | (required) | Directory containing inference outputs |
+| `--eval-output-dir, -o` | `./evaluations/rubrics` | Directory to save evaluation results |
+| `--gt-base-path, -g` | None | Path to VBVR-Bench GT data (optional) |
+| `--device` | `cuda` | Computation device (`cuda` or `cpu`) |
+| `--full-score` | off | Use full 5-dimension weighted score |
+
+### Output
+
+Per-sample JSON files (`VBVRBenchEvaluator.json`) and a summary file (`VBVRBenchEvaluator_summary.json`) with breakdowns by model, category (6 categories), and split (In_Domain / Out_of_Domain). Supports resume — previously evaluated tasks are not re-evaluated.
 
 ## API Keys
 

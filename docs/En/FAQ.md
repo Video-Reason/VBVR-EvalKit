@@ -104,21 +104,48 @@ print(f'\nTotal: {len(AVAILABLE_MODELS)} models')
 
 ## Evaluation
 
-### Q: How to choose an evaluation method?
+### Q: How do I run VBVR-Bench evaluation?
 
-| Method | Config Value | Dependencies | Use Case |
-|--------|-------------|--------------|----------|
-| Human eval | `"human"` | Gradio | Small-scale precise evaluation |
-| GPT-4O | `"gpt4o"` | `OPENAI_API_KEY` | Large-scale automated evaluation |
-| InternVL | `"internvl"` | Local deployment (30GB VRAM) | Automated evaluation without API budget |
-| Qwen3-VL | `"qwen"` | Local deployment | Automated evaluation without API budget |
-| Multi-frame | `"multiframe_gpt4o"` etc. | Same as above | Higher accuracy evaluation |
+VBVR-Bench is the evaluation system for VBVR-EvalKit. It uses 100+ task-specific rule-based evaluators — no API calls needed:
+
+```bash
+# Basic evaluation (task_specific dimension only)
+python examples/score_videos.py --inference-dir ./outputs
+
+# Full 5-dimension weighted score
+python examples/score_videos.py --inference-dir ./outputs --full-score
+
+# With GT data
+python examples/score_videos.py --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+```
+
+---
+
+### Q: What do the scoring dimensions mean?
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| `first_frame_consistency` | 15% | How well the first frame matches the input image |
+| `final_frame_accuracy` | 35% | Whether the final frame matches the expected result |
+| `temporal_smoothness` | 15% | Consistency between consecutive frames |
+| `visual_quality` | 10% | Sharpness, noise levels |
+| `task_specific` | 25% | Task-specific reasoning correctness |
+
+Default mode returns only `task_specific`. Use `--full-score` for the weighted combination.
+
+---
+
+### Q: Can I resume an interrupted evaluation?
+
+Yes. VBVR-Bench saves progress after each task. Simply re-run the same command — already-evaluated tasks are automatically skipped.
 
 ---
 
 ## Environment Variables
 
 ### Q: Which API keys are needed?
+
+API keys are only needed for **inference** with commercial models, not for evaluation.
 
 | Model Family | Environment Variable | How to Obtain |
 |-------------|---------------------|---------------|
@@ -127,7 +154,6 @@ print(f'\nTotal: {len(AVAILABLE_MODELS)} models')
 | Kling AI | `KLING_API_KEY` | Kling AI website |
 | Runway | `RUNWAYML_API_SECRET` | Runway ML website |
 | OpenAI Sora | `OPENAI_API_KEY` | OpenAI platform |
-| GPT-4O eval | `OPENAI_API_KEY` | Same as above |
 
 ```bash
 cp env.template .env

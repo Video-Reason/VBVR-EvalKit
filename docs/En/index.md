@@ -4,15 +4,14 @@
 
 ```
 VBVR-EvalKit/
-├── vbvrevalkit/          # Core Python package (inference, evaluation, task generation)
+├── vbvrevalkit/          # Core Python package (inference, evaluation)
 ├── examples/           # User-facing entry scripts
 ├── setup/              # Model installation and test scripts
 ├── submodules/         # Third-party Git submodules (open-source model repos & task data generators)
 ├── data/               # Runtime data (questions, output videos, evaluations, logs)
 ├── docs/               # Project documentation
-├── script/             # Helper shell scripts (e.g., launching VLM servers for evaluation)
+├── script/             # Helper shell scripts
 ├── web/                # Web-related tools
-├── sglang/             # SGLang inference acceleration framework integration
 ├── env.template        # Environment variable template (API keys, etc.)
 ├── pyproject.toml      # Python project configuration and dependency declarations
 ├── Dockerfile          # Docker containerization config (CUDA 11.8)
@@ -45,35 +44,18 @@ Each file corresponds to one model family's inference implementation, following 
 ### `vbvrevalkit/runner/` — Inference Orchestration
 
 The orchestration layer that ties together model registration, loading, batch inference, and scoring:
-- `MODEL_CATALOG.py` — Model registry, pure data (no imports), records all 33 models' wrapper paths, class names, family info, etc., for dynamic loading via `importlib`
+- `MODEL_CATALOG.py` — Model registry, pure data (no imports), records all models' wrapper paths, class names, family info, etc., for dynamic loading via `importlib`
 - `inference.py` — `run_inference()` function and `InferenceRunner` class, responsible for task discovery, model loading, and batch video generation
-- `score.py` — Scoring orchestration, connecting various evaluators
+- `score.py` — VBVR-Bench scoring entry point
 
 ### `vbvrevalkit/eval/` — Evaluation Module
 
-Implementations of multiple evaluation methods:
-- `human_eval.py` — Gradio-based interactive human scoring interface
-- `gpt4o_eval.py` — Automated single-frame scoring using GPT-4O
-- `internvl.py` — Scoring using InternVL (local VLM)
-- `qwen3vl.py` — Scoring using Qwen3-VL
-- `multiframe_eval.py` — Multi-frame evaluation wrapper, supports sampling multiple frames from video for individual scoring
-- `frame_sampler.py` — Video frame sampler (supports uniform sampling, keyframe, and hybrid strategies)
-- `consistency.py` — Multi-frame consistency analysis
-- `voting.py` — Weighted voting aggregation, combining multi-frame scores into final results
-- `eval_prompt.py` — Prompt templates for evaluation
-- `run_selector.py` — Utility for selecting inference results to evaluate
-
-### `vbvrevalkit/tasks/` — Task Domain Implementations
-
-Each subdirectory corresponds to one type of visual reasoning task's question generation logic:
-- `chess_task/` — Chess (finding checkmate moves, etc.)
-- `maze_task/` — Maze solving
-- `sudoku_task/` — Sudoku
-- `raven_task/` — Raven's Progressive Matrices reasoning
-- `arc_agi_task/` — ARC-AGI abstract reasoning
-- `rotation_task/` — Rotation transformation reasoning
-- `physical_causality_task/` — Physical causality reasoning
-- `match3/` — Match-3 game reasoning
+VBVR-Bench rule-based evaluation:
+- `vbvr_bench/` — Core VBVR-Bench evaluation package
+  - `evaluators/` — 100+ task-specific evaluators (e.g., `animal_matching.py`, `chess_task.py`, `maze_pathfinding.py`)
+  - `base_evaluator.py` — Base class for all task-specific evaluators
+  - `utils.py` — Video frame extraction, image comparison, scoring utilities
+- `vbvr_bench_eval.py` — `VBVRBenchEvaluator` class that walks inference directories, maps tasks to evaluators, and produces scored results
 
 ### `vbvrevalkit/utils/` — Common Utilities
 
@@ -85,7 +67,7 @@ Each subdirectory corresponds to one type of visual reasoning task's question ge
 
 Main scripts for end users:
 - `generate_videos.py` — Batch video generation CLI, discovers tasks from the questions directory and invokes specified models to generate videos
-- `score_videos.py` — Evaluation CLI, supports human scoring (Gradio) and automated scoring (GPT-4O / InternVL / Qwen3-VL)
+- `score_videos.py` — VBVR-Bench evaluation CLI, runs rule-based scoring on generated videos
 
 ---
 
@@ -94,7 +76,7 @@ Main scripts for end users:
 Environment setup for open-source models:
 - `install_model.sh` — Model installation entry script, invokes the corresponding setup script based on the `--model` argument
 - `test_model.sh` — Post-installation validation test
-- `models/` — One subdirectory per model (33 total), each containing a `setup.sh` installation script responsible for creating an isolated venv, installing dependencies, and downloading checkpoints
+- `models/` — One subdirectory per model, each containing a `setup.sh` installation script responsible for creating an isolated venv, installing dependencies, and downloading checkpoints
 - `lib/share.sh` — Shared functions for installation scripts (creating venvs, downloading checkpoints, etc.) and checkpoint path registry
 - `test_assets/` — Sample test data (first_frame.png, prompt.txt, etc.)
 
@@ -116,7 +98,7 @@ External repositories integrated as git submodules:
 Data produced and consumed during execution, organized by stage:
 - `questions/` — Input data, organized as `{domain}_task/{domain}_{i:04d}/`, each question contains `first_frame.png` (required), `prompt.txt` (required), `final_frame.png` (optional), `ground_truth.mp4` (optional)
 - `outputs/` — Model-generated videos, organized as `{model}/{domain}_task/{task_id}/{run_id}/`
-- `evaluations/` — Evaluation results (JSON format, with scores, explanations, metadata)
+- `evaluations/` — Evaluation results (JSON format, with scores and metadata)
 - `data_logging/` — Execution logs
 
 ---
@@ -124,25 +106,20 @@ Data produced and consumed during execution, organized by stage:
 ## `docs/` — Project Documentation
 
 - `INFERENCE.md` — Inference module guide (data formats, CLI usage, Python API)
-- `SCORING.md` — Evaluation module guide (configuration and usage for each evaluation method)
+- `SCORING.md` — Evaluation module guide (VBVR-Bench configuration and usage)
 - `ADDING_MODELS.md` — New model integration guide (Service + Wrapper pattern, registration workflow)
 - `MODELS.md` — Model reference information
+- `data-generator.md` — End-to-end workflow: data generation, inference, and evaluation
 - `index.md` — This file, project structure overview
 
 ---
 
 ## `script/` — Helper Scripts
 
-- `lmdeploy_server.sh` — Launches the lmdeploy inference server required for InternVL evaluation (~30GB VRAM)
+- Utility shell scripts for server management and other tasks
 
 ---
 
 ## `web/` — Web Tools
 
 - `utils/` — Web-related utility tools
-
----
-
-## `sglang/` — SGLang Integration
-
-[SGLang](https://github.com/sgl-project/sglang) inference acceleration framework, used for efficient deployment and running of local VLM evaluation models.

@@ -1,79 +1,31 @@
 # VBVR-EvalKit Scoring
 
-Comprehensive scoring methods for assessing video generation models' reasoning capabilities.
+Rule-based evaluation for assessing video generation models' reasoning capabilities using VBVR-Bench.
 
-## Available Evaluators
+## VBVR-Bench Evaluation
 
-`examples/score_videos.py` reads `evaluator` from config. CLI override is supported via `--evaluator` for `gpt4o`, `internvl`, and `qwen`.
+VBVR-Bench provides 100+ task-specific evaluators that produce deterministic, fully reproducible 0-1 continuous scores. No API calls needed.
 
-### Human Evaluation
-Interactive Gradio interface for human scoring.
-
-```bash
-python examples/score_videos.py --eval-config eval_config.json
-# Set "evaluator": "human" in config
-```
-
-### GPT-4O Evaluation
-Automated scoring using OpenAI's GPT-4O vision model.
+### Usage
 
 ```bash
-# Requires OPENAI_API_KEY
-python examples/score_videos.py --eval-config eval_config.json  
-# Set "evaluator": "gpt4o" in config
-```
-
-### InternVL Evaluation
-Open-source VLM evaluation (requires 30GB VRAM).
-
-```bash
-# Start InternVL server
-bash script/lmdeploy_server.sh
-
-# Run evaluation
-python examples/score_videos.py --eval-config eval_config.json
-# Set "evaluator": "internvl" in config
-```
-
-### Qwen3-VL Evaluation
-Open-source VLM evaluation using Qwen3-VL served via OpenAI-compatible API.
-
-```bash
-# Start Qwen3-VL server (e.g., via vLLM or SGLang)
-# Set QWEN_API_KEY and QWEN_API_BASE in .env
-
-# Run evaluation
-python examples/score_videos.py --eval-config eval_config.json
-# Set "evaluator": "qwen" in config
-```
-
-### Multi-Frame Evaluation
-Advanced evaluation using multiple video frames with consistency analysis and voting.
-
-```bash
-# Multi-frame GPT-4O, InternVL, or Qwen3-VL
-# Set "evaluator" to one of: "gpt4o", "internvl", "qwen"
-# Add a "multiframe" block (and optionally "sampling_strategy")
-```
-
-### VBVR-Bench Rule-Based Evaluation (Rubrics)
-Deterministic, fully reproducible evaluation using VBVR-Bench's 100 task-specific evaluators. No API calls needed.
-
-```bash
-# Basic usage
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
+# Basic evaluation
+python examples/score_videos.py --inference-dir ./outputs
 
 # With GT data and device selection
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
+python examples/score_videos.py --inference-dir ./outputs --gt-base-path /path/to/gt --device cuda
 
 # Full 5-dimension weighted score (default: task_specific only)
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --full-score
+python examples/score_videos.py --inference-dir ./outputs --full-score
 
 # Custom output directory
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
+python examples/score_videos.py --inference-dir ./outputs --eval-output-dir ./evaluations/rubrics
+
+# Via the runner module
+python -m vbvrevalkit.runner.score --inference-dir ./outputs
 ```
 
-**Parameters:**
+### Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -85,92 +37,23 @@ python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs --eval-outp
 
 ## Scoring Scale
 
-### VLM Scoring (1-5 Scale)
-
-**1-5 Scale** converted to **Binary** for analysis:
-- **Success**: Scores 4-5 (mostly/completely correct)
-- **Failure**: Scores 1-3 (incorrect/partially correct)
-
-### Rubrics Scoring (0-1 Continuous)
+### 0-1 Continuous Score
 
 VBVR-Bench evaluators produce 0-1 continuous scores across 5 dimensions:
-- `first_frame_consistency` (0.15): First frame alignment
-- `final_frame_accuracy` (0.35): Final frame correctness
-- `temporal_smoothness` (0.15): Temporal coherence
-- `visual_quality` (0.10): Visual fidelity
-- `task_specific` (0.25): Task-specific reasoning logic
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| `first_frame_consistency` | 0.15 | First frame alignment with ground truth |
+| `final_frame_accuracy` | 0.35 | Final frame correctness |
+| `temporal_smoothness` | 0.15 | Temporal coherence between frames |
+| `visual_quality` | 0.10 | Visual fidelity (sharpness, noise) |
+| `task_specific` | 0.25 | Task-specific reasoning logic |
 
 Default mode (without `--full-score`) returns only the `task_specific` dimension score, focusing on reasoning correctness.
 
-## Configuration
-
-### VLM Evaluation Config (eval_config.json)
-
-Create `eval_config.json` to configure VLM evaluation:
-
-```json
-{
-  "evaluator": "gpt4o",
-  "inference_dir": "./outputs",
-  "eval_output_dir": "./evaluations",
-  "temperature": 0.0
-}
-```
-
-For multi-frame scoring, add a `multiframe` block:
-
-```json
-{
-  "evaluator": "qwen",
-  "sampling_strategy": "hybrid",
-  "inference_dir": "./outputs",
-  "eval_output_dir": "./evaluations",
-  "temperature": 0.0,
-  "multiframe": {
-    "n_frames": 5,
-    "last_seconds": 3.0,
-    "strategy": "hybrid",
-    "voting": "weighted_majority",
-    "metric": "histogram",
-    "temporal_weight": 0.3
-  }
-}
-```
-
-### Rubrics Evaluation Config
-
-Rubrics evaluation is configured via CLI arguments — no `eval_config.json` needed:
-
-```bash
-python -m vbvrevalkit.runner.score rubrics \
-  --inference-dir ./outputs \
-  --eval-output-dir ./evaluations/rubrics \
-  --gt-base-path /path/to/vbvr-bench-gt \
-  --device cuda
-```
-
-## Usage
-
-```bash
-# VLM evaluation (via config file)
-python examples/score_videos.py --eval-config eval_config.json
-
-# Test multi-frame pipeline (no API calls)
-python examples/score_videos.py --test-multiframe --video path/to/video.mp4
-
-# Rubrics evaluation (direct CLI)
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs
-```
-
 ## Data Directory Requirements
 
-### VLM Evaluation
-
-Inference outputs only need generated videos in the `video/` subdirectory.
-
-### Rubrics Evaluation
-
-The rubrics evaluator requires reference data in the `question/` subdirectory:
+The evaluator requires reference data in the `question/` subdirectory:
 
 ```
 outputs/
@@ -189,12 +72,6 @@ outputs/
 ```
 
 ## Output
-
-### VLM Evaluation Output
-
-Evaluations are saved to `eval_output_dir` with structured JSON files containing scores, metadata, and explanations. Results support resume capability and statistical analysis.
-
-### Rubrics Evaluation Output
 
 Each sample is saved as a separate `VBVRBenchEvaluator.json`. After evaluation completes, a summary file `VBVRBenchEvaluator_summary.json` is generated, containing:
 - **Global statistics**: Mean, median, std across all models

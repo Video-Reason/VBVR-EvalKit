@@ -126,7 +126,7 @@ outputs_rubrics/
 cd /path/to/VBVR-EvalKit
 
 # Run evaluation
-python -m vbvrevalkit.runner.score rubrics \
+python examples/score_videos.py \
   --inference-dir ./outputs_rubrics \
   --eval-output-dir ./evaluations/rubrics \
   --device cuda
@@ -200,7 +200,7 @@ outputs_rubrics/
 The evaluation command stays the same — the evaluator automatically walks all generators and matches them to the corresponding rule-based evaluators:
 
 ```bash
-python -m vbvrevalkit.runner.score rubrics --inference-dir ./outputs_rubrics
+python examples/score_videos.py --inference-dir ./outputs_rubrics
 ```
 
 The summary file automatically includes score breakdowns by category (6 categories) and by split (In_Domain / Out_of_Domain).

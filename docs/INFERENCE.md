@@ -1,6 +1,6 @@
 # VBVR-EvalKit Inference Module
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Set up questions directory (only first_frame.png and prompt.txt required)
@@ -13,7 +13,7 @@ python examples/generate_videos.py --questions-dir ./questions --output-dir ./ou
 python examples/generate_videos.py --questions-dir ./questions --output-dir ./outputs --model luma-ray-2
 ```
 
-## 📚 Core Concepts
+## Core Concepts
 
 ### Task Pairs: The Evaluation Unit
 
@@ -21,10 +21,10 @@ VBVR-EvalKit evaluates video models' reasoning capabilities through **Task Pairs
 
 | Component | File | Purpose | Required |
 |-----------|------|---------|----------|
-| 📸 **Initial State** | `first_frame.png` | Problem/puzzle to solve | ✅ Required |
-| 📝 **Text Prompt** | `prompt.txt` | Natural language instructions | ✅ Required |
-| 🎯 **Final State** | `final_frame.png` | Solution/goal reference | ⚪ Optional |
-| 🎬 **Ground Truth** | `ground_truth.mp4` | Reference video | ⚪ Optional |
+| **Initial State** | `first_frame.png` | Problem/puzzle to solve | Required |
+| **Text Prompt** | `prompt.txt` | Natural language instructions | Required |
+| **Final State** | `final_frame.png` | Solution/goal reference | Optional |
+| **Ground Truth** | `ground_truth.mp4` | Reference video | Optional |
 
 **Directory Structure:**
 ```
@@ -42,7 +42,7 @@ questions/
 
 Models receive the initial state + prompt and must generate videos demonstrating the reasoning process to reach the final state.
 
-## 🏗️ Architecture
+## Architecture
 
 VBVR-EvalKit uses a **modular architecture** with dynamic loading:
 
@@ -53,7 +53,7 @@ VBVR-EvalKit uses a **modular architecture** with dynamic loading:
   - **Commercial APIs**: Instant setup with API keys (Luma, Veo, Kling, Sora, Runway)
   - **Open-Source**: Local installation required (LTX-Video, LTX-2, HunyuanVideo, DynamiCrafter, SVD)
 
-## 📂 Output Structure
+## Output Structure
 
 Outputs are organized hierarchically: `model/domain_task/task_id/run_id/`
 
@@ -68,9 +68,7 @@ outputs/
 │               └── metadata.json  # Generated: run info, model, duration, status
 ```
 
-
-
-## 💻 Python API
+## Python API
 
 ```python
 from vbvrevalkit.runner.inference import InferenceRunner
@@ -84,8 +82,7 @@ result = runner.run(
 print(f"Generated: {result['video_path']}")
 ```
 
-
-## ⚙️ Configuration
+## Configuration
 
 ### API Keys
 ```bash

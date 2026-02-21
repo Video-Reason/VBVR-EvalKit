@@ -34,7 +34,4 @@ width  = round(sqrt(max_area / aspect_ratio)) // mod_value * mod_value
 
 ## 选择逻辑
 
-| 条件 | 路径 | 效果 |
-|------|------|------|
-| 调用方传了 height/width | ground-truth | 保留原始分辨率 + 对齐 |
-| 未传 height/width | aspect-ratio | 缩放到 max_area + 对齐 |
+| 条件 | 路径 | 效

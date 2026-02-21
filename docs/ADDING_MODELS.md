@@ -2,7 +2,7 @@
 
 VBVR-EvalKit supports two model types with different integration approaches:
 
-## 📋 Quick Reference
+## Quick Reference
 
 ### Commercial API Models
 1. Create `{provider}_inference.py` with Service + Wrapper classes
@@ -24,7 +24,7 @@ VBVR-EvalKit supports two model types with different integration approaches:
 | **GPU** | Not required | Required (8-24GB VRAM) |
 | **Examples** | Luma, Veo, Kling, Sora | LTX-Video, LTX-2, SVD, HunyuanVideo |
 
-## 🏗️ Architecture
+## Architecture
 
 VBVR-EvalKit uses a **Service + Wrapper pattern**:
 - **Service**: Handles API calls or model inference
@@ -32,7 +32,7 @@ VBVR-EvalKit uses a **Service + Wrapper pattern**:
 - **Registry**: `MODEL_CATALOG.py` lists all models with dynamic loading paths
 - **Setup**: Open-source models need `setup/models/{name}/setup.sh` scripts
 
-## 📝 Required Interface
+## Required Interface
 
 All models must inherit from `ModelWrapper` and implement:
 
@@ -52,7 +52,7 @@ class YourModelWrapper(ModelWrapper):
         }
 ```
 
-## 🚀 Installation
+## Installation
 
 ### Commercial APIs
 ```bash
@@ -70,7 +70,7 @@ bash setup/install_model.sh --model your-model-name
 python examples/generate_videos.py --model your-model-name --task-id test_0001
 ```
 
-## 📦 Open-Source Model Setup
+## Open-Source Model Setup
 
 ### Setup Script Template
 Create `setup/models/{model-name}/setup.sh`:
@@ -108,7 +108,7 @@ CHECKPOINTS+=("your-model/model.ckpt|https://huggingface.co/.../model.ckpt|5.2GB
 MODEL_CHECKPOINT_PATHS["your-model-name"]="your-model/model.ckpt"
 ```
 
-## 🔌 Registration
+## Registration
 
 ### Add to MODEL_CATALOG.py
 
@@ -128,7 +128,7 @@ YOUR_MODELS = {
 AVAILABLE_MODELS = {**EXISTING_MODELS, **YOUR_MODELS}
 ```
 
-## ✅ Testing
+## Testing
 
 ```bash
 # Test installation
@@ -140,7 +140,7 @@ python examples/generate_videos.py --model your-model-name --task-id test_0001
 # Verify all 8 required fields in return dict
 ```
 
-## 🔧 Key Requirements
+## Key Requirements
 
 - **Inherit from ModelWrapper**: Use abstract base class
 - **Return 8 required fields**: success, video_path, error, duration_seconds, generation_id, model, status, metadata
@@ -149,10 +149,8 @@ python examples/generate_videos.py --model your-model-name --task-id test_0001
 - **Exact package versions**: Use `package==X.Y.Z` in setup scripts  
 - **Temperature = 0**: Keep results stable and reproducible
 
-## 📚 Study Examples
+## Study Examples
 
 - **Commercial API**: `vbvrevalkit/models/luma_inference.py`, `vbvrevalkit/models/kling_inference.py`
 - **Open-Source**: `vbvrevalkit/models/svd_inference.py`, `vbvrevalkit/models/ltx_inference.py`, `vbvrevalkit/models/ltx2_inference.py`
 - **Setup Scripts**: `setup/models/*/setup.sh`
-
-Ready to add your model? Follow the patterns above and test thoroughly! 🚀

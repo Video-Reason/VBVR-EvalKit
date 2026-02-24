@@ -4,7 +4,6 @@ The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://vi
 
 - **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) and open-source models (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, and more)
 - **VBVR-Bench**: 100+ rule-based evaluators with deterministic 0–1 scores and no API calls
-- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4o, InternVL, Qwen3-VL)
 
 ## Quick Start
 

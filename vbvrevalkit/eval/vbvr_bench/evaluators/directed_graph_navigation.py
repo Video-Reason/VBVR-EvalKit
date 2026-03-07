@@ -21,11 +21,10 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
     """
     
     TASK_WEIGHTS = {
-        'completion': 0.20,           # Agent reaches red endpoint
+        'completion': 0.25,           # Agent reaches red endpoint
         'circles_preserved': 0.20,    # Circle colors unchanged
         'path_quality': 0.05,         # Smooth movement (legacy)
-        'path_length': 0.20,          # Efficient path
-        'direction_compliance': 0.20, # Follows arrows
+        'direction_compliance': 0.35, # Follows arrows (arrow-based detection)
         'movement_legality': 0.10,    # Follows edges
         'graph_fidelity': 0.05        # Graph structure preserved
     }
@@ -92,7 +91,6 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
             scores['circles_preserved'] = 0.0
             scores['completion'] = 0.0
             scores['path_quality'] = 0.0
-            scores['path_length'] = 0.0
             scores['direction_compliance'] = 0.0
             scores['movement_legality'] = 0.0
             scores['graph_fidelity'] = 0.0
@@ -120,7 +118,7 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
         else:
             scores['completion'] = 0.0
         
-        # 2. Path quality: Check if agent followed graph structure
+        # 3. Path quality (legacy smooth movement check)
         agent_positions = self._track_agent(video_frames)
         if len(agent_positions) >= 2:
             # Check for smooth movement (no teleporting)
@@ -133,16 +131,16 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
             scores['path_quality'] = max(0, 1.0 - large_jumps * 0.3)
         else:
             scores['path_quality'] = 0.0
-            
-        # 3. Path length: Check if agent took shortest path
-        scores['path_length'] = self._evaluate_path_length(agent_positions, nodes_first)
-        
+
         # 4. Direction compliance: Check if agent follows arrow directions
-        scores['direction_compliance'] = self._evaluate_direction_compliance(agent_positions, nodes_first)
-        
+        # Uses arrow detection from gt_first_frame
+        scores['direction_compliance'] = self._evaluate_direction_compliance_arrow(
+            agent_positions, nodes_first, gt_first_frame
+        )
+
         # 5. Movement legality: Check if agent moves along edges
         scores['movement_legality'] = self._evaluate_movement_legality(agent_positions, nodes_first)
-        
+
         # 6. Graph fidelity: Check if graph structure is preserved
         scores['graph_fidelity'] = self._evaluate_graph_fidelity(first_frame, last_frame)
         
@@ -256,8 +254,296 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
             # Didn't reach end
             return max(0.2, 1.0 - dist_to_end / 500)
     
+    def _evaluate_direction_compliance_arrow(
+        self,
+        agent_positions: List[Tuple[int, int]],
+        nodes: Dict,
+        gt_first_frame: Optional[np.ndarray]
+    ) -> float:
+        """Evaluate direction compliance using actual arrow detection from GT first frame.
+        
+        Detects arrows in the graph, builds directed edge set, then checks
+        if the agent's path follows those directed edges.
+        """
+        if len(agent_positions) < 2:
+            return 0.5
+        if gt_first_frame is None:
+            # Fallback to old proxy method
+            return self._evaluate_direction_compliance(agent_positions, nodes)
+
+        # Step 1: Detect all graph nodes (circles) from GT first frame
+        circle_centers = self._detect_all_nodes(gt_first_frame)
+        if len(circle_centers) < 2:
+            return 0.5
+
+        # Step 2: Detect directed edges (arrows) from GT first frame
+        directed_edges = self._detect_arrows(gt_first_frame, circle_centers)
+        if not directed_edges:
+            # No arrows detected, fall back to old method
+            return self._evaluate_direction_compliance(agent_positions, nodes)
+
+        # Step 3: Map agent positions to nearest nodes
+        def nearest_node(pos):
+            best = None
+            best_dist = float('inf')
+            for i, c in enumerate(circle_centers):
+                d = np.sqrt((pos[0] - c[0])**2 + (pos[1] - c[1])**2)
+                if d < best_dist:
+                    best_dist = d
+                    best = i
+            return best, best_dist
+
+        # Step 4: Build agent node sequence (filter stationary frames)
+        node_sequence = []
+        prev_node = None
+        for pos in agent_positions:
+            node_idx, dist = nearest_node(pos)
+            if node_idx != prev_node:
+                node_sequence.append(node_idx)
+                prev_node = node_idx
+
+        if len(node_sequence) < 2:
+            return 0.5
+
+        # Step 5: Check each transition against directed edges
+        legal_moves = 0
+        total_moves = 0
+        for i in range(1, len(node_sequence)):
+            src = node_sequence[i - 1]
+            dst = node_sequence[i]
+            if src != dst:
+                total_moves += 1
+                if (src, dst) in directed_edges:
+                    legal_moves += 1
+
+        if total_moves == 0:
+            return 0.5
+
+        return legal_moves / total_moves
+
+    def _detect_all_nodes(self, frame: np.ndarray) -> List[Tuple[int, int]]:
+        """Detect all circle nodes in the graph (white circles with black border)."""
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Detect circles using HoughCircles
+        circles = cv2.HoughCircles(
+            gray,
+            cv2.HOUGH_GRADIENT,
+            dp=1.2,
+            minDist=30,
+            param1=50,
+            param2=25,
+            minRadius=10,
+            maxRadius=60
+        )
+        if circles is not None:
+            circles = np.round(circles[0, :]).astype(int)
+            return [(int(c[0]), int(c[1])) for c in circles]
+
+        # Fallback: use contour detection
+        _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        centers = []
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < 200 or area > 20000:
+                continue
+            perimeter = cv2.arcLength(cnt, True)
+            if perimeter == 0:
+                continue
+            circularity = 4 * np.pi * area / (perimeter ** 2)
+            if circularity > 0.5:
+                M = cv2.moments(cnt)
+                if M['m00'] > 0:
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    centers.append((cx, cy))
+        return centers
+
+    def _detect_arrows(
+        self,
+        frame: np.ndarray,
+        node_centers: List[Tuple[int, int]]
+    ) -> set:
+        """Detect directed edges (arrows) in the graph.
+        
+        Returns a set of (src_node_idx, dst_node_idx) pairs.
+        
+        Strategy:
+        1. Threshold to get dark pixels (arrows + circle outlines).
+        2. Mask out circles to isolate arrow lines.
+        3. Detect line segments via HoughLinesP.
+        4. Merge collinear short segments into full arrows.
+        5. Determine arrow direction by detecting V-shape (arrowhead)
+           near each endpoint using contour shape analysis.
+        6. Map endpoints to nearest nodes to build directed edge set.
+        """
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Threshold: keep dark pixels (black arrows on white background)
+        _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+
+        # Create a mask that removes circle areas
+        circle_mask = np.zeros_like(binary)
+        for cx, cy in node_centers:
+            cv2.circle(circle_mask, (cx, cy), 30, 255, -1)
+        arrow_binary = cv2.bitwise_and(binary, cv2.bitwise_not(circle_mask))
+
+        # Detect line segments
+        lines = cv2.HoughLinesP(
+            arrow_binary,
+            rho=1,
+            theta=np.pi / 180,
+            threshold=15,
+            minLineLength=15,
+            maxLineGap=15
+        )
+        if lines is None:
+            return set()
+
+        # --- Step 1: Merge nearly-collinear segments into full arrows ---
+        def angle_of(x1, y1, x2, y2):
+            """Angle in degrees of segment, normalized to [0, 180)."""
+            a = np.degrees(np.arctan2(abs(y2 - y1), abs(x2 - x1)))
+            return a
+
+        def endpoints_close(p1, p2, thresh=20):
+            return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2) < thresh
+
+        def merge_segments(segs, angle_thresh=15, dist_thresh=20):
+            """Greedy merge of segments with similar angle and close endpoints."""
+            merged = []
+            used = [False] * len(segs)
+            for i, s1 in enumerate(segs):
+                if used[i]:
+                    continue
+                x1, y1, x2, y2 = s1
+                for j, s2 in enumerate(segs):
+                    if i == j or used[j]:
+                        continue
+                    x3, y3, x4, y4 = s2
+                    if abs(angle_of(x1,y1,x2,y2) - angle_of(x3,y3,x4,y4)) > angle_thresh:
+                        continue
+                    # Check if any endpoints are close
+                    pts1 = [(x1,y1),(x2,y2)]
+                    pts2 = [(x3,y3),(x4,y4)]
+                    close = any(endpoints_close(a,b,dist_thresh) for a in pts1 for b in pts2)
+                    if close:
+                        # Merge: take the two farthest endpoints
+                        all_pts = [(x1,y1),(x2,y2),(x3,y3),(x4,y4)]
+                        max_d = 0
+                        best = (x1,y1,x2,y2)
+                        for pi in all_pts:
+                            for pj in all_pts:
+                                d = np.sqrt((pi[0]-pj[0])**2+(pi[1]-pj[1])**2)
+                                if d > max_d:
+                                    max_d = d
+                                    best = (pi[0],pi[1],pj[0],pj[1])
+                        x1,y1,x2,y2 = best
+                        used[j] = True
+                used[i] = True
+                merged.append((x1,y1,x2,y2))
+            return merged
+
+        raw_segs = [tuple(l[0]) for l in lines]
+        merged_segs = merge_segments(raw_segs)
+
+        # --- Step 2: Determine arrowhead end using local contour analysis ---
+        def has_arrowhead(pt, binary_img, line_angle_deg, radius=12):
+            """
+            Check if there is an arrowhead (V-shape triangle) near pt.
+            
+            Strategy: Extract a small ROI around pt, find contours,
+            check if any contour is roughly triangular (3-4 vertices
+            after polygon approximation) and is pointing toward pt.
+            """
+            h, w = binary_img.shape
+            x, y = int(pt[0]), int(pt[1])
+            x1c = max(0, x - radius)
+            x2c = min(w, x + radius)
+            y1c = max(0, y - radius)
+            y2c = min(h, y + radius)
+            roi = binary_img[y1c:y2c, x1c:x2c]
+            if roi.size == 0:
+                return False, 0
+
+            contours, _ = cv2.findContours(roi, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for cnt in contours:
+                area = cv2.contourArea(cnt)
+                if area < 5:
+                    continue
+                # Approximate polygon
+                epsilon = 0.04 * cv2.arcLength(cnt, True)
+                approx = cv2.approxPolyDP(cnt, epsilon, True)
+                # Triangle = 3 vertices, arrow head is roughly triangular
+                if 3 <= len(approx) <= 5:
+                    return True, area
+            return False, 0
+
+        def nearest_node_idx(pt):
+            best = None
+            best_dist = float('inf')
+            for i, c in enumerate(node_centers):
+                d = np.sqrt((pt[0]-c[0])**2+(pt[1]-c[1])**2)
+                if d < best_dist:
+                    best_dist = d
+                    best = i
+            return best, best_dist
+
+        directed_edges = set()
+
+        for seg in merged_segs:
+            x1, y1, x2, y2 = seg
+            pt1 = (x1, y1)
+            pt2 = (x2, y2)
+
+            node1, dist1 = nearest_node_idx(pt1)
+            node2, dist2 = nearest_node_idx(pt2)
+
+            if node1 is None or node2 is None or node1 == node2:
+                continue
+            # At least one end must be near a node
+            if dist1 > 70 and dist2 > 70:
+                continue
+
+            line_angle = angle_of(x1, y1, x2, y2)
+
+            # Check for arrowhead near each endpoint
+            head1, area1 = has_arrowhead(pt1, arrow_binary, line_angle)
+            head2, area2 = has_arrowhead(pt2, arrow_binary, line_angle)
+
+            if head2 and not head1:
+                # pt2 is arrowhead -> arrow points TO node2 -> edge: node1 -> node2
+                if dist1 <= 70:
+                    directed_edges.add((node1, node2))
+            elif head1 and not head2:
+                # pt1 is arrowhead -> arrow points TO node1 -> edge: node2 -> node1
+                if dist2 <= 70:
+                    directed_edges.add((node2, node1))
+            else:
+                # Both or neither detected - fallback to pixel density
+                def dark_pixel_density(pt, img, radius=8):
+                    h, w = img.shape
+                    x, y = int(pt[0]), int(pt[1])
+                    x1c = max(0, x - radius)
+                    x2c = min(w, x + radius)
+                    y1c = max(0, y - radius)
+                    y2c = min(h, y + radius)
+                    region = img[y1c:y2c, x1c:x2c]
+                    if region.size == 0:
+                        return 0
+                    return np.sum(region > 0) / region.size
+
+                d1 = dark_pixel_density(pt1, arrow_binary)
+                d2 = dark_pixel_density(pt2, arrow_binary)
+                if d2 >= d1 and dist1 <= 70:
+                    directed_edges.add((node1, node2))
+                elif d1 > d2 and dist2 <= 70:
+                    directed_edges.add((node2, node1))
+
+        return directed_edges
+
     def _evaluate_direction_compliance(self, agent_positions: List[Tuple[int, int]], nodes: Dict) -> float:
-        """Evaluate if agent follows arrow directions."""
+        """Fallback: Evaluate if agent follows arrow directions (proxy method)."""
         if len(agent_positions) < 2:
             return 0.5
         

@@ -181,17 +181,3 @@ class HighlightHorizontalLinesEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-
-
-# Mapping of task names to evaluators
-OPEN60_EVALUATORS_PART3 = {
-    'G-134_select_next_figure_large_small_alternating_sequence_data-generator': SelectNextFigureLargeSmallEvaluator,
-    'G-138_spot_unique_non_repeated_color_data-generator': SpotUniqueColorEvaluator,
-    'G-158_identify_all_hollow_points_data-generator': IdentifyAllHollowPointsEvaluator,
-    'G-168_identify_nearest_to_square_rectangle_data-generator': IdentifyNearestSquareRectangleEvaluator,
-    'G-169_locate_intersection_of_segments_data-generator': LocateSegmentIntersectionEvaluator,
-    'G-189_draw_midpoint_perpendicular_line_data-generator': DrawMidpointPerpendicularEvaluator,
-    'G-194_construct_concentric_ring_data-generator': ConstructConcentricRingEvaluator,
-    'G-206_identify_pentagons_data-generator': IdentifyPentagonsEvaluator,
-    'G-222_mark_tangent_point_of_circles_data-generator': MarkTangentPointEvaluator,
-    'G-223_highlight_horizontal_lines_data-generator': HighlightHorizontalLinesEvaluator,

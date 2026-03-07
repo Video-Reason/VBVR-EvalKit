@@ -171,17 +171,3 @@ class MirrorReflectionEvaluator(BaseEvaluator):
             scores['starting_point'] = 0.2  # Detection failed
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-
-
-# Export mapping for this batch
-OPEN60_EVALUATORS_PART4 = {
-    'G-250_color_triple_intersection_red_data-generator': ColorTripleIntersectionEvaluator,
-    'O-10_shape_outline_fill_data-generator': ShapeOutlineFillEvaluator,
-    'O-12_shape_color_then_scale_data-generator': ShapeColorThenScaleEvaluator,
-    'O-13_shape_outline_then_move_data-generator': ShapeOutlineThenMoveEvaluator,
-    'O-14_shape_scale_then_outline_data-generator': ShapeScaleThenOutlineEvaluator,
-    'O-15_ball_bounces_given_time_data-generator': BallBounceEvaluator,
-    'O-16_color_addition_data-generator': ColorAdditionEvaluator,
-    'O-21_construction_blueprint_data-generator': ConstructionBlueprintEvaluator,
-    'O-18_glass_refraction_data-generator': GlassRefractionEvaluator,
-    'O-19_mirror_reflection_data-generator': MirrorReflectionEvaluator,

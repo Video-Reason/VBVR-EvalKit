@@ -152,17 +152,3 @@ class DotToDotEvaluator(BaseEvaluator):
             scores['visual_fidelity'] = 0.2  # Detection failed
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-
-
-# Export mapping for this batch
-OPEN60_EVALUATORS_PART5 = {
-    'O-23_domino_chain_branch_path_prediction_data-generator': DominoChainBranchEvaluator,
-    'O-24_domino_chain_gap_analysis_data-generator': DominoChainGapEvaluator,
-    'O-25_LEGO_construction_assembly_data-generator': LEGOConstructionEvaluator,
-    'O-27_move_2_object_to_2_target_data-generator': MoveObjectsToTargetEvaluator,
-    'O-29_ballcolor_data-generator': BallColorEvaluator,
-    'O-30_bookshelf_data-generator': BookshelfEvaluator,
-    'O-31_ball_eating_data-generator': BallEatingEvaluator,
-    'O-32_rolling_ball_data-generator': RollingBallEvaluator,
-    'O-33_counting_object_data-generator': CountingObjectEvaluator,
-    'O-34_dot_to_dot_task_data-generator': DotToDotEvaluator,

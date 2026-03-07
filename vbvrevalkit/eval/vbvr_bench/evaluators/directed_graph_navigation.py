@@ -21,9 +21,13 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
     """
     
     TASK_WEIGHTS = {
-        'completion': 0.35,           # Agent reaches red endpoint
-        'circles_preserved': 0.50,    # Circle colors unchanged - MORE IMPORTANT
-        'path_quality': 0.15          # Follows graph structure
+        'completion': 0.20,           # Agent reaches red endpoint
+        'circles_preserved': 0.20,    # Circle colors unchanged
+        'path_quality': 0.05,         # Smooth movement (legacy)
+        'path_length': 0.20,          # Efficient path
+        'direction_compliance': 0.20, # Follows arrows
+        'movement_legality': 0.10,    # Follows edges
+        'graph_fidelity': 0.05        # Graph structure preserved
     }
     
     def _count_circle_colors(self, frame: np.ndarray) -> Tuple[int, int]:
@@ -88,6 +92,10 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
             scores['circles_preserved'] = 0.0
             scores['completion'] = 0.0
             scores['path_quality'] = 0.0
+            scores['path_length'] = 0.0
+            scores['direction_compliance'] = 0.0
+            scores['movement_legality'] = 0.0
+            scores['graph_fidelity'] = 0.0
             self._last_task_details = scores
             self._last_task_details['circles_changed'] = True
             return 0.0
@@ -125,6 +133,18 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
             scores['path_quality'] = max(0, 1.0 - large_jumps * 0.3)
         else:
             scores['path_quality'] = 0.0
+            
+        # 3. Path length: Check if agent took shortest path
+        scores['path_length'] = self._evaluate_path_length(agent_positions, nodes_first)
+        
+        # 4. Direction compliance: Check if agent follows arrow directions
+        scores['direction_compliance'] = self._evaluate_direction_compliance(agent_positions, nodes_first)
+        
+        # 5. Movement legality: Check if agent moves along edges
+        scores['movement_legality'] = self._evaluate_movement_legality(agent_positions, nodes_first)
+        
+        # 6. Graph fidelity: Check if graph structure is preserved
+        scores['graph_fidelity'] = self._evaluate_graph_fidelity(first_frame, last_frame)
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)

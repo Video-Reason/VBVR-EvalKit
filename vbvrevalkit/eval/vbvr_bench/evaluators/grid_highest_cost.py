@@ -22,9 +22,10 @@ class GridHighestCostEvaluator(BaseEvaluator):
     """
     
     TASK_WEIGHTS = {
-        'completion': 0.45,       # Pacman reaches red goal
-        'grid_preserved': 0.35,   # Grid colors unchanged
-        'movement': 0.20          # Step by step movement
+        'completion': 0.30,       # Pacman reaches red goal
+        'grid_preserved': 0.20,   # Grid colors unchanged
+        'movement': 0.20,         # Step by step movement
+        'path_cost': 0.30         # Follow high-cost path
     }
     
     def _count_grid_colors(self, frame: np.ndarray) -> Tuple[int, int]:
@@ -87,6 +88,7 @@ class GridHighestCostEvaluator(BaseEvaluator):
             scores['grid_preserved'] = 0.0
             scores['completion'] = 0.0
             scores['movement'] = 0.0
+            scores['path_cost'] = 0.0
             self._last_task_details = scores
             self._last_task_details['grid_changed'] = True
             return 0.0
@@ -121,6 +123,10 @@ class GridHighestCostEvaluator(BaseEvaluator):
             scores['movement'] = max(0, 1.0 - large_jumps * 0.3)
         else:
             scores['movement'] = 0.0
+            
+        # 3. Path Cost: Check if path covers enough cells
+        grid_info = self._detect_grid(first_frame)
+        scores['path_cost'] = self._evaluate_path_cost(agent_positions, grid_info, gt_last)
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)

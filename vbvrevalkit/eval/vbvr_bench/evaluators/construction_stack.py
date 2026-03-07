@@ -28,9 +28,11 @@ class ConstructionStackEvaluator(BaseEvaluator):
     
     TASK_WEIGHTS = {
         'target_preservation': 0.25,
-        'final_state': 0.40,
-        'source_changed': 0.20,
-        'movement_detection': 0.15
+        'final_state': 0.30,
+        'source_changed': 0.15,
+        'movement_detection': 0.15,
+        'steps_score': 0.10,
+        'smoothness_score': 0.05
     }
     
     def _evaluate_task_specific(
@@ -82,6 +84,8 @@ class ConstructionStackEvaluator(BaseEvaluator):
             scores['final_state'] = 0.0
             scores['source_changed'] = 0.0
             scores['movement_detection'] = 0.0
+            scores['steps_score'] = 0.0
+            scores['smoothness_score'] = 0.0
             scores['error'] = 'target_stack_changed'
             self._last_task_details = scores
             return target_preservation * self.TASK_WEIGHTS['target_preservation']
@@ -101,6 +105,12 @@ class ConstructionStackEvaluator(BaseEvaluator):
         # 4. Movement detection (15%): Visible movement in video
         movement_score = self._detect_block_movement(video_frames, left_boundary, right_boundary)
         scores['movement_detection'] = movement_score
+        
+        # 5. Steps score (10%): Reasonable number of moves
+        scores['steps_score'] = self._evaluate_steps(video_frames)
+        
+        # 6. Smoothness score (5%): Movement consistency
+        scores['smoothness_score'] = self._evaluate_movement(video_frames)
         
         # STRICT: If no movement detected, fail
         if movement_score < 0.2:

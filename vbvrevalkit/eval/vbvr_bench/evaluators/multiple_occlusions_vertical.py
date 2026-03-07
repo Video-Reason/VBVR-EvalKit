@@ -156,17 +156,3 @@ class MultipleOcclusionsVerticalEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-
-
-# Mapping of task names to evaluators
-OPEN60_EVALUATORS = {
-    'G-3_stable_sort_data-generator': StableSortEvaluator,
-    'G-5_multi_object_placement_data-generator': MultiObjectPlacementEvaluator,
-    'G-8_track_object_movement_data-generator': TrackObjectMovementEvaluator,
-    'G-9_identify_objects_in_region_data-generator': IdentifyObjectsInRegionEvaluator,
-    'G-13_grid_number_sequence_data-generator': GridNumberSequenceEvaluator,
-    'G-15_grid_avoid_obstacles_data-generator': GridAvoidObstaclesEvaluator,
-    'G-16_grid_go_through_block_data-generator': GridGoThroughBlockEvaluator,
-    'G-24_separate_objects_no_spin_data-generator': SeparateObjectsNoSpinEvaluator,
-    'G-18_grid_shortest_path_data-generator': GridShortestPathEvaluator,
-    'G-21_multiple_occlusions_vertical_data-generator': MultipleOcclusionsVerticalEvaluator,

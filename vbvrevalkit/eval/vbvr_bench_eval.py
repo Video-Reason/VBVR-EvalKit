@@ -59,12 +59,19 @@ class VBVRBenchEvaluator:
     def _resolve_task_name(self, dir_name: str) -> Optional[str]:
         """Match a directory name to a VBVR-Bench task name.
 
-        Tries exact match first, then prefix match.
+        Tries exact match first, then prefix match, then substring match
+        (to handle cases where the G-XX_ prefix is stripped from the dir name).
         """
         if dir_name in TASK_EVALUATOR_MAP:
             return dir_name
         for task_name in TASK_EVALUATOR_MAP:
             if task_name.startswith(dir_name) or dir_name.startswith(task_name):
+                return task_name
+        # Substring match: check if dir_name is contained within any task_name
+        # (handles cases like 'directed_graph_navigation_data-generator' matching
+        # 'G-31_directed_graph_navigation_data-generator')
+        for task_name in TASK_EVALUATOR_MAP:
+            if dir_name in task_name:
                 return task_name
         return None
 
@@ -216,7 +223,7 @@ class VBVRBenchEvaluator:
         counters: Dict[str, int],
     ) -> None:
         """Evaluate all task samples in a directory, updating results and counters."""
-        from vbvrevalkit.eval.VLMasjudge.run_selector import select_latest_run
+        from vbvrevalkit.eval.vlm_as_a_judge.run_selector import select_latest_run
 
         results["evaluations"].setdefault(task_type, {})
 

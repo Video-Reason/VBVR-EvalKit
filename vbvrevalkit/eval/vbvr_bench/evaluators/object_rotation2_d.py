@@ -247,14 +247,3 @@ class ObjectRotation2DEvaluator(BaseEvaluator):
 
 
 # Export all Part 4 evaluators
-HIDDEN40_EVALUATORS_PART4 = {
-    'O-54_control_panel_data-generator': ControlPanelEvaluator,
-    'O-56_raven_data-generator': RavenMatrixEvaluator,
-    'O-58_symbol_delete_data-generator': SymbolDeleteEvaluator,
-    'O-59_symbol_insert_data-generator': SymbolInsertEvaluator,
-    'O-60_symbol_substitute_data-genertor': SymbolSubstituteEvaluator,
-    'O-61_symbol_edit_data-generator': SymbolEditConstraintEvaluator,
-    'O-62_gravity_physics_data-generator': GravityPhysicsEvaluator,
-    'O-64_animal_matching_data-generator': AnimalMatchingEvaluator,
-    'O-65_animal_size_sorting_data-generator': AnimalSizeSortingEvaluator,
-    'O-85_2d_object_rotation_data-generator': ObjectRotation2DEvaluator,

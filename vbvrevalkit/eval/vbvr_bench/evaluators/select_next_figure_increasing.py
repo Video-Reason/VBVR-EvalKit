@@ -221,17 +221,3 @@ class SelectNextFigureIncreasingEvaluator(BaseEvaluator):
             return 0.4
         else:
             return 0.2
-
-
-# Mapping of task names to evaluators
-OPEN60_EVALUATORS_PART2 = {
-    'G-25_seperate_object_spinning_data-generator': SeparateObjectsSpinningEvaluator,
-    'G-29_chart_extreme_with_data_data-generator': ChartExtremeEvaluator,
-    'G-31_directed_graph_navigation_data-generator': DirectedGraphNavigationEvaluator,
-    'G-39_attention_shift_different_data-generator': AttentionShiftEvaluator,
-    'G-41_grid_highest_cost_data-generator': GridHighestCostEvaluator,
-    'G-43_understand_scene_structure_data-generator': UnderstandSceneStructureEvaluator,
-    'G-45_key_door_matching_data-generator': KeyDoorMatchingEvaluator,
-    'G-51_predict_next_color_data-generator': PredictNextColorEvaluator,
-    'G-54_connecting_color_data-generator': ConnectingColorEvaluator,
-    'G-131_select_next_figure_increasing_size_sequence_data-generator': SelectNextFigureIncreasingEvaluator,

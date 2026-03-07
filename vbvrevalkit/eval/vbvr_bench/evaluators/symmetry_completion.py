@@ -300,14 +300,3 @@ class SymmetryCompletionEvaluator(BaseEvaluator):
 
 
 # Export all Part 3 evaluators
-HIDDEN40_EVALUATORS_PART3 = {
-    'O-2_pigment_color_mixing_subtractive_data-generator': PigmentColorMixingEvaluator,
-    'O-5_symbol_deletion_data-generator': SymbolDeletionEvaluator,
-    'O-6_2d_geometric_transformation_data-generator': GeometricTransformationEvaluator,
-    'O-9_shape_scaling_data-generator': ShapeScalingAnalogyEvaluator,
-    'O-11_shape_color_then_move_data-generator': ShapeColorThenMoveEvaluator,
-    'O-22_construction_stack_data-generator': ConstructionStackEvaluator,
-    'O-39_maze_data-generator': MazePathfindingEvaluator,
-    'O-43_object_subtraction_data-generator': ObjectSubtractionEvaluator,
-    'O-46_shape_sorter_data-generator': ShapeSorterEvaluator,
-    'O-49_symmetry_completion_data-generator': SymmetryCompletionEvaluator,

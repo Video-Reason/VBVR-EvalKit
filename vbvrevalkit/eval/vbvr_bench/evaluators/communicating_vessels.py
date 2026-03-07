@@ -276,16 +276,3 @@ class CommunicatingVesselsEvaluator(BaseEvaluator):
         
         return 0.5
 
-
-# Export mapping for this batch
-OPEN60_EVALUATORS_PART6 = {
-    'O-36_grid_shift_data-generator': GridShiftEvaluator,
-    'O-37_light_sequence_data-generator': LightSequenceEvaluator,
-    'O-38_majority_color_data-generator': MajorityColorEvaluator,
-    'O-44_rotation_puzzle_data-generator': RotationPuzzleEvaluator,
-    'O-45_sequence_completion_data-generator': SequenceCompletionEvaluator,
-    'O-47_sliding_puzzle_data-generator': SlidingPuzzleEvaluator,
-    'O-52_traffic_light_data-generator': TrafficLightEvaluator,
-    'O-53_clock_data-generator': ClockTimeEvaluator,
-    'O-55_rotation_data-generator': RotationEvaluator,
-    'O-75_communicating_vessels_data-generator': CommunicatingVesselsEvaluator,

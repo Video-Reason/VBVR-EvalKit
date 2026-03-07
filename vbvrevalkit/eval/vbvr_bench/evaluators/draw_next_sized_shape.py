@@ -313,17 +313,3 @@ class DrawNextSizedShapeEvaluator(BaseEvaluator):
                 best_shapes = shapes
         
         return best_shapes
-
-
-# Export all evaluators
-HIDDEN40_EVALUATORS = {
-    'G-47_multiple_keys_for_one_door_data-generator': MultipleKeysForOneDoorEvaluator,
-    'G-135_select_next_figure_small_large_alternating_sequence_data-generator': SelectNextFigureAlternatingEvaluator,
-    'G-136_locate_point_in_overlapping_area_data-generator': LocatePointInOverlappingAreaEvaluator,
-    'G-140_locate_topmost_unobscured_figure_data-generator': LocateTopmostFigureEvaluator,
-    'G-147_identify_unique_figure_in_uniform_set_data-generator': IdentifyUniqueFigureEvaluator,
-    'G-160_circle_largest_numerical_value_data-generator': CircleLargestNumericalValueEvaluator,
-    'G-161_mark_second_largest_shape_data-generator': MarkSecondLargestShapeEvaluator,
-    'G-167_select_longest_polygon_side_data-generator': SelectLongestPolygonSideEvaluator,
-    'G-174_arrange_circles_by_circumference_data-generator': ArrangeCirclesByCircumferenceEvaluator,
-    'G-193_draw_next_sized_shape_data-generator': DrawNextSizedShapeEvaluator,

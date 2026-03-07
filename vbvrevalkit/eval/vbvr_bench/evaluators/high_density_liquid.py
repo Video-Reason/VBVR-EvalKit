@@ -309,17 +309,3 @@ class HighDensityLiquidEvaluator(BaseEvaluator):
             return (x, y, x + w, y + h)
         
         return None
-
-
-# Export all evaluators
-HIDDEN40_EVALUATORS_PART2 = {
-    'G-202_mark_wave_peaks_data-generator': MarkWavePeaksEvaluator,
-    'G-212_find_incorrect_arrow_direction_data-generator': FindIncorrectArrowDirectionEvaluator,
-    'G-217_circle_central_dot_data-generator': CircleCentralDotEvaluator,
-    'G-218_identify_largest_angle_in_triangle_data-generator': IdentifyLargestAngleEvaluator,
-    'G-219_select_leftmost_shape_data-generator': SelectLeftmostShapeEvaluator,
-    'G-221_outline_innermost_square_data-generator': OutlineInnermostSquareEvaluator,
-    'G-240_add_borders_to_unbordered_shapes_data-generator': AddBordersToUnborderedEvaluator,
-    'G-247_identify_chinese_character_data-generator': IdentifyChineseCharacterEvaluator,
-    'G-248_mark_asymmetrical_shape_data-generator': MarkAsymmetricalShapeEvaluator,
-    'G-273_high_density_liquid_data-generator': HighDensityLiquidEvaluator,

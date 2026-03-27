@@ -270,33 +270,6 @@ Results are saved as JSON with the following structure:
 
 ---
 
-## Evaluation Metrics
-
-Each task has a dedicated rule-based evaluator that produces a score between 0 and 1. Evaluators assess multiple dimensions:
-
-| Dimension | Description |
-|---|---|
-| Task-Specific Score | Core reasoning accuracy for the task |
-| First Frame Consistency | Match between input image and generated first frame |
-| Final Frame Accuracy | Correctness of the final frame vs. expected result |
-| Temporal Smoothness | Animation quality and motion coherence |
-| Visual Quality | Overall image quality |
-
-### Task-Specific Evaluators
-
-| Evaluator | Tasks |
-|---|---|
-| SortingEvaluator | Object grouping, size sorting, stable sort |
-| PathEvaluator | Maze navigation, shortest path finding |
-| ShapeEvaluator | Shape identification, marking, selection |
-| TransformationEvaluator | 2D/3D rotations, scaling, movements |
-| PhysicsEvaluator | Ball bouncing, rolling, gravity simulation |
-| AnalogyEvaluator | A:B :: C:? pattern completion |
-| ClockEvaluator | Time calculation and display |
-| CountingEvaluator | Object counting and identification |
-| FrameComparisonEvaluator | General visual similarity (default) |
-
----
 
 ## Repository Structure
 

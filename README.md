@@ -6,7 +6,7 @@
         <img alt="Homepage" src="https://img.shields.io/badge/Project%20-%20Homepage-4285F4" height="20" />
     </a>
     <a href="https://arxiv.org/abs/2602.20159" target="_blank">
-        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-SenseNova_SI-red?logo=arxiv" height="20" />
+        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-VBVR_paper-red?logo=arxiv" height="20" />
     </a>
     <a href="https://huggingface.co/Video-Reason/VBVR-Wan2.2" target="_blank">
         <img alt="VBVR-Wan2.2" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Wan2.2-Models-ffc107?color=ffc107&logoColor=white" height="20" />

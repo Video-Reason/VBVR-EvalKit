@@ -1,83 +1,324 @@
-# VBVR-EvalKit
+# VBVR-Bench
+<div align="center">
 
-The official evaluation toolkit for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). Unified inference and evaluation across 37 video generation models.
+<p align="center">
+    <a href="https://video-reason.com/" target="_blank">
+        <img alt="Homepage" src="https://img.shields.io/badge/Project%20-%20Homepage-4285F4" height="20" />
+    </a>
+    <a href="https://arxiv.org/abs/2602.20159" target="_blank">
+        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-SenseNova_SI-red?logo=arxiv" height="20" />
+    </a>
+    <a href="https://huggingface.co/Video-Reason/VBVR-Wan2.2" target="_blank">
+        <img alt="VBVR-Wan2.2" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Wan2.2-Models-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Dataset" target="_blank">
+        <img alt="VBVR-Dataset" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data" target="_blank">
+        <img alt="VBVR-Bench-Data" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard" target="_blank">
+        <img alt="Leaderboard" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Leaderboard-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+        <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
+        <img alt="Video" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=YouTube&logoColor=white" height="20" />
+    </a>
+</p>
 
-- **37 Models**: Commercial APIs (Luma, Veo, Kling, Sora, Runway) and open-source models (LTX-Video, LTX-2, HunyuanVideo, SVD, WAN, CogVideoX, and more)
-- **VBVR-Bench**: 100+ rule-based evaluators with deterministic 0–1 scores and no API calls
-- **Coming Soon**: Human evaluation (Gradio) and VLM-as-a-Judge (GPT-4o, InternVL, Qwen3-VL)
+</div>
 
-## Quick Start
+The official evaluation repository for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). 
+A verifiable evaluation framework that moves beyond model-based judging by incorporating rule-based, human-aligned scorers, enabling reproducible and interpretable diagnosis of video reasoning capabilities. 
 
-```bash
-# Install
-git clone https://github.com/Video-Reason/VBVR-EvalKit.git && cd VBVR-EvalKit
-python -m venv venv && source venv/bin/activate
-pip install -e .
+## Overview
 
-# Setup a model
-bash setup/install_model.sh --model svd --validate
+VBVR-Bench evaluates video generation models (especially Image-to-Video models) across **100 tasks** spanning 5 cognitive categories:
 
-# Inference
-python examples/generate_videos.py --questions-dir setup/test_assets/ --output-dir ./outputs --model svd
+| Category | Definition |
+|---|---|
+| **Abstraction** | To find rules from observations and use rules to deduce results. |
+| **Knowledge** | Propositional truth statements one could utter, either learned or gifted since birth. |
+| **Perception** | Immediate access to sense datum, no further justification could be provided, i.e. "Here is one hand". |
+| **Spatiality** | The intuition of the basic properties of our world, such as three-dimensionality and Euclidean-ness. |
+| **Transformation** | To simulate spatial-temporal continuities with internal models in one’s mind |
 
-# Evaluation (VBVR-Bench)
-python examples/score_videos.py --inference-dir ./outputs
-```
+Tasks are split into two subsets:
+- **In-Domain (50 tasks, 250 samples)** — tasks seen in [VBVR-Dataset](https://huggingface.co/datasets/Video-Reason/VBVR-Dataset/)
+- **Out-of-Domain (50 tasks, 250 samples)** — held-out tasks for generalization testing
 
-## Evaluation
-
-VBVR-Bench matches each task to a rule-based evaluator by the **generator name** in the directory path. The evaluator needs both the generated video and reference data side by side:
-
-```
-{model}/{generator_name}/{task_type}/{task_id}/{run_id}/
-    ├── video/output.mp4          # generated video
-    └── question/                 # reference data
-        ├── first_frame.png
-        ├── final_frame.png
-        ├── prompt.txt
-        └── ground_truth.mp4     # optional
-```
-
-```bash
-python examples/score_videos.py --inference-dir ./outputs           # task_specific score only
-python examples/score_videos.py --inference-dir ./outputs --full-score  # all 5 dimensions
-```
-
-See [docs/En/SCORING.md](docs/En/SCORING.md) for the full end-to-end workflow, scoring dimensions, output format, and CLI reference.
-
-## API Keys (Inference Only)
-
-```bash
-cp env.template .env
-# LUMA_API_KEY=... OPENAI_API_KEY=... GEMINI_API_KEY=... KLING_API_KEY=... RUNWAYML_API_SECRET=...
-```
-
-## Docs
-
-| Topic | Link |
-|-------|------|
-| Scoring (VBVR-Bench) | [docs/SCORING.md](docs/SCORING.md) |
-| Inference | [docs/INFERENCE.md](docs/INFERENCE.md) |
-| Supported Models | [docs/MODELS.md](docs/MODELS.md) |
-| Adding Models | [docs/ADDING_MODELS.md](docs/ADDING_MODELS.md) |
-| End-to-End Workflow | [docs/DATA_GENERATOR.md](docs/DATA_GENERATOR.md) |
-| FAQ | [docs/FAQ.md](docs/FAQ.md) |
+Each task has **5 samples**, totaling **500 evaluation videos**.
 
 ---
 
-## Links
+## Quick Start
 
-- **Website**: [Video-Reason.com](https://video-reason.com/)
-- **Paper**: [A Very Big Video Reasoning Suite](https://arxiv.org/abs/2602.20159v1)
-- **Slack**: [Join our workspace](https://join.slack.com/t/video-reason/shared_invite/zt-3qqf23icm-UC29fatWWYsIuzRNBR1lgg)
-- **HuggingFace**: [Video-Reason](https://huggingface.co/Video-Reason)
-- **Contact**: [hokinxqdeng@gmail.com](mailto:hokinxqdeng@gmail.com)
+### 1. Install
+
+```bash
+git clone https://github.com/Video-Reason/VBVR-Bench.git
+cd VBVR-Bench
+
+pip install -r requirements.txt
+# Or install as a package
+pip install -e .
+```
+
+### 2. Download Ground Truth Data
+
+Download the VBVR-Bench ground truth data from Hugging Face:
+
+> **Dataset:** [https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data/tree/main)
+
+You can download it using the Hugging Face CLI:
+
+```bash
+# Install huggingface_hub if needed
+pip install huggingface_hub
+
+# Download the dataset
+huggingface-cli download Video-Reason/VBVR-Bench-Data --repo-type dataset --local-dir /path/to/VBVR-Bench
+```
+
+After downloading, you should have the following structure:
+
+```
+/path/to/VBVR-Bench/
+├── VBVR-Bench.json          # Metadata: prompts, first frames (base64), GT paths
+├── In-Domain_50/
+│   ├── G-131_select_next_figure_.../
+│   │   ├── 00000/
+│   │   │   ├── first_frame.png    # Input image (first frame)
+│   │   │   ├── final_frame.png    # Expected final frame
+│   │   │   ├── ground_truth.mp4   # Reference video
+│   │   │   └── prompt.txt         # Text prompt
+│   │   ├── 00001/
+│   │   └── ...                    # 5 samples per task
+│   └── ...                        # 50 tasks
+└── Out-of-Domain_50/
+    └── ...                        # 50 tasks
+```
+
+### 3. Generate Model Videos (Inference)
+
+Use your Image-to-Video model to generate videos for each sample. Each sample provides:
+- **`first_frame.png`** — the input image (condition frame)
+- **`prompt.txt`** — the text prompt
+
+Organize your model outputs in the following structure:
+
+```
+/path/to/model_outputs/
+├── In-Domain_50/
+│   ├── G-131_select_next_figure_.../
+│   │   ├── 00000.mp4              # Generated video for sample 0
+│   │   ├── 00001.mp4              # Generated video for sample 1
+│   │   ├── 00002.mp4
+│   │   ├── 00003.mp4
+│   │   └── 00004.mp4              # 5 videos per task
+│   └── ...                        # Same task folders as GT
+└── Out-of-Domain_50/
+    └── ...                        # Same task folders as GT
+```
+
+> **Note:** The folder names (`In-Domain_50/`, `Out-of-Domain_50/`, task names) and video filenames (`00000.mp4`, etc.) must match the ground truth structure exactly.
+
+You can use `VBVR-Bench.json` to iterate over all 500 samples for inference. Each entry contains:
+- `first_image`: Base64-encoded first frame (can also load from `first_frame_path`)
+- `prompt`: Text prompt for generation
+- `ground_truth_video_path`: Relative path to the GT video for reference
+
+### 4. Run Evaluation
+
+**Option A: Single model evaluation (recommended)**
+
+```bash
+python run_evaluation.py \
+    --model_path /path/to/model_outputs \
+    --gt_base /path/to/VBVR-Bench
+```
+
+**Option B: Batch evaluation (multiple models)**
+
+```bash
+python run_evaluation.py \
+    --models_base /path/to/all_model_outputs \
+    --gt_base /path/to/VBVR-Bench
+
+# Or evaluate specific models
+python run_evaluation.py \
+    --models_base /path/to/all_model_outputs \
+    --gt_base /path/to/VBVR-Bench \
+    --models model_A model_B
+```
+
+**Option C: Install as a pip package**
+
+```bash
+pip install -e .
+```
+
+After installation, two CLI commands are available:
+
+```bash
+# Single model evaluation
+vbvr-evaluate \
+    --videos_path /path/to/model_outputs \
+    --gt_path /path/to/VBVR-Bench
+
+# Batch evaluation (multiple models / checkpoints)
+vbvr-run-evaluation \
+    --models_base /path/to/all_model_outputs \
+    --gt_base /path/to/VBVR-Bench
+```
+
+You can also use it as a Python library:
+
+```python
+from vbvr_bench import VBVRBench
+
+bench = VBVRBench(
+    gt_base_path='/path/to/VBVR-Bench',
+    output_path='./results'
+)
+
+results = bench.evaluate(
+    videos_path='/path/to/model_outputs',
+    name='my_model'
+)
+
+print(f"In-Domain:      {results['In_Domain']['mean_score']:.4f}")
+print(f"Out-of-Domain:  {results['Out_of_Domain']['mean_score']:.4f}")
+print(f"Overall:        {results['overall']['mean_score']:.4f}")
+```
+
+---
+
+## Detailed Usage
+
+### `run_evaluation.py` Arguments
+
+| Argument | Description |
+|---|---|
+| `--model_path` | Path to a single model's video directory |
+| `--models_base` | Base directory containing multiple model folders |
+| `--models` | Specific model names to evaluate (with `--models_base`) |
+| `--gt_base` | **(Required)** Path to the downloaded VBVR-Bench ground truth data |
+| `--output_dir` | Output directory for results (default: auto-generated) |
+| `--device` | `cuda` or `cpu` (default: `cuda`) |
+
+### `evaluate.py` Arguments
+
+| Argument | Description |
+|---|---|
+| `--videos_path` | **(Required)** Path to model output videos |
+| `--gt_path` | **(Required)** Path to ground truth data |
+| `--output_path` | Output directory (default: `./evaluation_results/`) |
+| `--name` | Evaluation run name (default: auto-generated) |
+| `--split` | `In-Domain_50`, `Out-of-Domain_50`, or `all` (default: `all`) |
+| `--tasks` | Specific task names to evaluate |
+| `--device` | `cuda` or `cpu` (default: `cuda`) |
+
+### Supported Directory Structures
+
+The evaluation scripts auto-detect the following model output structures:
+
+```
+# Standard structure (matches VBVR-Bench data)
+model_outputs/
+├── In-Domain_50/
+│   └── {task_name}/
+│       └── {idx}.mp4
+└── Out-of-Domain_50/
+    └── ...
+
+# Checkpoints (auto-detected)
+model_outputs/
+├── checkpoint-100/
+│   ├── In-Domain_50/
+│   └── Out-of-Domain_50/
+└── checkpoint-200/
+    └── ...
+```
+
+---
+
+## Output Format
+
+Results are saved as JSON with the following structure:
+
+```json
+{
+  "model_name": "my_model",
+  "summary": {
+    "In_Domain":     { "mean_score": 0.72, "num_samples": 250, "by_task": {...}, "by_category": {...} },
+    "Out_of_Domain": { "mean_score": 0.65, "num_samples": 250, "by_task": {...}, "by_category": {...} },
+    "overall":       { "mean_score": 0.68, "num_samples": 500, "by_task": {...}, "by_category": {...} }
+  },
+  "samples": [
+    {
+      "video_path": "...",
+      "task_name": "G-131_select_next_...",
+      "split": "In_Domain",
+      "category": "Abstraction",
+      "score": 0.85,
+      "dimensions": { ... }
+    },
+    ...
+  ]
+}
+```
+
+---
+
+## Evaluation Metrics
+
+Each task has a dedicated rule-based evaluator that produces a score between 0 and 1. Evaluators assess multiple dimensions:
+
+| Dimension | Description |
+|---|---|
+| Task-Specific Score | Core reasoning accuracy for the task |
+| First Frame Consistency | Match between input image and generated first frame |
+| Final Frame Accuracy | Correctness of the final frame vs. expected result |
+| Temporal Smoothness | Animation quality and motion coherence |
+| Visual Quality | Overall image quality |
+
+### Task-Specific Evaluators
+
+| Evaluator | Tasks |
+|---|---|
+| SortingEvaluator | Object grouping, size sorting, stable sort |
+| PathEvaluator | Maze navigation, shortest path finding |
+| ShapeEvaluator | Shape identification, marking, selection |
+| TransformationEvaluator | 2D/3D rotations, scaling, movements |
+| PhysicsEvaluator | Ball bouncing, rolling, gravity simulation |
+| AnalogyEvaluator | A:B :: C:? pattern completion |
+| ClockEvaluator | Time calculation and display |
+| CountingEvaluator | Object counting and identification |
+| FrameComparisonEvaluator | General visual similarity (default) |
+
+---
+
+## Repository Structure
+
+```
+VBVR-Bench/
+├── evaluate.py              # Main evaluation script (VBVRBench API)
+├── run_evaluation.py        # Flexible evaluation with auto-detection
+├── requirements.txt         # Python dependencies
+├── setup.py                 # Package installation
+├── task_rules.json          # Detailed evaluation rules per task
+└── vbvr_bench/
+    ├── __init__.py          # VBVRBench class
+    ├── utils.py             # Utility functions
+    └── evaluators/
+        ├── __init__.py      # Evaluator registry, task metadata, and split definitions
+        ├── base_evaluator.py
+        └── ...              # Task-specific evaluator modules
+```
 
 ---
 
 ## Citation
-
-If you use VBVR in your research, please cite:
 
 ```bibtex
 @article{vbvr2026,
@@ -90,7 +331,7 @@ If you use VBVR in your research, please cite:
              Yu, Fengyuan and Xiao, Weihang and Jiao, Yizheng and
              Hou, Jianheng and Zhang, Danyang and Xu, Pengcheng and
              Zhong, Boyang and Zhao, Zehong and Fang, Gaoyun and Kitaoka, John and
-             Xu, Yile and Xu, Hua and Blacutt, Kenton and Nguyen, Tin and
+             Xu, Yile and Xu, Hua bureau and Blacutt, Kenton and Nguyen, Tin and
              Song, Siyuan and Sun, Haoran and Wen, Shaoyue and He, Linyang and
              Wang, Runming and Wang, Yanzhi and Yang, Mengyue and Ma, Ziqiao and
              Milli{\`e}re, Rapha{\"e}l and Shi, Freda and Vasconcelos, Nuno and
@@ -101,14 +342,5 @@ If you use VBVR in your research, please cite:
   year    = {2026},
   url     = {https://arxiv.org/abs/2602.20159}
 }
+
 ```
-
----
-
-## License
-
-Apache 2.0
-
-<p align="center">
-  <img src="assets/logo.png" alt="VBVR Logo" width="200">
-</p>

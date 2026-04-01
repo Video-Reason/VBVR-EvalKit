@@ -20,7 +20,37 @@
     <a href="https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard" target="_blank">
         <img alt="Leaderboard" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Leaderboard-ffc107?color=ffc107&logoColor=white" height="20" />
     </a>
-        <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
+    <a href="https://video-reason.com/" target="_blank">
+        <img alt="Homepage" src="https://img.shields.io/badge/Project%20-%20Homepage-4285F4" height="20" />
+    </a>
+    <a href="https://arxiv.org/abs/2602.20159" target="_blank">
+        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-VBVR_paper-red?logo=arxiv" height="20" />
+    </a>
+    <a href="https://huggingface.co/Video-Reason/VBVR-Wan2.2" target="_blank">
+        <img alt="VBVR-Wan2.2" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Wan2.2-Models-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Dataset" target="_blank">
+        <img alt="VBVR-Dataset" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data" target="_blank">
+        <img alt="VBVR-Bench-Data" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard" target="_blank">
+        <img alt="Leaderboard" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Leaderboard-ffc107?color=ffc107&logoColor=white" height="20" />
+    </a>
+    <a href="https://github.com/Video-Reason/VBVR-EvalKit" target="_blank">
+        <img alt="Code" src="https://img.shields.io/badge/Evaluation_code-VBVR_Bench-100000?style=flat-square&logo=github&logoColor=white" height="20" />
+    </a>
+    <a href="https://github.com/Video-Reason/VBVR-Wan2.2" target="_blank">
+        <img alt="Code" src="https://img.shields.io/badge/Training_code-VBVR_Wan2.2-100000?style=flat-square&logo=github&logoColor=white" height="20" />
+    </a>
+    <a href="https://github.com/Video-Reason/VBVR-DataFactory" target="_blank">
+        <img alt="Code" src="https://img.shields.io/badge/Data_code-VBVR_DataFactory-100000?style=flat-square&logo=github&logoColor=white" height="20" />
+    </a>
+    <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
+        <img alt="Video" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=YouTube&logoColor=white" height="20" />
+    </a>
+    <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
         <img alt="Video" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=YouTube&logoColor=white" height="20" />
     </a>
 </p>

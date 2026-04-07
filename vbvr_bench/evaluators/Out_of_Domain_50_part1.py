@@ -268,9 +268,89 @@ class MultipleKeysForOneDoorEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate multi-key maze for interleaved image generation.
+
+        Interleave outputs 3 frames: start→key1, key1→key2, key2→door.
+        Video version:
+          - key_collection (30%): key count drops, agent at door — first/last frame
+          - order_optimization (25%): keys collected before door — iterates all frames
+          - path_efficiency (25%): path length — iterates all frames
+          - movement_legality (20%): no teleporting — iterates all frames
+        Interleave version:
+          - key_collection (30%): reuse — first/last frame
+          - diff_ssim (70%): replace other three — Hungarian matching diff SSIM
+        """
+        INTERLEAVE_WEIGHTS = {
+            'key_collection': 0.30,
+            'diff_ssim': 0.70,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # key_collection (30%): reuse
+        scores['key_collection'] = self._evaluate_key_collection(input_resized, last_frame)
+
+        # diff_ssim (70%): Hungarian matching on diff images
+        from scipy.optimize import linear_sum_assignment
+
+        target_shape = (pred_images[0].shape[1], pred_images[0].shape[0])
+
+        pred_diffs = []
+        for p in pred_images:
+            if p.shape[:2] != input_resized.shape[:2]:
+                p = cv2.resize(p, target_shape)
+            pred_diffs.append(cv2.absdiff(p, input_resized))
+
+        gt_imgs = gt_images if gt_images else [gt_last]
+        gt_diffs = []
+        for g in gt_imgs:
+            if g.shape[:2] != input_resized.shape[:2]:
+                g = cv2.resize(g, target_shape)
+            gt_diffs.append(cv2.absdiff(g, input_resized))
+
+        n_pred = len(pred_diffs)
+        n_gt = len(gt_diffs)
+        cost_matrix = np.zeros((n_pred, n_gt))
+        for i, pd in enumerate(pred_diffs):
+            for j, gd in enumerate(gt_diffs):
+                cost_matrix[i, j] = 1.0 - compute_ssim(pd, gd)
+
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        matched_ssim = [1.0 - cost_matrix[r, c] for r, c in zip(row_ind, col_ind)]
+        n_matched = len(matched_ssim)
+        n_total = max(n_pred, n_gt)
+
+        scores['diff_ssim'] = np.mean(matched_ssim) * (n_matched / n_total) if matched_ssim else 0.0
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _evaluate_key_collection(
-        self, 
+        self,
         first_frame: np.ndarray,
         final_frame: np.ndarray
     ) -> float:
@@ -859,10 +939,52 @@ class SelectNextFigureAlternatingEvaluator(BaseEvaluator):
         # 4. Animation quality (10%)
         # Rule: Circle should expand smoothly
         scores['animation_quality'] = self._evaluate_animation(video_frames)
-        
+
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate alternating figure selection for interleaved image generation.
+
+        Interleave outputs a single frame with the selected figure marked.
+        Video version:
+          - pattern_recognition (40%): alternating size pattern — first/last frame
+          - selection_correctness (35%): correct candidate marked — first/last frame
+          - marking_accuracy (15%): exactly one red circle — last frame
+          - animation_quality (10%): circle expands smoothly — needs multiple frames
+        Interleave version:
+          - pattern_recognition (50%): reuse, absorb animation_quality weight
+          - selection_correctness (35%): reuse
+          - marking_accuracy (15%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'pattern_recognition': 0.50,
+            'selection_correctness': 0.35,
+            'marking_accuracy': 0.15,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+        first_frame = input_frame
+
+        scores['pattern_recognition'] = self._evaluate_pattern_recognition(first_frame, last_frame)
+        scores['selection_correctness'] = self._evaluate_selection(first_frame, last_frame)
+        scores['marking_accuracy'] = self._evaluate_marking(last_frame, first_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+
     def _evaluate_pattern_recognition(
         self, 
         first_frame: np.ndarray,
@@ -1866,10 +1988,52 @@ class CircleLargestNumericalValueEvaluator(BaseEvaluator):
         
         # 4. Animation quality (10%)
         scores['animation_quality'] = self._evaluate_animation_quality(video_frames)
-        
+
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate circle largest value for interleaved image generation.
+
+        Interleave outputs a single frame with the largest number circled.
+        Video version:
+          - numerical_identification (40%): circle near largest number — first/last frame
+          - circle_position (30%): circle not at edges — last frame
+          - circle_style (20%): red circle quality — last frame
+          - animation_quality (10%): circle expands smoothly — needs multiple frames
+        Interleave version:
+          - numerical_identification (50%): reuse, absorb animation_quality weight
+          - circle_position (30%): reuse
+          - circle_style (20%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'numerical_identification': 0.50,
+            'circle_position': 0.30,
+            'circle_style': 0.20,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+        first_frame = input_frame
+
+        scores['numerical_identification'] = self._evaluate_number_selection(first_frame, last_frame)
+        scores['circle_position'] = self._evaluate_circle_position(last_frame)
+        scores['circle_style'] = self._evaluate_circle_style(last_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+
     def _evaluate_number_selection(
         self, 
         first_frame: np.ndarray,

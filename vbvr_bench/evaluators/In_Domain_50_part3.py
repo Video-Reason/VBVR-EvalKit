@@ -1063,8 +1063,137 @@ class BallBounceEvaluator(BaseEvaluator):
         
         # 4. Smoothness
         scores['smoothness'] = self._calculate_motion_smoothness(gen_positions)
-        
+
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate ball bounce for interleaved image generation.
+
+        Interleave outputs a single frame with the trajectory drawn on it.
+        Video version:
+          - bounce_count (30%): track ball across frames, count direction changes
+          - physics (35%): ball final position vs GT final position
+          - trajectory (25%): total path length
+          - smoothness (10%): velocity variance
+        Interleave version:
+          - bounce_count (30%): HoughLinesP on trajectory line, count direction changes
+          - physics (35%): ball final position vs GT (reuse detection logic)
+          - trajectory_ssim (35%): diff SSIM (pred-input vs gt-input)
+        """
+        INTERLEAVE_WEIGHTS = {
+            'bounce_count': 0.30,
+            'physics': 0.35,
+            'trajectory_ssim': 0.35,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- trajectory_ssim (35%): diff SSIM ---
+        pred_diff = cv2.absdiff(last_frame, input_resized)
+        gt_diff = cv2.absdiff(gt_last, input_resized)
+        scores['trajectory_ssim'] = compute_ssim(pred_diff, gt_diff)
+
+        # --- physics (35%): ball final position ---
+        # Detect ball in pred and GT final frames
+        gen_ball = self._detect_ball(last_frame)
+        gt_ball = self._detect_ball(gt_last)
+
+        if gen_ball is not None and gt_ball is not None:
+            dist = np.sqrt((gen_ball[0] - gt_ball[0])**2 + (gen_ball[1] - gt_ball[1])**2)
+            scores['physics'] = max(0, 1.0 - dist / 100.0)
+        else:
+            scores['physics'] = 0.2
+
+        # --- bounce_count (30%): detect line segments, count direction changes ---
+        pred_gray_diff = cv2.cvtColor(pred_diff, cv2.COLOR_BGR2GRAY) if len(pred_diff.shape) == 3 else pred_diff
+        gt_gray_diff = cv2.cvtColor(gt_diff, cv2.COLOR_BGR2GRAY) if len(gt_diff.shape) == 3 else gt_diff
+
+        _, pred_mask = cv2.threshold(pred_gray_diff, 30, 255, cv2.THRESH_BINARY)
+        _, gt_mask = cv2.threshold(gt_gray_diff, 30, 255, cv2.THRESH_BINARY)
+
+        pred_bounces = self._count_bounces_from_lines(pred_mask)
+        gt_bounces = self._count_bounces_from_lines(gt_mask)
+
+        if gt_bounces > 0:
+            bounce_diff = abs(pred_bounces - gt_bounces)
+            scores['bounce_count'] = max(0, 1.0 - bounce_diff / gt_bounces)
+        else:
+            scores['bounce_count'] = 1.0 if pred_bounces == 0 else 0.5
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+    def _detect_ball(self, frame: np.ndarray) -> Optional[Tuple[float, float]]:
+        """Detect ball position in a single frame."""
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if len(frame.shape) == 3 else frame
+
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20,
+                                    param1=50, param2=30, minRadius=5, maxRadius=50)
+        if circles is not None:
+            circles = np.round(circles[0, :]).astype("int")
+            if len(circles) > 0:
+                return (float(circles[0][0]), float(circles[0][1]))
+
+        # Fallback: contour centroid
+        _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            largest = max(contours, key=cv2.contourArea)
+            M = cv2.moments(largest)
+            if M['m00'] > 0:
+                return (M['m10'] / M['m00'], M['m01'] / M['m00'])
+        return None
+
+    def _count_bounces_from_lines(self, mask: np.ndarray) -> int:
+        """Count direction changes from trajectory line using HoughLinesP."""
+        lines = cv2.HoughLinesP(mask, 1, np.pi / 180,
+                                 threshold=30, minLineLength=20, maxLineGap=10)
+        if lines is None or len(lines) < 2:
+            return 0
+
+        # Sort lines by their midpoint x-coordinate to approximate order
+        line_list = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            mx = (x1 + x2) / 2
+            my = (y1 + y2) / 2
+            angle = np.arctan2(y2 - y1, x2 - x1)
+            line_list.append({'mid': (mx, my), 'angle': angle})
+
+        line_list.sort(key=lambda l: l['mid'][0])
+
+        # Count significant direction changes
+        bounces = 0
+        for i in range(1, len(line_list)):
+            angle_diff = abs(line_list[i]['angle'] - line_list[i-1]['angle'])
+            # Normalize to [0, pi]
+            angle_diff = min(angle_diff, np.pi - angle_diff)
+            if angle_diff > np.pi / 6:  # > 30 degrees = bounce
+                bounces += 1
+
+        return bounces
 
 
 class ColorAdditionEvaluator(BaseEvaluator):

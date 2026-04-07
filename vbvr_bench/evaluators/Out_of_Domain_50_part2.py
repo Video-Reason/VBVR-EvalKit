@@ -663,12 +663,90 @@ class DrawNextSizedShapeEvaluator(BaseEvaluator):
         
         # 4. Animation quality (10%)
         scores['animation_quality'] = self._evaluate_animation(video_frames)
-        
+
         self._last_task_details = scores
         self._last_task_details['first_count'] = len(first_shapes)
         self._last_task_details['final_count'] = len(final_shapes)
-        
+
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate draw next sized shape for interleaved image generation.
+
+        Interleave outputs a single frame with the next shape drawn.
+        Video version:
+          - pattern_recognition (30%): size pattern followed — first/last frame
+          - figure_drawing (35%): drawing quality — first/last frame
+          - label_accuracy (25%): pixel diff vs GT — last frame
+          - animation_quality (10%): smooth growth — needs multiple frames
+        Interleave version:
+          - pattern_recognition (40%): reuse, absorb animation_quality weight
+          - figure_drawing (35%): reuse
+          - label_accuracy (25%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'pattern_recognition': 0.40,
+            'figure_drawing': 0.35,
+            'label_accuracy': 0.25,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        first_frame = input_frame
+        final_frame = pred_images[-1]
+
+        first_shapes = self._detect_shapes_with_area(first_frame, exclude_boxes=True)
+        final_shapes = self._detect_shapes_with_area(final_frame, exclude_boxes=True)
+
+        shape_count_change = len(final_shapes) - len(first_shapes)
+        if shape_count_change > 2 or shape_count_change < 0:
+            self._last_task_details = {
+                'pattern_recognition': 0.0,
+                'figure_drawing': 0.0,
+                'label_accuracy': 0.0,
+                'first_count': len(first_shapes),
+                'final_count': len(final_shapes)
+            }
+            return 0.0
+
+        scores = {}
+
+        pattern_score = self._evaluate_pattern_understanding(first_frame, final_frame)
+        scores['pattern_recognition'] = pattern_score
+
+        pattern_followed = pattern_score > 0.7
+        if pattern_followed:
+            scores['figure_drawing'] = self._evaluate_figure_drawing(first_frame, final_frame)
+        else:
+            scores['figure_drawing'] = 0.0
+
+        if gt_final_frame is not None:
+            gt_final_resized = gt_final_frame
+            if final_frame.shape != gt_final_resized.shape:
+                gt_final_resized = cv2.resize(gt_final_frame, (final_frame.shape[1], final_frame.shape[0]))
+            diff = np.abs(final_frame.astype(float) - gt_final_resized.astype(float)).mean()
+            if diff < 15:
+                scores['label_accuracy'] = 1.0
+            elif diff < 30:
+                scores['label_accuracy'] = 0.3
+            else:
+                scores['label_accuracy'] = 0.0
+        else:
+            scores['label_accuracy'] = self._evaluate_label(final_frame)
+
+        self._last_task_details = scores
+        self._last_task_details['first_count'] = len(first_shapes)
+        self._last_task_details['final_count'] = len(final_shapes)
+
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
     
     def _evaluate_pattern_understanding(
         self, 
@@ -925,10 +1003,51 @@ class MarkWavePeaksEvaluator(BaseEvaluator):
         
         # 4. Animation quality (10%)
         scores['animation_quality'] = self._evaluate_animation_quality(video_frames)
-        
+
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate mark wave peaks for interleaved image generation.
+
+        Interleave outputs a single frame with peaks marked.
+        Video version:
+          - peak_identification (40%): markers near peaks — first/last frame
+          - marking_position (30%): avg distance to peaks — first/last frame
+          - marking_style (20%): marker style quality — last frame
+          - animation_quality (10%): sequential appearance — needs multiple frames
+        Interleave version:
+          - peak_identification (50%): reuse, absorb animation_quality weight
+          - marking_position (30%): reuse
+          - marking_style (20%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'peak_identification': 0.50,
+            'marking_position': 0.30,
+            'marking_style': 0.20,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        first_frame = input_frame
+        last_frame = pred_images[-1]
+
+        scores['peak_identification'] = self._evaluate_peak_identification(first_frame, last_frame)
+        scores['marking_position'] = self._evaluate_marking_positions(first_frame, last_frame)
+        scores['marking_style'] = self._evaluate_marking_style(last_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _evaluate_peak_identification(
         self, 
         first_frame: np.ndarray,

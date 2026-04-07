@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple, Any
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow, safe_distance
+from ..utils import compute_optical_flow, safe_distance, compute_ssim
 
 class StableSortEvaluator(BaseEvaluator):
     """
@@ -374,6 +374,114 @@ class MultiObjectPlacementEvaluator(BaseEvaluator):
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate multi-object placement for interleaved image generation.
+
+        Reuses color_matching, alignment, fidelity, star_invariance from video version.
+        Replaces path (motion smoothness) with frame-by-frame GT comparison.
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        first_frame = input_frame
+        last_frame = pred_images[-1]
+
+        # 1. Color matching (30%) — same as video version
+        gen_objects = self._detect_colored_objects(last_frame)
+        gt_objects = self._detect_colored_objects(gt_final_frame)
+
+        if gen_objects and gt_objects:
+            matched = 0
+            for gen_obj in gen_objects:
+                for gt_obj in gt_objects:
+                    if gen_obj['color'] == gt_obj['color']:
+                        dist = safe_distance(gen_obj['center'], gt_obj['center'])
+                        if dist < 30:
+                            matched += 1
+                            break
+            scores['color_matching'] = matched / max(len(gt_objects), 1)
+        else:
+            scores['color_matching'] = 0.2
+
+        # 2. Alignment precision (25%) — same as video version
+        if gen_objects and gt_objects:
+            total_dist = 0
+            count = 0
+            for gen_obj in gen_objects:
+                min_dist = float('inf')
+                for gt_obj in gt_objects:
+                    if gen_obj['color'] == gt_obj['color']:
+                        dist = safe_distance(gen_obj['center'], gt_obj['center'])
+                        min_dist = min(min_dist, dist)
+                if min_dist < float('inf'):
+                    total_dist += min_dist
+                    count += 1
+            avg_dist = total_dist / count if count > 0 else 100
+            scores['alignment'] = max(0, 1.0 - avg_dist / 50.0)
+        else:
+            scores['alignment'] = 0.2
+
+        # 3. Path (20%) — interleave version: Hungarian matching for best pred-gt pairing
+        if gt_images and pred_images:
+            from scipy.optimize import linear_sum_assignment
+            n_pred = len(pred_images)
+            n_gt = len(gt_images)
+            # Build cost matrix (1 - SSIM, lower = better match)
+            cost_matrix = np.zeros((n_pred, n_gt))
+            for i, pred in enumerate(pred_images):
+                for j, gt in enumerate(gt_images):
+                    if pred.shape != gt.shape:
+                        gt_resized = cv2.resize(gt, (pred.shape[1], pred.shape[0]))
+                    else:
+                        gt_resized = gt
+                    cost_matrix[i, j] = 1.0 - compute_ssim(pred, gt_resized)
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
+            matched_ssim = [1.0 - cost_matrix[r, c] for r, c in zip(row_ind, col_ind)]
+            # Penalize unmatched frames (fewer pred or gt)
+            n_matched = len(matched_ssim)
+            n_total = max(n_pred, n_gt)
+            scores['path'] = np.mean(matched_ssim) * (n_matched / n_total)
+        else:
+            scores['path'] = 0.2
+
+        # 4. Fidelity (15%) — same as video version
+        first_objects = self._detect_colored_objects(first_frame) if first_frame is not None else []
+        if first_objects and gen_objects:
+            count_ratio = min(len(gen_objects), len(first_objects)) / max(len(gen_objects), len(first_objects), 1)
+            first_area = sum(o['area'] for o in first_objects)
+            gen_area = sum(o['area'] for o in gen_objects)
+            area_ratio = min(first_area, gen_area) / max(first_area, gen_area, 1)
+            scores['fidelity'] = 0.5 * count_ratio + 0.5 * area_ratio
+        else:
+            scores['fidelity'] = 0.2
+
+        # 5. Star invariance (10%) — same as video version
+        first_stars = self._detect_star_markers(first_frame) if first_frame is not None else []
+        final_stars = self._detect_star_markers(last_frame)
+        if first_stars and final_stars:
+            preserved = 0
+            for fs in first_stars:
+                for ls in final_stars:
+                    if fs['color'] == ls['color']:
+                        dist = safe_distance(fs['center'], ls['center'])
+                        if dist < 20:
+                            preserved += 1
+                            break
+            scores['star_invariance'] = preserved / max(len(first_stars), 1)
+        else:
+            scores['star_invariance'] = 0.3
+
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+
 class TrackObjectMovementEvaluator(BaseEvaluator):
     """
     G-8: Track object movement evaluator.
@@ -532,7 +640,7 @@ class TrackObjectMovementEvaluator(BaseEvaluator):
 class IdentifyObjectsInRegionEvaluator(BaseEvaluator):
     """
     G-9: Identify objects in region evaluator.
-    
+
     Rule-based evaluation:
     - Region identification (30%): Correct target region identified
     - Shape identification (30%): Correct target shape type identified
@@ -792,6 +900,99 @@ class GridNumberSequenceEvaluator(BaseEvaluator):
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid number sequence for interleaved image generation.
+
+        Interleave outputs a single frame with drawn path lines.
+        Reuses video dimensions where possible:
+        - sequence (35%): reuse — agent final position vs GT (only uses last frame)
+        - path_optimal (35%): replace — extract path lines from pred and GT, compare with SSIM
+        - movement (20%): replace — not applicable, use path line overlap instead
+        - completeness (10%): reuse — agent reaches endpoint (only uses last frame)
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_final_resized = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_final_resized = gt_final_frame
+
+        if input_frame is not None and input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- Reused from video version ---
+
+        # 1. Sequence (35%): agent final position vs GT agent final position
+        final_agent = self._detect_agent(last_frame)
+        gt_agent = self._detect_agent(gt_final_resized)
+
+        if final_agent is not None and gt_agent is not None:
+            dist = np.sqrt((final_agent[0] - gt_agent[0])**2 + (final_agent[1] - gt_agent[1])**2)
+            scores['sequence'] = max(0, 1.0 - dist / 100.0)
+        else:
+            scores['sequence'] = 0.1
+
+        # 4. Completeness (10%): agent reaches red endpoint
+        endpoint = self._detect_endpoint(last_frame)
+        if endpoint is not None and final_agent is not None:
+            dist = np.sqrt((endpoint[0] - final_agent[0])**2 + (endpoint[1] - final_agent[1])**2)
+            scores['completeness'] = 1.0 if dist < 50 else max(0, 1.0 - dist / 100.0)
+        else:
+            scores['completeness'] = 0.1
+
+        # --- Replaced for interleave ---
+
+        # 2. Path optimal (35%): extract drawn path from pred and GT, compare
+        #    path = (frame - input), isolating only the drawn lines
+        if input_resized is not None:
+            pred_path = cv2.absdiff(last_frame, input_resized)
+            gt_path = cv2.absdiff(gt_final_resized, input_resized)
+            scores['path_optimal'] = compute_ssim(pred_path, gt_path)
+        else:
+            # Fallback: compare whole frames
+            scores['path_optimal'] = compute_ssim(last_frame, gt_final_resized)
+
+        # 3. Movement (20%): check if path lines are horizontal/vertical (no diagonal)
+        #    Video version checks agent step directions; interleave version uses
+        #    HoughLinesP to detect line segments and check their angles.
+        #    Tolerant to pixel-level jaggedness since it detects macro-level direction.
+        if input_resized is not None:
+            pred_diff = cv2.cvtColor(cv2.absdiff(last_frame, input_resized), cv2.COLOR_BGR2GRAY)
+            _, pred_mask = cv2.threshold(pred_diff, 30, 255, cv2.THRESH_BINARY)
+            lines = cv2.HoughLinesP(pred_mask, 1, np.pi / 180, threshold=40,
+                                    minLineLength=20, maxLineGap=10)
+            if lines is not None and len(lines) > 0:
+                hv_count = 0
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    dx = abs(x2 - x1)
+                    dy = abs(y2 - y1)
+                    length = max(dx, dy, 1)
+                    if dx < length * 0.25 or dy < length * 0.25:
+                        hv_count += 1
+                scores['movement'] = hv_count / len(lines)
+            else:
+                scores['movement'] = 0.2
+        else:
+            scores['movement'] = 0.1
+
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+
 class GridAvoidObstaclesEvaluator(BaseEvaluator):
     """
     G-15: Grid avoid obstacles evaluator.
@@ -1044,10 +1245,148 @@ class GridAvoidObstaclesEvaluator(BaseEvaluator):
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid obstacle avoidance for interleaved image generation.
+
+        Interleave outputs a single frame with the path drawn on it.
+        Video version:
+          - completion (45%): agent reaches red endpoint — only uses last frame
+          - grid_preserved (30%): grid colors unchanged — compares first/last frame
+          - avoidance (15%): no collision with obstacles — iterates all frames
+          - movement (10%): step-by-step movement — iterates all frames
+        Interleave version:
+          - completion (45%): reuse — agent at red endpoint in pred frame
+          - grid_preserved (30%): reuse — compare input vs pred grid colors
+          - avoidance (15%): replace — check if drawn path overlaps obstacle positions
+          - movement (10%): replace — HoughLinesP check path is horizontal/vertical
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if input_frame is not None and input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        if gt_final_frame.shape != last_frame.shape:
+            gt_final_resized = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_final_resized = gt_final_frame
+
+        # --- Reused from video version ---
+
+        # grid_preserved (30%): check grid cell colors unchanged
+        if input_resized is not None:
+            first_colors = self._get_grid_cell_colors(input_resized)
+        else:
+            first_colors = {}
+        final_colors = self._get_grid_cell_colors(last_frame)
+
+        changed_cells = 0
+        for key in first_colors:
+            first_color = first_colors[key]
+            final_color = final_colors.get(key, 'white')
+            if first_color in ['blue', 'red']:
+                if first_color != final_color and final_color != 'yellow':
+                    changed_cells += 1
+
+        first_br_count = sum(1 for c in first_colors.values() if c in ['blue', 'red'])
+        final_br_count = sum(1 for c in final_colors.values() if c in ['blue', 'red'])
+        if final_br_count > first_br_count + 2:
+            changed_cells += (final_br_count - first_br_count - 2)
+
+        if changed_cells > 0:
+            scores['grid_preserved'] = 0.0
+            scores['completion'] = 0.0
+            scores['avoidance'] = 0.0
+            scores['movement'] = 0.0
+            self._last_task_details = scores
+            self._last_task_details['cells_changed'] = changed_cells
+            return 0.0
+        else:
+            scores['grid_preserved'] = 1.0
+
+        # completion (45%): agent reaches red endpoint
+        endpoint = self._detect_endpoint(last_frame)
+        final_agent = self._detect_agent(last_frame)
+
+        if endpoint is not None and final_agent is not None:
+            dist = np.sqrt((endpoint[0] - final_agent[0])**2 + (endpoint[1] - final_agent[1])**2)
+            if dist < 40:
+                scores['completion'] = 1.0
+            elif dist < 80:
+                scores['completion'] = 0.3
+            else:
+                scores['completion'] = 0.0
+        else:
+            scores['completion'] = 0.0
+
+        # --- Replaced for interleave ---
+
+        # avoidance (15%): check if drawn path overlaps with obstacle positions
+        if input_resized is not None:
+            obstacles = self._detect_obstacles(input_resized)
+            pred_diff = cv2.cvtColor(cv2.absdiff(last_frame, input_resized), cv2.COLOR_BGR2GRAY)
+            _, path_mask = cv2.threshold(pred_diff, 30, 255, cv2.THRESH_BINARY)
+
+            if obstacles and np.sum(path_mask > 0) > 0:
+                collision_count = 0
+                for obs in obstacles:
+                    ox, oy = obs
+                    # Check if path passes through obstacle region (30px radius)
+                    y_lo = max(0, oy - 30)
+                    y_hi = min(path_mask.shape[0], oy + 30)
+                    x_lo = max(0, ox - 30)
+                    x_hi = min(path_mask.shape[1], ox + 30)
+                    region = path_mask[y_lo:y_hi, x_lo:x_hi]
+                    if np.sum(region > 0) > 20:  # significant overlap
+                        collision_count += 1
+                scores['avoidance'] = max(0, 1.0 - collision_count / max(len(obstacles), 1))
+            else:
+                scores['avoidance'] = 0.5  # No obstacles or no path detected
+        else:
+            scores['avoidance'] = 0.0
+
+        # movement (10%): check if path lines are horizontal/vertical
+        if input_resized is not None:
+            pred_diff_gray = cv2.cvtColor(cv2.absdiff(last_frame, input_resized), cv2.COLOR_BGR2GRAY)
+            _, pred_mask = cv2.threshold(pred_diff_gray, 30, 255, cv2.THRESH_BINARY)
+            lines = cv2.HoughLinesP(pred_mask, 1, np.pi / 180, threshold=40,
+                                    minLineLength=20, maxLineGap=10)
+            if lines is not None and len(lines) > 0:
+                hv_count = 0
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    dx = abs(x2 - x1)
+                    dy = abs(y2 - y1)
+                    length = max(dx, dy, 1)
+                    if dx < length * 0.25 or dy < length * 0.25:
+                        hv_count += 1
+                scores['movement'] = hv_count / len(lines)
+            else:
+                scores['movement'] = 0.2
+        else:
+            scores['movement'] = 0.1
+
+        self._last_task_details = scores
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+
 class GridGoThroughBlockEvaluator(BaseEvaluator):
     """
     G-16: Grid go through block evaluator.
-    
+
     Rule-based evaluation:
     - Block visit completeness (40%): All blue blocks visited
     - Path optimality (30%): TSP-optimal path through all blocks
@@ -1210,10 +1549,98 @@ class GridGoThroughBlockEvaluator(BaseEvaluator):
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid go-through-block for interleaved image generation.
+
+        Interleave outputs a single frame with the path drawn on it.
+        Video version:
+          - block_visit (40%): agent visits all blocks — iterates all frames
+          - path_optimal (30%): agent path length vs GT — iterates all frames
+          - completion (20%): agent reaches red endpoint — only uses last frame
+          - movement (10%): no diagonal movement — iterates all frames
+        Interleave version:
+          - path_ssim (70%): merge block_visit + path_optimal — path line SSIM
+            (pred-input vs gt-input). Correct path = visits all blocks + optimal route.
+          - completion (20%): reuse — agent at red endpoint
+          - movement (10%): replace — HoughLinesP horizontal/vertical check
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if input_frame is not None and input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        if gt_final_frame.shape != last_frame.shape:
+            gt_final_resized = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_final_resized = gt_final_frame
+
+        # --- path_ssim (70%): path line SSIM, merges block_visit + path_optimal ---
+        # If path matches GT, it necessarily visits all blocks and is optimal.
+        if input_resized is not None:
+            pred_path = cv2.absdiff(last_frame, input_resized)
+            gt_path = cv2.absdiff(gt_final_resized, input_resized)
+            scores['path_ssim'] = compute_ssim(pred_path, gt_path)
+        else:
+            scores['path_ssim'] = compute_ssim(last_frame, gt_final_resized)
+
+        # --- completion (20%): reuse — agent reaches red endpoint ---
+        endpoint = self._detect_endpoint(last_frame)
+        final_agent = self._detect_agent(last_frame)
+
+        if endpoint is not None and final_agent is not None:
+            dist = np.sqrt((endpoint[0] - final_agent[0])**2 + (endpoint[1] - final_agent[1])**2)
+            scores['completion'] = 1.0 if dist < 50 else max(0, 1.0 - dist / 100.0)
+        else:
+            scores['completion'] = 0.2
+
+        # --- movement (10%): HoughLinesP horizontal/vertical check ---
+        if input_resized is not None:
+            pred_diff_gray = cv2.cvtColor(cv2.absdiff(last_frame, input_resized), cv2.COLOR_BGR2GRAY)
+            _, pred_mask = cv2.threshold(pred_diff_gray, 30, 255, cv2.THRESH_BINARY)
+            lines = cv2.HoughLinesP(pred_mask, 1, np.pi / 180, threshold=40,
+                                    minLineLength=20, maxLineGap=10)
+            if lines is not None and len(lines) > 0:
+                hv_count = 0
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    dx = abs(x2 - x1)
+                    dy = abs(y2 - y1)
+                    length = max(dx, dy, 1)
+                    if dx < length * 0.25 or dy < length * 0.25:
+                        hv_count += 1
+                scores['movement'] = hv_count / len(lines)
+            else:
+                scores['movement'] = 0.2
+        else:
+            scores['movement'] = 0.1
+
+        self._last_task_details = scores
+        interleave_weights = {
+            'path_ssim': 0.70,
+            'completion': 0.20,
+            'movement': 0.10,
+        }
+        return sum(scores[k] * interleave_weights[k] for k in interleave_weights)
+
+
 class GridShortestPathEvaluator(BaseEvaluator):
     """
     G-18: Grid shortest path evaluator.
-    
+
     Rule-based evaluation:
     - Path optimality (50%): Shortest path (Manhattan distance)
     - Completion (25%): Agent reaches endpoint
@@ -1378,10 +1805,104 @@ class GridShortestPathEvaluator(BaseEvaluator):
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid shortest path for interleaved image generation.
+
+        Interleave outputs a single frame with the path drawn on it.
+        Video version:
+          - path_optimal (50%): path length ratio (gen vs GT) — iterates all frames
+          - completion (25%): agent at endpoint — only uses last frame
+          - movement (15%): no diagonal movement — iterates all frames
+          - fidelity (10%): agent exists — uses last frame
+        Interleave version:
+          - path_optimal (50%): replace — compare path pixel count ratio (pred vs GT),
+            tolerant to symmetric paths (same length = same pixel count)
+          - completion (25%): reuse — agent at endpoint
+          - movement (15%): replace — HoughLinesP horizontal/vertical check
+          - fidelity (10%): reuse — agent exists in pred
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if input_frame is not None and input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        if gt_final_frame.shape != last_frame.shape:
+            gt_final_resized = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_final_resized = gt_final_frame
+
+        # --- path_optimal (50%): path line SSIM (pred-input vs gt-input) ---
+        if input_resized is not None:
+            pred_path = cv2.absdiff(last_frame, input_resized)
+            gt_path = cv2.absdiff(gt_final_resized, input_resized)
+            scores['path_optimal'] = compute_ssim(pred_path, gt_path)
+        else:
+            scores['path_optimal'] = compute_ssim(last_frame, gt_final_resized)
+
+        # --- completion (25%): reuse — agent at endpoint ---
+        endpoint = self._detect_endpoint(last_frame)
+        final_agent = self._detect_agent(last_frame)
+        gt_final_agent = self._detect_agent(gt_final_resized)
+
+        if final_agent is not None and gt_final_agent is not None:
+            dist = np.sqrt((final_agent[0] - gt_final_agent[0])**2 +
+                          (final_agent[1] - gt_final_agent[1])**2)
+            scores['completion'] = max(0, 1.0 - dist / 50.0)
+        elif endpoint is not None and final_agent is not None:
+            dist = np.sqrt((endpoint[0] - final_agent[0])**2 + (endpoint[1] - final_agent[1])**2)
+            scores['completion'] = 1.0 if dist < 50 else max(0, 1.0 - dist / 100.0)
+        else:
+            scores['completion'] = 0.2
+
+        # --- movement (15%): HoughLinesP horizontal/vertical check ---
+        if input_resized is not None:
+            pred_diff_gray = cv2.cvtColor(cv2.absdiff(last_frame, input_resized), cv2.COLOR_BGR2GRAY)
+            _, pred_mask = cv2.threshold(pred_diff_gray, 30, 255, cv2.THRESH_BINARY)
+            lines = cv2.HoughLinesP(pred_mask, 1, np.pi / 180, threshold=40,
+                                    minLineLength=20, maxLineGap=10)
+            if lines is not None and len(lines) > 0:
+                hv_count = 0
+                for line in lines:
+                    x1, y1, x2, y2 = line[0]
+                    dx = abs(x2 - x1)
+                    dy = abs(y2 - y1)
+                    length = max(dx, dy, 1)
+                    if dx < length * 0.25 or dy < length * 0.25:
+                        hv_count += 1
+                scores['movement'] = hv_count / len(lines)
+            else:
+                scores['movement'] = 0.2
+        else:
+            scores['movement'] = 0.1
+
+        # --- fidelity (10%): reuse — agent exists ---
+        if final_agent is not None:
+            scores['fidelity'] = 1.0
+        else:
+            scores['fidelity'] = 0.2
+
+        self._last_task_details = scores
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+
 class MultipleOcclusionsVerticalEvaluator(BaseEvaluator):
     """
     G-21: Multiple occlusions vertical evaluator.
-    
+
     Rule-based evaluation:
     - Occlusion correctness (35%): Mask properly occludes objects
     - Object permanence (30%): All objects reappear after mask leaves
@@ -1525,10 +2046,135 @@ class MultipleOcclusionsVerticalEvaluator(BaseEvaluator):
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate multiple occlusions for interleaved image generation.
+
+        Interleave outputs N frames showing mask moving downward.
+        Video version:
+          - occlusion (35%): middle frames differ from first — iterates middle frames
+          - permanence (30%): objects reappear at original positions — uses first/last
+          - motion (20%): final frame matches GT final — uses last frame
+          - consistency (15%): object positions match GT — uses last frame
+        Interleave version:
+          - occlusion (35%): replace — Hungarian matching pred vs GT frames, avg SSIM
+          - permanence (30%): reuse — objects in pred last frame at original positions
+          - motion (20%): replace — detect mask y-position across pred frames,
+            check if monotonically increasing (moving downward)
+          - consistency (15%): reuse — pred last frame object positions vs GT
+        """
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        target = gt_final_frame
+        if input_frame is not None and input_frame.shape != target.shape:
+            input_resized = cv2.resize(input_frame, (target.shape[1], target.shape[0]))
+        else:
+            input_resized = input_frame
+
+        pred_resized = []
+        for p in pred_images:
+            if p.shape != target.shape:
+                pred_resized.append(cv2.resize(p, (target.shape[1], target.shape[0])))
+            else:
+                pred_resized.append(p)
+        last_frame = pred_resized[-1]
+
+        gt_resized = []
+        for g in gt_images:
+            if g.shape != target.shape:
+                gt_resized.append(cv2.resize(g, (target.shape[1], target.shape[0])))
+            else:
+                gt_resized.append(g)
+
+        gt_final_resized = gt_resized[-1] if gt_resized else gt_final_frame
+
+        # --- occlusion (35%): Hungarian matching pred vs GT, avg SSIM ---
+        if pred_resized and gt_resized:
+            from scipy.optimize import linear_sum_assignment
+            n_pred = len(pred_resized)
+            n_gt = len(gt_resized)
+            cost_matrix = np.zeros((n_pred, n_gt))
+            for i, pred in enumerate(pred_resized):
+                for j, gt in enumerate(gt_resized):
+                    cost_matrix[i, j] = 1.0 - compute_ssim(pred, gt)
+            row_ind, col_ind = linear_sum_assignment(cost_matrix)
+            matched_ssim = [1.0 - cost_matrix[r, c] for r, c in zip(row_ind, col_ind)]
+            n_matched = len(matched_ssim)
+            n_total = max(n_pred, n_gt)
+            scores['occlusion'] = np.mean(matched_ssim) * (n_matched / n_total)
+        else:
+            scores['occlusion'] = 0.0
+
+        # --- permanence (30%): reuse — objects reappear at original positions ---
+        initial_objects = self._detect_colored_objects(input_resized) if input_resized is not None else []
+        final_objects = self._detect_colored_objects(last_frame)
+
+        if initial_objects and final_objects:
+            reappeared = 0
+            for io in initial_objects:
+                for fo in final_objects:
+                    dist = np.sqrt((io[0] - fo[0])**2 + (io[1] - fo[1])**2)
+                    if dist < 50:
+                        reappeared += 1
+                        break
+            scores['permanence'] = reappeared / len(initial_objects)
+        else:
+            scores['permanence'] = 0.0 if initial_objects else 0.5
+
+        # --- motion (20%): check if mask moves vertically downward ---
+        # Detect mask y-position in each pred frame, check monotonic increase
+        mask_y_positions = []
+        for pred_frame in pred_resized:
+            mask_rect = self._detect_mask(pred_frame)
+            if mask_rect is not None:
+                _, y, _, h = mask_rect
+                mask_y_positions.append(y + h // 2)  # center y of mask
+
+        if len(mask_y_positions) >= 2:
+            # Count how many consecutive pairs are increasing (moving down)
+            increasing = sum(1 for i in range(1, len(mask_y_positions))
+                           if mask_y_positions[i] >= mask_y_positions[i - 1])
+            scores['motion'] = increasing / (len(mask_y_positions) - 1)
+        elif len(mask_y_positions) == 1:
+            scores['motion'] = 0.5  # Only one mask detected, can't judge direction
+        else:
+            scores['motion'] = 0.0  # No mask detected
+
+        # --- consistency (15%): reuse — object positions match GT ---
+        gt_final_objects = self._detect_colored_objects(gt_final_resized)
+        if final_objects and gt_final_objects:
+            count_match = len(final_objects) == len(gt_final_objects)
+            position_matches = 0
+            for gto in gt_final_objects:
+                for fo in final_objects:
+                    dist = np.sqrt((gto[0] - fo[0])**2 + (gto[1] - fo[1])**2)
+                    if dist < 50:
+                        position_matches += 1
+                        break
+            position_score = position_matches / max(len(gt_final_objects), 1)
+            scores['consistency'] = 0.5 * (1.0 if count_match else 0.0) + 0.5 * position_score
+        else:
+            scores['consistency'] = 0.0 if gt_final_objects else 0.5
+
+        self._last_task_details = scores
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
+
 class SeparateObjectsSpinningEvaluator(BaseEvaluator):
     """
     G-25: Separate objects with spinning evaluator.
-    
+
     Evaluates:
     - Rotation correctness (40%): Objects rotated to match target orientation
     - Alignment precision (30%): Objects align with dashed outlines

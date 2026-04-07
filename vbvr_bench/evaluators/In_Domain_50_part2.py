@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple, Any
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow, detect_shapes, color_distance, safe_distance
+from ..utils import compute_optical_flow, detect_shapes, color_distance, safe_distance, compute_ssim
 
 class ChartExtremeEvaluator(BaseEvaluator):
     """
@@ -339,7 +339,86 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate directed graph navigation for interleaved image generation.
+
+        Interleave outputs a single frame where the traversed path turns yellow.
+        Video version:
+          - completion (35%): agent reaches red endpoint — only uses last frame
+          - circles_preserved (50%): green/red circle colors unchanged — first/last frame
+          - path_quality (15%): no teleporting — iterates all frames
+        Interleave version:
+          - completion (35%): reuse — agent at red endpoint
+          - circles_preserved (50%): reuse — green/red colors preserved
+          - path_quality (15%): replace — path SSIM (pred-input vs gt-input)
+        """
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- circles_preserved (50%): reuse — green/red pixel counts ---
+        first_green, first_red = self._count_circle_colors(input_resized)
+        final_green, final_red = self._count_circle_colors(last_frame)
+
+        first_total = first_green + first_red
+        final_total = final_green + final_red
+        total_change = abs(final_total - first_total) / max(first_total, 1)
+
+        if total_change > 1.0:
+            scores['circles_preserved'] = 0.0
+            scores['completion'] = 0.0
+            scores['path_quality'] = 0.0
+            self._last_task_details = scores
+            return 0.0
+        else:
+            scores['circles_preserved'] = max(0, 1.0 - total_change)
+
+        # --- completion (35%): reuse — agent at red endpoint ---
+        nodes_first = self._detect_nodes(input_resized)
+        gen_agent_final = self._detect_agent(last_frame)
+
+        if gen_agent_final is not None and nodes_first.get('end') is not None:
+            end_pos = nodes_first['end']
+            dist = np.sqrt((gen_agent_final[0] - end_pos[0])**2 +
+                          (gen_agent_final[1] - end_pos[1])**2)
+            if dist < 50:
+                scores['completion'] = 1.0
+            elif dist < 100:
+                scores['completion'] = 0.3
+            else:
+                scores['completion'] = 0.0
+        else:
+            scores['completion'] = 0.0
+
+        # --- path_quality (15%): path SSIM (pred-input vs gt-input) ---
+        pred_path = cv2.absdiff(last_frame, input_resized)
+        gt_path = cv2.absdiff(gt_last, input_resized)
+        scores['path_quality'] = compute_ssim(pred_path, gt_path)
+
+        self._last_task_details = scores
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
     def _detect_agent(self, frame: np.ndarray) -> Optional[Tuple[int, int]]:
         """Detect blue triangular agent position."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -944,7 +1023,84 @@ class GridHighestCostEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid highest cost path for interleaved image generation.
+
+        Interleave outputs a single frame with the path drawn on it.
+        Video version:
+          - completion (45%): pacman reaches red goal — only uses last frame
+          - grid_preserved (35%): grid colors unchanged — first/last frame
+          - movement (20%): no teleporting — iterates all frames
+        Interleave version:
+          - completion (45%): reuse — pacman at red goal
+          - grid_preserved (35%): reuse — grid colors preserved
+          - movement (20%): replace — path SSIM (pred-input vs gt-input)
+        """
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- grid_preserved (35%): reuse ---
+        first_green, first_red = self._count_grid_colors(input_resized)
+        final_green, final_red = self._count_grid_colors(last_frame)
+
+        first_total = first_green + first_red
+        final_total = final_green + final_red
+        total_change = abs(final_total - first_total) / max(first_total, 1)
+
+        if total_change > 1.0:
+            scores['grid_preserved'] = 0.0
+            scores['completion'] = 0.0
+            scores['movement'] = 0.0
+            self._last_task_details = scores
+            return 0.0
+        else:
+            scores['grid_preserved'] = max(0, 1.0 - total_change)
+
+        # --- completion (45%): reuse ---
+        agent = self._detect_pacman(last_frame)
+        goal = self._detect_red_goal(input_resized)
+
+        if agent is not None and goal is not None:
+            dist = np.sqrt((agent[0] - goal[0])**2 + (agent[1] - goal[1])**2)
+            if dist < 50:
+                scores['completion'] = 1.0
+            elif dist < 100:
+                scores['completion'] = 0.5
+            else:
+                scores['completion'] = 0.1
+        else:
+            scores['completion'] = 0.0
+
+        # --- movement (20%): replace — path SSIM ---
+        pred_path = cv2.absdiff(last_frame, input_resized)
+        gt_path = cv2.absdiff(gt_last, input_resized)
+        scores['movement'] = compute_ssim(pred_path, gt_path)
+
+        self._last_task_details = scores
+        return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
+
     def _detect_red_goal(self, frame: np.ndarray) -> Optional[Tuple[int, int]]:
         """Detect red goal cell."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -1809,6 +1965,71 @@ class KeyDoorMatchingEvaluator(BaseEvaluator):
                         })
         
         return doors
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate key-door matching for interleaved image generation.
+
+        Interleave outputs 2 frames:
+          - frame 1: path to key (drawn on the maze)
+          - frame 2: path from key to door (drawn on the maze)
+        Video version tracks agent across all frames to check movement,
+        key collection, door reached, and sequence.
+        Interleave version uses diff SSIM on each frame to evaluate
+        if the drawn paths match GT paths.
+        """
+        if not pred_images or not gt_images or input_frame is None:
+            return 0.0
+
+        # Normalize input
+        target_shape = (pred_images[0].shape[1], pred_images[0].shape[0])
+        if input_frame.shape[:2] != pred_images[0].shape[:2]:
+            input_resized = cv2.resize(input_frame, target_shape)
+        else:
+            input_resized = input_frame
+
+        # Match pred and GT frames using Hungarian algorithm
+        from scipy.optimize import linear_sum_assignment
+
+        pred_diffs = []
+        for p in pred_images:
+            if p.shape[:2] != input_resized.shape[:2]:
+                p = cv2.resize(p, target_shape)
+            pred_diffs.append(cv2.absdiff(p, input_resized))
+
+        gt_diffs = []
+        for g in gt_images:
+            if g.shape[:2] != input_resized.shape[:2]:
+                g = cv2.resize(g, target_shape)
+            gt_diffs.append(cv2.absdiff(g, input_resized))
+
+        n_pred = len(pred_diffs)
+        n_gt = len(gt_diffs)
+        cost_matrix = np.zeros((n_pred, n_gt))
+        for i, pd in enumerate(pred_diffs):
+            for j, gd in enumerate(gt_diffs):
+                cost_matrix[i, j] = 1.0 - compute_ssim(pd, gd)
+
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        matched_ssim = [1.0 - cost_matrix[r, c] for r, c in zip(row_ind, col_ind)]
+        n_matched = len(matched_ssim)
+        n_total = max(n_pred, n_gt)
+
+        score = np.mean(matched_ssim) * (n_matched / n_total)
+        self._last_task_details = {
+            'matched_ssim': matched_ssim,
+            'n_pred': n_pred,
+            'n_gt': n_gt,
+            'n_matched': n_matched,
+        }
+        return float(score)
+
 
 class PredictNextColorEvaluator(BaseEvaluator):
     """

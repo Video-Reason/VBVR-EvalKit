@@ -100,7 +100,90 @@ class GridShiftEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.DEFAULT_WEIGHTS[k] for k in self.DEFAULT_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate grid shift for interleaved image generation.
+
+        Interleave outputs a single frame showing the final grid state.
+        Video version:
+          - direction_correctness (30%): block displacement direction — first/last frame
+          - step_accuracy (30%): block displacement distance — first/last frame
+          - synchronization (20%): all blocks move together — needs multiple frames
+          - position_precision (15%): final block positions vs GT — last frame
+          - completeness (5%): block count/color preserved — first/last frame
+        Interleave version:
+          - direction_correctness (30%): reuse
+          - step_accuracy (30%): reuse
+          - diff_ssim (20%): replace synchronization — diff SSIM on change regions
+          - position_precision (15%): reuse
+          - completeness (5%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'direction_correctness': 0.30,
+            'step_accuracy': 0.30,
+            'diff_ssim': 0.20,
+            'position_precision': 0.15,
+            'completeness': 0.05,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_final = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_final = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        first_blocks = self._detect_colored_blocks(input_resized)
+        gen_final_blocks = self._detect_colored_blocks(last_frame)
+        gt_final_blocks = self._detect_colored_blocks(gt_final)
+
+        scores = {}
+
+        # completeness
+        completeness_score = self._evaluate_completeness(first_blocks, gen_final_blocks)
+        pattern_score = self._evaluate_block_pattern_preservation(
+            input_resized, last_frame, first_blocks, gen_final_blocks
+        )
+        block_preserved = min(completeness_score, pattern_score) > 0.5
+        scores['completeness'] = min(completeness_score, pattern_score)
+
+        if not block_preserved:
+            scores['direction_correctness'] = 0.0
+            scores['step_accuracy'] = 0.0
+            scores['diff_ssim'] = 0.0
+            scores['position_precision'] = 0.0
+        else:
+            scores['direction_correctness'] = self._evaluate_direction(
+                first_blocks, gen_final_blocks, gt_final_blocks)
+            scores['step_accuracy'] = self._evaluate_step_accuracy(
+                first_blocks, gen_final_blocks, gt_final_blocks, last_frame)
+            scores['position_precision'] = self._evaluate_position_precision(
+                gen_final_blocks, gt_final_blocks)
+
+            # diff_ssim: replace synchronization
+            pred_diff = cv2.absdiff(last_frame, input_resized)
+            gt_diff = cv2.absdiff(gt_final, input_resized)
+            scores['diff_ssim'] = compute_ssim(pred_diff, gt_diff)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _detect_colored_blocks(self, frame: np.ndarray) -> List[Dict]:
         """Detect colored blocks in the frame."""
         blocks = []
@@ -1926,6 +2009,64 @@ class TrafficLightEvaluator(BaseEvaluator):
         else:
             return 0.0  # Same color - violation
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate traffic light for interleaved image generation.
+
+        Interleave outputs a single frame showing the final traffic light state.
+        Video version:
+          - final_state_accuracy (35%): light colors match GT — last frame
+          - countdown_correctness (30%): color change count — needs multiple frames
+          - switch_timing (25%): change happens late in video — needs multiple frames
+          - opposite_rule (10%): lights are opposite — last frame
+        Interleave version:
+          - final_state_accuracy (35%): reuse
+          - diff_ssim (55%): replace countdown + switch_timing — diff SSIM
+          - opposite_rule (10%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'final_state_accuracy': 0.35,
+            'diff_ssim': 0.55,
+            'opposite_rule': 0.10,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # final_state_accuracy (35%): reuse
+        scores['final_state_accuracy'] = self._evaluate_final_state(last_frame, gt_last)
+
+        # opposite_rule (10%): reuse
+        scores['opposite_rule'] = self._evaluate_opposite_rule(last_frame)
+
+        # diff_ssim (55%): replace countdown + switch_timing
+        pred_diff = cv2.absdiff(last_frame, input_resized)
+        gt_diff = cv2.absdiff(gt_last, input_resized)
+        scores['diff_ssim'] = compute_ssim(pred_diff, gt_diff)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
 
 class ClockTimeEvaluator(BaseEvaluator):
     """
@@ -2135,6 +2276,52 @@ class ClockTimeEvaluator(BaseEvaluator):
             return 0.5
         else:
             return 0.3
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate clock time for interleaved image generation.
+
+        Interleave outputs a single frame showing the final clock state.
+        Video version:
+          - time_calculation_accuracy (50%): hand angle diff in hours — last frame
+          - hand_position_accuracy (30%): hand angle diff in degrees — last frame
+          - rotation_direction (15%): angles increase over time — needs multiple frames
+          - clock_fidelity (5%): clock face circle detected — last frame
+        Interleave version:
+          - time_calculation_accuracy (65%): reuse, absorb rotation_direction weight
+          - hand_position_accuracy (30%): reuse
+          - clock_fidelity (5%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'time_calculation_accuracy': 0.65,
+            'hand_position_accuracy': 0.30,
+            'clock_fidelity': 0.05,
+        }
+
+        if not pred_images or gt_final_frame is None:
+            return 0.0
+
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        scores = {}
+        scores['time_calculation_accuracy'] = self._evaluate_time_calculation(last_frame, gt_last)
+        scores['hand_position_accuracy'] = self._evaluate_hand_position(last_frame, gt_last)
+        scores['clock_fidelity'] = self._evaluate_clock_fidelity(last_frame, gt_last)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
 
 
 class RotationEvaluator(BaseEvaluator):
@@ -2376,7 +2563,78 @@ class CommunicatingVesselsEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.DEFAULT_WEIGHTS[k] for k in self.DEFAULT_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate communicating vessels for interleaved image generation.
+
+        Interleave outputs a single frame showing the final equilibrium state.
+        Video version:
+          - final_equilibrium (40%): liquid levels equal — last frame
+          - flow_process (30%): liquid change is gradual — needs multiple frames
+          - volume_conservation (20%): total liquid area preserved — first/last frame
+          - visual_fidelity (10%): vessel structure preserved — last frame
+        Interleave version:
+          - final_equilibrium (40%): reuse
+          - diff_ssim (30%): replace flow_process — diff SSIM (pred-input vs gt-input)
+          - volume_conservation (20%): reuse
+          - visual_fidelity (10%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'final_equilibrium': 0.40,
+            'diff_ssim': 0.30,
+            'volume_conservation': 0.20,
+            'visual_fidelity': 0.10,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # final_equilibrium (40%): reuse
+        gt_levels = self._detect_liquid_levels(gt_last)
+        gen_levels = self._detect_liquid_levels(last_frame)
+        equilibrium_score = self._evaluate_final_equilibrium_vs_gt(gen_levels, gt_levels)
+        scores['final_equilibrium'] = equilibrium_score
+
+        if equilibrium_score < 0.5:
+            scores['diff_ssim'] = 0.3
+            scores['volume_conservation'] = 0.3
+            scores['visual_fidelity'] = 0.5
+            self._last_task_details = scores
+            return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+        # diff_ssim (30%): replace flow_process — direct SSIM between pred and GT
+        scores['diff_ssim'] = compute_ssim(last_frame, gt_last)
+
+        # volume_conservation (20%): reuse
+        scores['volume_conservation'] = self._evaluate_volume_conservation(input_resized, last_frame)
+
+        # visual_fidelity (10%): reuse
+        scores['visual_fidelity'] = self._evaluate_visual_fidelity(last_frame, gt_last)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _evaluate_final_equilibrium_vs_gt(self, gen_levels: List[int], gt_levels: List[int]) -> float:
         """Compare generated levels against GT target levels.
         

@@ -496,3 +496,88 @@ class BaseEvaluator(ABC):
             similarities.append(sim)
         
         return np.mean(similarities)
+
+    # =========================================================================
+    # Interleave evaluation
+    # =========================================================================
+
+    def evaluate_interleave(self, eval_info: Dict, **kwargs) -> Dict[str, Any]:
+        """
+        Evaluation function for interleaved image generation tasks.
+        Only computes task_specific score for fair comparison with video models.
+
+        Args:
+            eval_info: Dictionary containing:
+                - input_image: Path to input condition image
+                - pred_images: List of paths to predicted images
+                - gt_images: List of paths to ground truth output images
+                - prompt: Task prompt (optional)
+
+        Returns:
+            Dictionary containing:
+                - score: task_specific score (0-1)
+                - dimensions: Dict of dimension -> score
+                - details: Additional evaluation details
+        """
+        result = {
+            'score': 0.0,
+            'dimensions': {},
+            'details': {}
+        }
+
+        try:
+            # Load images
+            input_frame = load_image(eval_info['input_image'])
+            pred_images = [load_image(p) for p in eval_info['pred_images']]
+            gt_images = [load_image(p) for p in eval_info['gt_images']]
+
+            if not pred_images or input_frame is None:
+                return result
+
+            # Construct video_frames = [input, pred1, pred2, ...]
+            # video_frames[0] = input, video_frames[-1] = last pred
+            # This keeps all 100 task evaluators compatible
+            video_frames = [input_frame] + pred_images
+
+            gt_first_frame = input_frame
+            gt_final_frame = gt_images[-1] if gt_images else None
+
+            # Normalize frame sizes
+            target_frame = gt_final_frame if gt_final_frame is not None else input_frame
+            if target_frame is not None:
+                if video_frames[0].shape != target_frame.shape:
+                    result['details']['frame_normalization'] = (
+                        f'{video_frames[0].shape} -> {target_frame.shape}'
+                    )
+                    video_frames = [normalize_frame_size(f, target_frame) for f in video_frames]
+                if gt_images:
+                    gt_images = [normalize_frame_size(f, target_frame) for f in gt_images]
+                input_frame = video_frames[0]
+
+            result['details']['pred_frame_count'] = len(pred_images)
+            result['details']['gt_frame_count'] = len(gt_images)
+
+            # Task-specific evaluation
+            # Prefer interleave-specific logic if subclass implements it
+            if hasattr(self, '_evaluate_task_specific_interleave'):
+                task_score = self._evaluate_task_specific_interleave(
+                    pred_images, gt_images, input_frame, gt_final_frame, eval_info
+                )
+            else:
+                # Fallback: use existing task_specific with [input, pred...] as video_frames
+                task_score = self._evaluate_task_specific(
+                    video_frames, gt_images, gt_first_frame, gt_final_frame, eval_info
+                )
+
+            task_score = max(0.0, min(1.0, task_score))
+            result['dimensions']['task_specific'] = task_score
+            result['score'] = task_score
+
+            if hasattr(self, '_last_task_details'):
+                result['details']['task_specific_details'] = self._last_task_details
+
+        except Exception as e:
+            result['error'] = str(e)
+            result['score'] = 0.0
+
+        return result

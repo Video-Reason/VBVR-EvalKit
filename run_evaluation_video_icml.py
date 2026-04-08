@@ -1,30 +1,5 @@
-#!/usr/bin/env python3
 """
 Evaluation script for ICML video models (Open_60/Hidden_40 structure).
-
-Model video structure:
-    model_path/
-    ├── Open_60/
-    │   ├── G-xxx_task_name/
-    │   │   ├── 00000.mp4
-    │   │   └── ...
-    │   └── ...
-    └── Hidden_40/
-        └── ...
-
-GT structure:
-    gt_base/
-    ├── In-Domain_50/
-    │   ├── G-xxx_task_name/
-    │   │   ├── 00000/
-    │   │   │   ├── ground_truth.mp4
-    │   │   │   ├── first_frame.png
-    │   │   │   ├── final_frame.png
-    │   │   │   └── prompt.txt
-    │   │   └── ...
-    │   └── ...
-    └── Out-of-Domain_50/
-        └── ...
 
 Usage:
     # Evaluate a single model
@@ -37,11 +12,12 @@ Usage:
         --models_base /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified \
         --gt_base /mnt/umm/users/wangruisi/01-project/mllm/hokin_data/VBVR-Bench
 
-    # Evaluate specific models
+    # Evaluate a single model on specific tasks (use --tasks to specify one or more task names)
     python run_evaluation_video_icml.py \
-        --models_base /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified \
+        --model_path /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified/VBVR-Wan2.2 \
         --gt_base /mnt/umm/users/wangruisi/01-project/mllm/hokin_data/VBVR-Bench \
-        --models VBVR-Wan2.2 Sora2 Veo3
+        --tasks G-3_stable_sort_data-generator G-8_track_object_movement_data-generator G-9_identify_objects_in_region_data-generator
+
 """
 
 import os
@@ -114,8 +90,8 @@ def find_gt_info(gt_base: str, domain: str, task_name: str, video_idx: str):
     return info
 
 
-def evaluate_model(model_path: str, gt_base: str, output_dir: str, device: str = 'cuda'):
-    """Evaluate a single model."""
+def evaluate_model(model_path: str, gt_base: str, output_dir: str, device: str = 'cuda', tasks: list = None):
+    """Evaluate a single model. If tasks is provided, only evaluate those task names."""
     model_name = os.path.basename(model_path)
     print(f"\n{'='*60}")
     print(f"Evaluating: {model_name}")
@@ -136,6 +112,10 @@ def evaluate_model(model_path: str, gt_base: str, output_dir: str, device: str =
                 continue
             # Skip _discarded, _preprocessed
             if task_name.startswith('_'):
+                continue
+
+            # Filter by task names if specified
+            if tasks and task_name not in tasks:
                 continue
 
             gt_domain = task_to_domain.get(task_name)
@@ -286,11 +266,13 @@ def main():
                         help='Output directory for results')
     parser.add_argument('--device', type=str, default='cuda',
                         help='Device (cuda or cpu)')
+    parser.add_argument('--tasks', type=str, nargs='+', default=None,
+                        help='Only evaluate these task names (e.g. G-5_multi_object_placement_data-generator)')
 
     args = parser.parse_args()
 
     if args.model_path:
-        evaluate_model(args.model_path, args.gt_base, args.output_dir, args.device)
+        evaluate_model(args.model_path, args.gt_base, args.output_dir, args.device, args.tasks)
     else:
         # Evaluate multiple models
         all_models = sorted([
@@ -306,7 +288,7 @@ def main():
         for model_name in all_models:
             model_path = os.path.join(args.models_base, model_name)
             try:
-                evaluate_model(model_path, args.gt_base, args.output_dir, args.device)
+                evaluate_model(model_path, args.gt_base, args.output_dir, args.device, args.tasks)
             except Exception as e:
                 print(f"\n[ERROR] {model_name}: {e}")
                 traceback.print_exc()

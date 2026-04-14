@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple, Any
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow, safe_distance
+from ..utils import compute_optical_flow, safe_distance, normalize_frame_size
 
 class StableSortEvaluator(BaseEvaluator):
     """
@@ -1682,9 +1682,9 @@ class SeparateObjectsSpinningEvaluator(BaseEvaluator):
     
     def _evaluate_alignment(self, last_frame: np.ndarray, gt_last: np.ndarray) -> float:
         """Evaluate if objects align with target outlines."""
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Compare using structural similarity in regions with objects
         gray_gen = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)

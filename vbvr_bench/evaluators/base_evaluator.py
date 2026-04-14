@@ -191,7 +191,8 @@ class BaseEvaluator(ABC):
     @staticmethod
     def _resize_to_match(frame1: np.ndarray, frame2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Resize frames to match the smaller frame's dimensions for comparison.
+        Normalize frames to match dimensions for comparison.
+        Handles padding removal (gray/white/black borders) before resizing.
         
         Args:
             frame1: First frame
@@ -203,13 +204,8 @@ class BaseEvaluator(ABC):
         if frame1.shape == frame2.shape:
             return frame1, frame2
         
-        # Resize to the first frame's dimensions
-        h1, w1 = frame1.shape[:2]
-        h2, w2 = frame2.shape[:2]
-        
-        # Resize second frame to match first frame
-        frame2_resized = cv2.resize(frame2, (w1, h1))
-        return frame1, frame2_resized
+        frame2_normalized = normalize_frame_size(frame2, frame1)
+        return frame1, frame2_normalized
     
     def _evaluate_first_frame(
         self, 
@@ -450,7 +446,7 @@ class BaseEvaluator(ABC):
         for i in range(start_idx, len(candidate_frames)):
             frame = candidate_frames[i]
             if frame.shape != target_frame.shape:
-                frame = cv2.resize(frame, (target_frame.shape[1], target_frame.shape[0]))
+                frame = normalize_frame_size(frame, target_frame)
             
             score = compute_ssim(target_frame, frame)
             if score > best_score:
@@ -490,7 +486,7 @@ class BaseEvaluator(ABC):
             g_frame = gt_frames[g_idx]
             
             if v_frame.shape != g_frame.shape:
-                g_frame = cv2.resize(g_frame, (v_frame.shape[1], v_frame.shape[0]))
+                g_frame = normalize_frame_size(g_frame, v_frame)
             
             sim = compute_ssim(v_frame, g_frame)
             similarities.append(sim)

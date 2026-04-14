@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Any, Tuple
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow
+from ..utils import compute_optical_flow, normalize_frame_size
 
 class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
     """
@@ -532,11 +532,11 @@ class ConnectingColorEvaluator(BaseEvaluator):
         if first_frame is None or last_frame is None:
             return 0.0
         
-        # Resize frames if needed
+        # Normalize frame size (handles padding removal + resize)
         if gt_last is not None and last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         if gt_first is not None and first_frame.shape != gt_first.shape:
-            gt_first = cv2.resize(gt_first, (first_frame.shape[1], first_frame.shape[0]))
+            gt_first = normalize_frame_size(gt_first, first_frame)
         
         # Detect circular objects in first frame (before curves are drawn)
         first_objects = self._detect_circular_objects(first_frame)

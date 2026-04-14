@@ -304,9 +304,8 @@ def compute_ssim(img1: np.ndarray, img2: np.ndarray) -> float:
     Compute Structural Similarity Index (SSIM) between two images.
     Returns value between 0 and 1, where 1 means identical.
     """
-    # Ensure same size
     if img1.shape != img2.shape:
-        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        img2 = normalize_frame_size(img2, img1)
     
     # Convert to grayscale if color
     if len(img1.shape) == 3:
@@ -341,7 +340,7 @@ def compute_ssim(img1: np.ndarray, img2: np.ndarray) -> float:
 def compute_mse(img1: np.ndarray, img2: np.ndarray) -> float:
     """Compute Mean Squared Error between two images."""
     if img1.shape != img2.shape:
-        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        img2 = normalize_frame_size(img2, img1)
     
     return float(np.mean((img1.astype(np.float64) - img2.astype(np.float64)) ** 2))
 
@@ -624,7 +623,7 @@ def compute_optical_flow(frame1: np.ndarray, frame2: np.ndarray) -> Tuple[np.nda
 def compute_frame_difference(frame1: np.ndarray, frame2: np.ndarray) -> float:
     """Compute normalized difference between two frames."""
     if frame1.shape != frame2.shape:
-        frame2 = cv2.resize(frame2, (frame1.shape[1], frame1.shape[0]))
+        frame2 = normalize_frame_size(frame2, frame1)
     
     diff = cv2.absdiff(frame1, frame2)
     return float(np.mean(diff) / 255.0)

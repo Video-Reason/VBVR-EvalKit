@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, Any, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
-from ..utils import safe_distance
+from ..utils import safe_distance, normalize_frame_size
 
 
 class GridShiftEvaluator(BaseEvaluator):
@@ -51,9 +51,9 @@ class GridShiftEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         # Detect colored blocks in first and final frames
         first_blocks = self._detect_colored_blocks(first_frame)
@@ -487,9 +487,9 @@ class LightSequenceEvaluator(BaseEvaluator):
         gt_final = gt_final_frame
         gt_first = gt_first_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gen_final = cv2.resize(gen_final, (gt_final.shape[1], gt_final.shape[0]))
+            gen_final = normalize_frame_size(gen_final, gt_final)
         
         scores = {}
         
@@ -832,9 +832,9 @@ class MajorityColorEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -1043,9 +1043,9 @@ class RotationPuzzleEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -1219,9 +1219,9 @@ class SequenceCompletionEvaluator(BaseEvaluator):
         gt_final = gt_final_frame
         gt_first = gt_first_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gen_final = cv2.resize(gen_final, (gt_final.shape[1], gt_final.shape[0]))
+            gen_final = normalize_frame_size(gen_final, gt_final)
         
         scores = {}
         
@@ -1541,9 +1541,9 @@ class SlidingPuzzleEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -1775,9 +1775,9 @@ class TrafficLightEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -1967,9 +1967,9 @@ class ClockTimeEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -2177,9 +2177,9 @@ class RotationEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         
@@ -2332,9 +2332,9 @@ class CommunicatingVesselsEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame  # This is the target equilibrium state
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         scores = {}
         

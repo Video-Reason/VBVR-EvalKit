@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple, Any
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow, detect_shapes, color_distance, safe_distance
+from ..utils import compute_optical_flow, detect_shapes, color_distance, safe_distance, normalize_frame_size
 
 class ChartExtremeEvaluator(BaseEvaluator):
     """
@@ -43,9 +43,9 @@ class ChartExtremeEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect red rectangles in both frames
         gen_red_regions = self._detect_red_rectangle(last_frame)
@@ -280,9 +280,9 @@ class DirectedGraphNavigationEvaluator(BaseEvaluator):
         last_frame = video_frames[-1]
         gt_last = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # CRITICAL: Check if circle colors are preserved
         first_green, first_red = self._count_circle_colors(first_frame)
@@ -568,9 +568,9 @@ class AttentionShiftEvaluator(BaseEvaluator):
         last_frame = video_frames[-1]
         gt_last = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # 1. CRITICAL: Objects must be preserved
         first_obj_count = self._count_objects(first_frame)
@@ -890,9 +890,9 @@ class GridHighestCostEvaluator(BaseEvaluator):
         last_frame = video_frames[-1]
         gt_last = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # CRITICAL: Check if grid colors are preserved
         first_green, first_red = self._count_grid_colors(first_frame)
@@ -1144,9 +1144,9 @@ class UnderstandSceneStructureEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect green markings
         gen_green = self._detect_green_marking(last_frame)
@@ -1845,9 +1845,9 @@ class PredictNextColorEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect color blocks
         gen_blocks = self._detect_color_blocks(last_frame)
@@ -2028,9 +2028,9 @@ class SelectNextFigureIncreasingEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect red circle marking
         gen_red = self._detect_red_circle(last_frame)
@@ -2581,9 +2581,9 @@ class SpotUniqueColorEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect shapes and markings
         gen_shapes = self._detect_colored_shapes(last_frame)

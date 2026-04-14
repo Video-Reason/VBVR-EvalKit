@@ -4,17 +4,17 @@ Evaluation script for ICML video models (Open_60/Hidden_40 structure).
 Usage:
     # Evaluate a single model
     python run_evaluation_video_icml.py \
-        --model_path /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified/VBVR-Wan2.2 \
+        --model_path /mnt/aigc/users/wangruisi/shared_data/vbvr_human_evaluation/original_videos/VBVR-Wan2.2 \
         --gt_base /mnt/umm/users/wangruisi/01-project/mllm/hokin_data/VBVR-Bench
 
     # Evaluate all models under a base directory
     python run_evaluation_video_icml.py \
-        --models_base /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified \
+        --models_base /mnt/aigc/users/wangruisi/shared_data/vbvr_human_evaluation/original_videos \
         --gt_base /mnt/umm/users/wangruisi/01-project/mllm/hokin_data/VBVR-Bench
 
     # Evaluate a single model on specific tasks (use --tasks to specify one or more task names)
     python run_evaluation_video_icml.py \
-        --model_path /mnt/umm/users/wangruisi/01-project/2026_ICML_VBVR/model_videos_modified/VBVR-Wan2.2 \
+        --model_path /mnt/aigc/users/wangruisi/shared_data/vbvr_human_evaluation/original_videos/VBVR-Wan2.2 \
         --gt_base /mnt/umm/users/wangruisi/01-project/mllm/hokin_data/VBVR-Bench \
         --tasks G-3_stable_sort_data-generator G-8_track_object_movement_data-generator G-9_identify_objects_in_region_data-generator
 

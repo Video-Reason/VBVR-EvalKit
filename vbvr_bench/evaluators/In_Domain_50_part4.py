@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, Any, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
+from ..utils import normalize_frame_size
 
 class ConstructionBlueprintEvaluator(BaseEvaluator):
     """
@@ -980,9 +981,9 @@ class BookshelfEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         # STRICT: Compare directly with GT final frame
         # The task requires books to be inserted in correct positions based on height clustering
@@ -1041,9 +1042,9 @@ class BookshelfEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         # Analyze arrangements
         gen_arr = self._analyze_book_arrangement(gen_final)
@@ -1363,9 +1364,9 @@ class RollingBallEvaluator(BaseEvaluator):
         gen_final = video_frames[-1]
         gt_final = gt_final_frame
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if gen_final.shape != gt_final.shape:
-            gt_final = cv2.resize(gt_final, (gen_final.shape[1], gen_final.shape[0]))
+            gt_final = normalize_frame_size(gt_final, gen_final)
         
         # 1. Trajectory accuracy (50%): Compare final ball positions
         # Rule: Ball must accurately pass through each platform's geometric center

@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, Any, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
+from ..utils import normalize_frame_size
 
 class IdentifyAllHollowPointsEvaluator(BaseEvaluator):
     """
@@ -269,9 +270,9 @@ class ConstructConcentricRingEvaluator(BaseEvaluator):
         if last_frame is None or gt_last is None:
             return 0.0
         
-        # Resize if needed
+        # Normalize frame size (handles padding removal + resize)
         if last_frame.shape != gt_last.shape:
-            gt_last = cv2.resize(gt_last, (last_frame.shape[1], last_frame.shape[0]))
+            gt_last = normalize_frame_size(gt_last, last_frame)
         
         # Detect circles
         gen_circles = self._detect_circles(last_frame)

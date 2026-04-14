@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow
+from ..utils import compute_optical_flow, normalize_frame_size
 
 
 class ControlPanelEvaluator(BaseEvaluator):
@@ -344,11 +344,11 @@ class RavenMatrixEvaluator(BaseEvaluator):
         
         scores = {}
         
-        # Resize frames to match if needed
+        # Normalize frame size (handles padding removal + resize)
         if gt_final_frame is not None and final_frame.shape != gt_final_frame.shape:
-            gt_final_frame = cv2.resize(gt_final_frame, (final_frame.shape[1], final_frame.shape[0]))
+            gt_final_frame = normalize_frame_size(gt_final_frame, final_frame)
         if gt_first_frame is not None and first_frame.shape != gt_first_frame.shape:
-            gt_first_frame = cv2.resize(gt_first_frame, (first_frame.shape[1], first_frame.shape[0]))
+            gt_first_frame = normalize_frame_size(gt_first_frame, first_frame)
         
         # Detect what's in each cell
         first_cell_info = self._analyze_all_cells(first_frame)

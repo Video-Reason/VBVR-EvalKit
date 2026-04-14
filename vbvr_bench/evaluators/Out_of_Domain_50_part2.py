@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
+from ..utils import normalize_frame_size
 
 class IdentifyNearestSquareRectangleEvaluator(BaseEvaluator):
     """
@@ -649,7 +650,7 @@ class DrawNextSizedShapeEvaluator(BaseEvaluator):
             gen_final_resized = final_frame
             gt_final_resized = gt_final_frame
             if gen_final_resized.shape != gt_final_resized.shape:
-                gt_final_resized = cv2.resize(gt_final_frame, (final_frame.shape[1], final_frame.shape[0]))
+                gt_final_resized = normalize_frame_size(gt_final_frame, final_frame)
             
             diff = np.abs(gen_final_resized.astype(float) - gt_final_resized.astype(float)).mean()
             if diff < 15:

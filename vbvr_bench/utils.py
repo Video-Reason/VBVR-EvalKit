@@ -196,19 +196,24 @@ def get_video_frames(
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
     if frame_indices is not None:
-        indices = frame_indices
+        indices_set = set(frame_indices)
+        max_idx = max(frame_indices)
     elif max_frames is not None and max_frames < total_frames:
-        indices = np.linspace(0, total_frames - 1, max_frames, dtype=int).tolist()
+        indices_set = set(np.linspace(0, total_frames - 1, max_frames, dtype=int).tolist())
+        max_idx = total_frames - 1
     else:
-        indices = list(range(total_frames))
-    
+        indices_set = None  # Read all frames
+        max_idx = total_frames - 1
+
+    # Read frames sequentially to avoid unreliable seeking with cap.set()
     frames = []
-    for idx in indices:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+    for idx in range(max_idx + 1):
         ret, frame = cap.read()
-        if ret:
+        if not ret:
+            break
+        if indices_set is None or idx in indices_set:
             frames.append(frame)
-    
+
     cap.release()
     return frames
 

@@ -7,5 +7,4 @@ dist/
 build/
 *.egg
 
-vbvr_human_evaluation
-video_eval_results_icml
+evaluation_results

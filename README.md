@@ -57,12 +57,18 @@
 
 </div>
 
-The official evaluation repository for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). 
-A verifiable evaluation framework that moves beyond model-based judging by incorporating rule-based, human-aligned scorers, enabling reproducible and interpretable diagnosis of video reasoning capabilities. 
+The official evaluation repository for [Very Big Video Reasoning (VBVR)](https://video-reason.com/).
+A verifiable evaluation framework that moves beyond model-based judging by incorporating rule-based, human-aligned scorers, enabling reproducible and interpretable diagnosis of video reasoning capabilities.
+
+This toolkit supports two evaluation modes:
+- **Video evaluation** — evaluate Image-to-Video model outputs (`run_evaluation.py`)
+- **Image evaluation (Preview)** — evaluate interleaved image generation outputs (`run_evaluation_image_preview.py`)
+
+Both modes share the same 100 rule-based evaluators and scoring system.
 
 ## Overview
 
-VBVR-Bench evaluates video generation models (especially Image-to-Video models) across **100 tasks** spanning 5 cognitive categories:
+VBVR-Bench evaluates visual reasoning models across **100 tasks** spanning 5 cognitive categories:
 
 | Category | Definition |
 |---|---|
@@ -76,7 +82,7 @@ Tasks are split into two subsets:
 - **In-Domain (50 tasks, 250 samples)** — tasks seen in [VBVR-Dataset](https://huggingface.co/datasets/Video-Reason/VBVR-Dataset/)
 - **Out-of-Domain (50 tasks, 250 samples)** — held-out tasks for generalization testing
 
-Each task has **5 samples**, totaling **500 evaluation videos**.
+Each task has **5 samples**, totaling **500 evaluation samples**.
 
 ---
 
@@ -95,21 +101,13 @@ pip install -e .
 
 ### 2. Download Ground Truth Data
 
-Download the VBVR-Bench ground truth data from Hugging Face:
+#### Video GT Data
 
-> **Dataset:** [https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data/tree/main)
-
-You can download it using the Hugging Face CLI:
+> **Dataset:** [VBVR-Bench-Data](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data)
 
 ```bash
-# Install huggingface_hub if needed
-pip install huggingface_hub
-
-# Download the dataset
 huggingface-cli download Video-Reason/VBVR-Bench-Data --repo-type dataset --local-dir /path/to/VBVR-Bench
 ```
-
-After downloading, you should have the following structure:
 
 ```
 /path/to/VBVR-Bench/
@@ -128,97 +126,93 @@ After downloading, you should have the following structure:
     └── ...                        # 50 tasks
 ```
 
-### 3. Generate Model Videos (Inference)
+#### Image GT Data (Preview)
 
-Use your Image-to-Video model to generate videos for each sample. Each sample provides:
-- **`first_frame.png`** — the input image (condition frame)
-- **`prompt.txt`** — the text prompt
+> **Dataset:** [VBVR-Bench-Data-Image-Preview](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data-Image-Preview)
 
-Organize your model outputs in the following structure:
+```bash
+huggingface-cli download Video-Reason/VBVR-Bench-Data-Image-Preview \
+    --include "*.tar" --repo-type dataset --local-dir /path/to/VBVR-Bench-Image
+
+# Extract all tar files
+cd /path/to/VBVR-Bench-Image
+for f in *.tar; do tar xf "$f"; done
+```
+
+```
+/path/to/VBVR-Bench-Image/
+├── G-131_select_next_figure_.../
+│   ├── 00000/
+│   │   ├── first_frame.png    # Input image
+│   │   ├── output_0.png       # Ground truth output
+│   │   └── meta.json          # Prompt and chain-of-thought reasoning steps
+│   ├── 00001/
+│   └── ...                    # 5 samples per task
+└── ...                        # 100 tasks
+```
+
+### 3. Prepare Model Outputs
+
+#### Video outputs
+
+Generate a video for each sample using `first_frame.png` + `prompt.txt`. Organize as:
 
 ```
 /path/to/model_outputs/
 ├── In-Domain_50/
 │   ├── G-131_select_next_figure_.../
 │   │   ├── 00000.mp4              # Generated video for sample 0
-│   │   ├── 00001.mp4              # Generated video for sample 1
-│   │   ├── 00002.mp4
-│   │   ├── 00003.mp4
-│   │   └── 00004.mp4              # 5 videos per task
-│   └── ...                        # Same task folders as GT
+│   │   ├── 00001.mp4
+│   │   └── ...                    # 5 videos per task
+│   └── ...
 └── Out-of-Domain_50/
-    └── ...                        # Same task folders as GT
+    └── ...
 ```
 
-> **Note:** The folder names (`In-Domain_50/`, `Out-of-Domain_50/`, task names) and video filenames (`00000.mp4`, etc.) must match the ground truth structure exactly.
+#### Image outputs
 
-You can use `VBVR-Bench.json` to iterate over all 500 samples for inference. Each entry contains:
-- `first_image`: Base64-encoded first frame (can also load from `first_frame_path`)
-- `prompt`: Text prompt for generation
-- `ground_truth_video_path`: Relative path to the GT video for reference
+Generate output images for each sample using `first_frame.png` + prompt (from `meta.json`). Mirror the GT structure:
+
+```
+/path/to/model_outputs/
+├── G-131_select_next_figure_.../
+│   ├── 00000/
+│   │   ├── output_0.png           # Model's predicted output
+│   │   └── ...
+│   └── ...
+└── ...
+```
 
 ### 4. Run Evaluation
 
-**Option A: Single model evaluation (recommended)**
+#### Video evaluation
 
 ```bash
+# Single model
 python run_evaluation.py \
     --model_path /path/to/model_outputs \
     --gt_base /path/to/VBVR-Bench
-```
 
-**Option B: Batch evaluation (multiple models)**
-
-```bash
-python run_evaluation.py \
-    --models_base /path/to/all_model_outputs \
-    --gt_base /path/to/VBVR-Bench
-
-# Or evaluate specific models
+# Multiple models
 python run_evaluation.py \
     --models_base /path/to/all_model_outputs \
     --gt_base /path/to/VBVR-Bench \
     --models model_A model_B
 ```
 
-**Option C: Install as a pip package**
+#### Image evaluation (Preview)
 
 ```bash
-pip install -e .
-```
+# Single model
+python run_evaluation_image_preview.py \
+    --pred_path /path/to/model_outputs \
+    --gt_path /path/to/VBVR-Bench-Image
 
-After installation, two CLI commands are available:
-
-```bash
-# Single model evaluation
-vbvr-evaluate \
-    --videos_path /path/to/model_outputs \
-    --gt_path /path/to/VBVR-Bench
-
-# Batch evaluation (multiple models / checkpoints)
-vbvr-run-evaluation \
+# Multiple models
+python run_evaluation_image_preview.py \
     --models_base /path/to/all_model_outputs \
-    --gt_base /path/to/VBVR-Bench
-```
-
-You can also use it as a Python library:
-
-```python
-from vbvr_bench import VBVRBench
-
-bench = VBVRBench(
-    gt_base_path='/path/to/VBVR-Bench',
-    output_path='./results'
-)
-
-results = bench.evaluate(
-    videos_path='/path/to/model_outputs',
-    name='my_model'
-)
-
-print(f"In-Domain:      {results['In_Domain']['mean_score']:.4f}")
-print(f"Out-of-Domain:  {results['Out_of_Domain']['mean_score']:.4f}")
-print(f"Overall:        {results['overall']['mean_score']:.4f}")
+    --gt_path /path/to/VBVR-Bench-Image \
+    --models model_A model_B
 ```
 
 ---
@@ -234,6 +228,17 @@ print(f"Overall:        {results['overall']['mean_score']:.4f}")
 | `--models` | Specific model names to evaluate (with `--models_base`) |
 | `--gt_base` | **(Required)** Path to the downloaded VBVR-Bench ground truth data |
 | `--output_dir` | Output directory for results (default: auto-generated) |
+| `--device` | `cuda` or `cpu` (default: `cuda`) |
+
+### `run_evaluation_image_preview.py` Arguments
+
+| Argument | Description |
+|---|---|
+| `--pred_path` | Path to a single model's prediction directory |
+| `--models_base` | Base directory containing multiple model folders |
+| `--models` | Specific model names to evaluate (with `--models_base`) |
+| `--gt_path` | **(Required)** Path to image ground truth data |
+| `--output_dir` | Output directory for results (default: `./evaluation_results`) |
 | `--device` | `cuda` or `cpu` (default: `cuda`) |
 
 ### `evaluate.py` Arguments
@@ -304,19 +309,19 @@ Results are saved as JSON with the following structure:
 ## Repository Structure
 
 ```
-VBVR-Bench/
-├── evaluate.py              # Main evaluation script (VBVRBench API)
-├── run_evaluation.py        # Flexible evaluation with auto-detection
-├── requirements.txt         # Python dependencies
-├── setup.py                 # Package installation
-├── task_rules.json          # Detailed evaluation rules per task
+VBVR-EvalKit/
+├── evaluate.py                       # Main evaluation script (VBVRBench API)
+├── run_evaluation.py                 # Video evaluation with auto-detection
+├── run_evaluation_image_preview.py   # Image evaluation (Preview)
+├── requirements.txt                  # Python dependencies
+├── setup.py                          # Package installation
 └── vbvr_bench/
-    ├── __init__.py          # VBVRBench class
-    ├── utils.py             # Utility functions
+    ├── __init__.py                   # VBVRBench class
+    ├── utils.py                      # Utility functions
     └── evaluators/
-        ├── __init__.py      # Evaluator registry, task metadata, and split definitions
+        ├── __init__.py               # Evaluator registry, task metadata, and split definitions
         ├── base_evaluator.py
-        └── ...              # Task-specific evaluator modules
+        └── ...                       # Task-specific evaluator modules
 ```
 
 ---

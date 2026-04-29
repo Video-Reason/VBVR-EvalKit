@@ -17,23 +17,11 @@
     <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data" target="_blank">
         <img alt="VBVR-Bench-Data" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
     </a>
-    <a href="https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard" target="_blank">
-        <img alt="Leaderboard" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Leaderboard-ffc107?color=ffc107&logoColor=white" height="20" />
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Dataset-Image-Preview" target="_blank">
+        <img alt="VBVR-Dataset-Image" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Image_Preview-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
     </a>
-    <a href="https://video-reason.com/" target="_blank">
-        <img alt="Homepage" src="https://img.shields.io/badge/Project%20-%20Homepage-4285F4" height="20" />
-    </a>
-    <a href="https://arxiv.org/abs/2602.20159" target="_blank">
-        <img alt="arXiv" src="https://img.shields.io/badge/arXiv-VBVR_paper-red?logo=arxiv" height="20" />
-    </a>
-    <a href="https://huggingface.co/Video-Reason/VBVR-Wan2.2" target="_blank">
-        <img alt="VBVR-Wan2.2" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Wan2.2-Models-ffc107?color=ffc107&logoColor=white" height="20" />
-    </a>
-    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Dataset" target="_blank">
-        <img alt="VBVR-Dataset" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
-    </a>
-    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data" target="_blank">
-        <img alt="VBVR-Bench-Data" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
+    <a href="https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data-Image-Preview" target="_blank">
+        <img alt="VBVR-Bench-Image" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench_Image_Preview-Dataset-ffc107?color=ffc107&logoColor=white" height="20" />
     </a>
     <a href="https://huggingface.co/spaces/Video-Reason/VBVR-Bench-Leaderboard" target="_blank">
         <img alt="Leaderboard" src="https://img.shields.io/badge/%F0%9F%A4%97%20_VBVR_Bench-Leaderboard-ffc107?color=ffc107&logoColor=white" height="20" />
@@ -46,9 +34,6 @@
     </a>
     <a href="https://github.com/Video-Reason/VBVR-DataFactory" target="_blank">
         <img alt="Code" src="https://img.shields.io/badge/Data_code-VBVR_DataFactory-100000?style=flat-square&logo=github&logoColor=white" height="20" />
-    </a>
-    <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
-        <img alt="Video" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=YouTube&logoColor=white" height="20" />
     </a>
     <a href="https://www.youtube.com/watch?v=Gs9TPZmzo-s" target="_blank">
         <img alt="Video" src="https://img.shields.io/badge/YouTube-Video-FF0000?logo=YouTube&logoColor=white" height="20" />
@@ -101,6 +86,8 @@ pip install -e .
 
 ### 2. Download Ground Truth Data
 
+Download the ground truth data corresponding to your evaluation mode. You can use either or both.
+
 #### Video GT Data
 
 > **Dataset:** [VBVR-Bench-Data](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data)
@@ -128,6 +115,8 @@ huggingface-cli download Video-Reason/VBVR-Bench-Data --repo-type dataset --loca
 
 #### Image GT Data (Preview)
 
+For interleaved image evaluation, each sample contains an input image, step-by-step output images, and a `meta.json` with prompts and chain-of-thought reasoning annotations.
+
 > **Dataset:** [VBVR-Bench-Data-Image-Preview](https://huggingface.co/datasets/Video-Reason/VBVR-Bench-Data-Image-Preview)
 
 ```bash
@@ -153,6 +142,8 @@ for f in *.tar; do tar xf "$f"; done
 
 ### 3. Prepare Model Outputs
 
+Use your model to generate outputs for each sample. The input for each sample is the first frame image and a text prompt. Organize your outputs to match the ground truth directory structure.
+
 #### Video outputs
 
 Generate a video for each sample using `first_frame.png` + `prompt.txt`. Organize as:
@@ -171,7 +162,7 @@ Generate a video for each sample using `first_frame.png` + `prompt.txt`. Organiz
 
 #### Image outputs
 
-Generate output images for each sample using `first_frame.png` + prompt (from `meta.json`). Mirror the GT structure:
+For interleaved image models, generate output images for each sample using `first_frame.png` + prompt (from `meta.json`). The output directory should mirror the GT structure:
 
 ```
 /path/to/model_outputs/
@@ -184,6 +175,8 @@ Generate output images for each sample using `first_frame.png` + prompt (from `m
 ```
 
 ### 4. Run Evaluation
+
+Both evaluation modes support single-model and batch (multi-model) evaluation. Results are saved as JSON files with per-sample scores, per-task averages, and per-category breakdowns.
 
 #### Video evaluation
 
@@ -219,6 +212,8 @@ python run_evaluation_image_preview.py \
 
 ## Detailed Usage
 
+Below are the full argument references for each evaluation script.
+
 ### `run_evaluation.py` Arguments
 
 | Argument | Description |
@@ -253,9 +248,9 @@ python run_evaluation_image_preview.py \
 | `--tasks` | Specific task names to evaluate |
 | `--device` | `cuda` or `cpu` (default: `cuda`) |
 
-### Supported Directory Structures
+### Supported Directory Structures (Video)
 
-The evaluation scripts auto-detect the following model output structures:
+The video evaluation scripts auto-detect the following model output structures:
 
 ```
 # Standard structure (matches VBVR-Bench data)
@@ -279,7 +274,7 @@ model_outputs/
 
 ## Output Format
 
-Results are saved as JSON with the following structure:
+Both video and image evaluation produce results in the same JSON format:
 
 ```json
 {

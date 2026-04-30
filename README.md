@@ -58,7 +58,7 @@
 </div>
 
 The official evaluation repository for [Very Big Video Reasoning (VBVR)](https://video-reason.com/). 
-A verifiable evaluation framework that moves beyond model-based judging by incorporating rule-based, human-aligned scorers, enabling reproducible and interpretable diagnosis of video reasoning capabilities. 
+A verifiable evaluation framework that moves beyond model-based judging by incorporating rule-based, human-aligned scorers, enabling reproducible and interpretable diagnosis of video reasoning capabilities. This repository accompanies A Very Big Video Reasoning Suite, accepted to ICML 2026.
 
 ## Overview
 

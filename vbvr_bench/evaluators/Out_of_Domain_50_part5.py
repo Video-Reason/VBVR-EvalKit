@@ -76,7 +76,62 @@ class ControlPanelEvaluator(BaseEvaluator):
         self._last_task_details['final_controls'] = final_controls
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate control panel for interleaved image generation.
+
+        Interleave outputs a single frame showing the final panel state.
+        Video version:
+          - state_matching (45%): controls reach target state — last frame
+          - smoothness (25%): transition smoothness — needs multiple frames
+          - identification (20%): control types identified — first/last frame
+          - preservation (10%): panel layout unchanged — first/last frame
+        Interleave version:
+          - state_matching (70%): reuse, absorb smoothness weight
+          - identification (20%): reuse
+          - preservation (10%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'state_matching': 0.70,
+            'identification': 0.20,
+            'preservation': 0.10,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        first_frame = input_frame
+        final_frame = pred_images[-1]
+
+        first_controls = self._count_control_regions(first_frame)
+        final_controls = self._count_control_regions(final_frame)
+
+        if final_controls < 2 or (first_controls > 2 and final_controls < first_controls // 2):
+            self._last_task_details = {
+                'state_matching': 0.0,
+                'identification': 0.0,
+                'preservation': 0.0,
+                'structure_destroyed': True,
+            }
+            return 0.0
+
+        scores = {}
+        scores['state_matching'] = self._evaluate_state_matching(
+            first_frame, final_frame, gt_final_frame
+        )
+        scores['identification'] = self._evaluate_identification(first_frame, final_frame)
+        scores['preservation'] = self._evaluate_preservation(first_frame, final_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _count_control_regions(self, frame: np.ndarray) -> int:
         """Count distinct control regions (colored areas) in frame."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -914,11 +969,78 @@ class SymbolSubstituteEvaluator(BaseEvaluator):
             scores['substitution_occurred'] = max(0.0, 1.0 - (changed_count - 1) * 0.3)
         
         scores['animation_quality'] = self._evaluate_animation(video_frames)
-        
+
         self._last_task_details = scores
         self._last_task_details['changed_count'] = changed_count
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate symbol substitute for interleaved image generation.
+
+        Interleave outputs a single frame with one symbol substituted.
+        Video version:
+          - count_preservation (40%): same number of symbols — first/last frame
+          - symbol_preservation (35%): other symbols unchanged — first/last frame
+          - substitution_occurred (20%): exactly one changed — first/last frame
+          - animation_quality (5%): smooth cross-fade — needs multiple frames
+        Interleave version:
+          - count_preservation (45%): reuse, absorb animation_quality weight
+          - symbol_preservation (35%): reuse
+          - substitution_occurred (20%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'count_preservation': 0.45,
+            'symbol_preservation': 0.35,
+            'substitution_occurred': 0.20,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        first_frame = input_frame
+        final_frame = pred_images[-1]
+
+        first_symbols = self._detect_symbols(first_frame)
+        final_symbols = self._detect_symbols(final_frame)
+
+        first_count = len(first_symbols)
+        final_count = len(final_symbols)
+
+        if final_count != first_count:
+            self._last_task_details = {
+                'count_preservation': 0.0,
+                'symbol_preservation': 0.0,
+                'substitution_occurred': 0.0,
+                'count_mismatch': True,
+            }
+            return 0.0
+
+        scores = {}
+        scores['count_preservation'] = 1.0
+
+        changed_count, preservation_score = self._evaluate_symbol_changes(
+            first_symbols, final_symbols
+        )
+        scores['symbol_preservation'] = preservation_score
+
+        if changed_count == 1:
+            scores['substitution_occurred'] = 1.0
+        elif changed_count == 0:
+            scores['substitution_occurred'] = 0.0
+        else:
+            scores['substitution_occurred'] = max(0.0, 1.0 - (changed_count - 1) * 0.3)
+
+        self._last_task_details = scores
+        self._last_task_details['changed_count'] = changed_count
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _detect_symbols(self, frame: np.ndarray) -> List[Dict]:
         """Detect colored symbols in the frame."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -1319,7 +1441,45 @@ class GravityPhysicsEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate gravity physics for interleaved image generation.
+
+        Interleave outputs a single frame showing the final ball position.
+        Video version:
+          - physics_accuracy (50%): parabolic trajectory — needs multiple frames
+          - final_position (30%): ball at correct location — last frame
+          - motion_quality (15%): smooth acceleration — needs multiple frames
+          - visual_preservation (5%): scene elements unchanged — first/last frame
+        Interleave version:
+          - final_position (80%): reuse, absorb physics + motion weight
+          - visual_preservation (20%): reuse, absorb remaining weight
+        """
+        INTERLEAVE_WEIGHTS = {
+            'final_position': 0.80,
+            'visual_preservation': 0.20,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        final_frame = pred_images[-1]
+        first_frame = input_frame
+
+        scores['final_position'] = self._evaluate_position(final_frame, gt_final_frame)
+        scores['visual_preservation'] = self._evaluate_visual(first_frame, final_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _detect_ball(self, frame: np.ndarray) -> Optional[Tuple[int, int]]:
         """Detect red ball position."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -1806,11 +1966,52 @@ class ObjectRotation2DEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate 2D object rotation for interleaved image generation.
+
+        Interleave outputs a single frame showing the rotated object.
+        Video version:
+          - angle_accuracy (40%): correct rotation angle — last frame
+          - direction (30%): clockwise/counterclockwise — needs multiple frames
+          - center (20%): rotation around object center — first/last frame
+          - fidelity (10%): shape preserved — first/last frame
+        Interleave version:
+          - angle_accuracy (70%): reuse, absorb direction weight
+          - center (20%): reuse
+          - fidelity (10%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'angle_accuracy': 0.70,
+            'center': 0.20,
+            'fidelity': 0.10,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        first_frame = input_frame
+        final_frame = pred_images[-1]
+
+        scores['angle_accuracy'] = self._evaluate_angle(first_frame, final_frame, gt_final_frame)
+        scores['center'] = self._evaluate_center(first_frame, final_frame)
+        scores['fidelity'] = self._evaluate_fidelity(first_frame, final_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _detect_objects(self, frame: np.ndarray) -> List[Dict]:
         """Detect colored objects and their orientations."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        
+
         # Find colored regions
         mask = cv2.inRange(hsv, np.array([0, 30, 30]), np.array([180, 255, 255]))
         

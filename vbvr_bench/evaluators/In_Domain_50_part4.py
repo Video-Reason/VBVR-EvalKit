@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, Any, List, Optional, Tuple
 from .base_evaluator import BaseEvaluator
-from ..utils import normalize_frame_size
+from ..utils import normalize_frame_size, compute_ssim
 
 class ConstructionBlueprintEvaluator(BaseEvaluator):
     """
@@ -308,11 +308,90 @@ class DominoChainBranchEvaluator(BaseEvaluator):
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate domino chain branch for interleaved image generation.
+
+        Interleave outputs a single frame showing the final domino state.
+        Video version:
+          - fallen_domino (40%): standing/fallen count — uses last frame
+          - gap_rule (30%): red/blue ratio — uses last frame
+          - chain_sequence (20%): fallen count increases over time — needs multiple frames
+          - fall_direction (10%): pixel diff with GT — misnamed
+        Interleave version:
+          - fallen_domino (40%): reuse — standing/fallen count
+          - gap_rule (30%): reuse — red/blue ratio
+          - diff_ssim (30%): replace chain_sequence + fall_direction — diff SSIM
+        """
+        INTERLEAVE_WEIGHTS = {
+            'fallen_domino': 0.40,
+            'gap_rule': 0.30,
+            'diff_ssim': 0.30,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- fallen_domino (40%): reuse ---
+        gen_standing = self._count_standing_dominoes(last_frame)
+        gt_standing = self._count_standing_dominoes(gt_last)
+        gen_fallen = self._count_fallen_dominoes(last_frame)
+        gt_fallen = self._count_fallen_dominoes(gt_last)
+
+        if gt_standing + gt_fallen > 0 and gen_standing + gen_fallen > 0:
+            # Require exact count match for standing and fallen
+            standing_match = 1.0 if gen_standing == gt_standing else 0.0
+            fallen_match = 1.0 if gen_fallen == gt_fallen else 0.0
+            scores['fallen_domino'] = 0.5 * standing_match + 0.5 * fallen_match
+        else:
+            scores['fallen_domino'] = 0.0
+
+        # --- gap_rule (30%): reuse ---
+        gen_colors = self._detect_dominoes_by_color(last_frame)
+        gt_colors = self._detect_dominoes_by_color(gt_last)
+
+        gen_ratio = gen_colors['red'] / max(gen_colors['red'] + gen_colors['blue'], 1)
+        gt_ratio = gt_colors['red'] / max(gt_colors['red'] + gt_colors['blue'], 1)
+
+        # Strict: ratio must be within 5% to get full score
+        ratio_diff = abs(gen_ratio - gt_ratio)
+        scores['gap_rule'] = max(0, 1.0 - ratio_diff * 10)
+
+        # --- diff_ssim (30%): replace chain_sequence + fall_direction ---
+        pred_diff = cv2.absdiff(last_frame, input_resized)
+        gt_diff = cv2.absdiff(gt_last, input_resized)
+        raw_ssim = compute_ssim(pred_diff, gt_diff)
+        # Penalize: SSIM alone is not sufficient for correctness
+        scores['diff_ssim'] = raw_ssim * 0.5
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
 
 class DominoChainGapEvaluator(BaseEvaluator):
     """
     O-24: Domino Chain Gap Analysis
-    
+
     Task: Find where domino chain stops due to gap too large. Identify 
     the last domino that falls before the gap.
     
@@ -448,14 +527,102 @@ class DominoChainGapEvaluator(BaseEvaluator):
         
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
 
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate domino chain gap for interleaved image generation.
+
+        Interleave outputs a single frame showing the final domino state.
+        Video version:
+          - gap_identification (40%): gap position — uses last frame
+          - last_fallen (35%): red/blue ratio — uses last frame
+          - domino_state (15%): red/blue pixel counts — uses last frame
+          - animation_quality (10%): frame diff variance — needs multiple frames
+        Interleave version:
+          - gap_identification (40%): reuse
+          - last_fallen (35%): reuse
+          - domino_state (15%): reuse
+          - diff_ssim (10%): replace animation_quality — diff SSIM
+        """
+        INTERLEAVE_WEIGHTS = {
+            'gap_identification': 0.40,
+            'last_fallen': 0.35,
+            'domino_state': 0.15,
+            'diff_ssim': 0.10,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # --- gap_identification (40%): reuse ---
+        gen_gap = self._find_gap_position(last_frame)
+        gt_gap = self._find_gap_position(gt_last)
+
+        if gen_gap is not None and gt_gap is not None:
+            gap_diff = abs(gen_gap - gt_gap)
+            # Strict: gap position must be within 10px for full score
+            if gap_diff < 10:
+                scores['gap_identification'] = 1.0
+            else:
+                scores['gap_identification'] = 0.0
+        else:
+            scores['gap_identification'] = 0.0
+
+        # --- last_fallen (35%): reuse ---
+        gen_colors = self._analyze_domino_colors(last_frame)
+        gt_colors = self._analyze_domino_colors(gt_last)
+
+        gen_ratio = gen_colors['red'] / max(gen_colors['red'] + gen_colors['blue'], 1)
+        gt_ratio = gt_colors['red'] / max(gt_colors['red'] + gt_colors['blue'], 1)
+
+        # Strict: ratio must be within 5%
+        ratio_diff = abs(gen_ratio - gt_ratio)
+        scores['last_fallen'] = max(0, 1.0 - ratio_diff * 10)
+
+        # --- domino_state (15%): reuse ---
+        if gen_colors['red'] + gen_colors['blue'] > 0 and gt_colors['red'] + gt_colors['blue'] > 0:
+            red_match = min(gen_colors['red'], gt_colors['red']) / max(gen_colors['red'], gt_colors['red'], 1)
+            blue_match = min(gen_colors['blue'], gt_colors['blue']) / max(gen_colors['blue'], gt_colors['blue'], 1)
+            # Require both channels to match closely
+            scores['domino_state'] = 0.0 if min(red_match, blue_match) < 0.7 else min(red_match, blue_match)
+        else:
+            scores['domino_state'] = 0.0
+
+        # --- diff_ssim (10%): replace animation_quality ---
+        pred_diff = cv2.absdiff(last_frame, input_resized)
+        gt_diff = cv2.absdiff(gt_last, input_resized)
+        scores['diff_ssim'] = compute_ssim(pred_diff, gt_diff)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
 
 class LEGOConstructionEvaluator(BaseEvaluator):
     """
     O-25: LEGO Construction Assembly
-    
-    Task: Follow LEGO assembly instructions - move highlighted brick to 
+
+    Task: Follow LEGO assembly instructions - move highlighted brick to
     arrow-indicated position on partial model.
-    
+
     Rule-based evaluation:
     1. Position accuracy (35%) - Brick at arrow position
     2. Stud alignment (30%) - Studs properly aligned

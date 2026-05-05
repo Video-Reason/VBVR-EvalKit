@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from typing import Dict, List, Optional, Any, Tuple
 from .base_evaluator import BaseEvaluator
-from ..utils import compute_optical_flow, normalize_frame_size
+from ..utils import compute_optical_flow, normalize_frame_size, compute_ssim, safe_distance
 
 class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
     """
@@ -80,7 +80,18 @@ class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
         initial_shapes = self._detect_colored_shapes(first_frame)
         final_shapes = self._detect_colored_shapes(last_frame)
         gt_final_shapes = self._detect_colored_shapes(gt_final_frame) if gt_final_frame is not None else []
-        
+
+        # Gate: shape count must match between generated and GT
+        if gt_final_shapes and final_shapes:
+            if abs(len(final_shapes) - len(gt_final_shapes)) > 1:
+                # Shape count mismatch — likely incorrect generation
+                scores['alignment'] = 0.0
+                scores['no_rotation'] = 0.0
+                scores['movement'] = 0.0
+                scores['fidelity'] = 0.0
+                self._last_task_details = scores
+                return 0.0
+
         # 1. Alignment precision: Compare final positions with GT
         if final_shapes and gt_final_shapes:
             total_dist = 0
@@ -93,21 +104,18 @@ class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
                 if min_dist < float('inf'):
                     total_dist += min_dist
                     matched += 1
-            
+
             if matched > 0:
                 avg_dist = total_dist / matched
-                # Close match (< 10 pixels) gets full score
-                if avg_dist < 10:
+                # Strict: shapes must be within 10px of GT positions
+                if avg_dist < 5:
                     scores['alignment'] = 1.0
                 else:
-                    # Lenient threshold (100 pixels)
-                    scores['alignment'] = max(0, 1.0 - avg_dist / 100.0)
+                    scores['alignment'] = max(0, 1.0 - avg_dist / 15.0)
             else:
-                # No matches found - check if shapes moved right
-                scores['alignment'] = self._check_rightward_movement(initial_shapes, final_shapes)
+                scores['alignment'] = 0.0
         else:
-            # Fallback: check if shapes are on right side
-            scores['alignment'] = self._check_rightward_movement(initial_shapes, final_shapes)
+            scores['alignment'] = 0.0
         
         # 2. No rotation constraint: Compare angles between initial and final
         if initial_shapes and final_shapes:
@@ -125,24 +133,22 @@ class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
             
             if angle_diffs:
                 avg_angle_diff = np.mean(angle_diffs)
-                # Small angle diff (< 2 degrees) gets full score
+                # Strict: any rotation > 3 degrees is penalized heavily
                 if avg_angle_diff < 2:
                     scores['no_rotation'] = 1.0
-                elif avg_angle_diff < 15:
-                    scores['no_rotation'] = 0.8
-                elif avg_angle_diff < 30:
-                    scores['no_rotation'] = 0.2  # Detection failed
+                elif avg_angle_diff < 5:
+                    scores['no_rotation'] = 0.3
                 else:
-                    scores['no_rotation'] = max(0, 1.0 - avg_angle_diff / 45.0)
+                    scores['no_rotation'] = 0.0
             else:
-                scores['no_rotation'] = 0.2  # Detection failed
+                scores['no_rotation'] = 0.0
         else:
-            scores['no_rotation'] = 0.2  # Detection failed
+            scores['no_rotation'] = 0.0
         
         # 3. Movement correctness: Check horizontal motion
         frame_diff = cv2.absdiff(first_frame, last_frame)
-        if np.mean(frame_diff) < 5:  # Very similar frames
-            scores['movement'] = 1.0
+        if np.mean(frame_diff) < 5:  # Very similar frames — no movement detected
+            scores['movement'] = 0.0
         else:
             try:
                 flow_result = compute_optical_flow(first_frame, last_frame)
@@ -151,15 +157,15 @@ class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
                     h_flow = np.abs(flow[:, :, 0]).mean()
                     v_flow = np.abs(flow[:, :, 1]).mean()
                     if h_flow + v_flow > 0:
-                        # Horizontal movement should dominate
-                        scores['movement'] = h_flow / (h_flow + v_flow)
+                        # Strict: horizontal must dominate significantly (>80%)
+                        h_ratio = h_flow / (h_flow + v_flow)
+                        scores['movement'] = h_ratio if h_ratio > 0.8 else h_ratio * 0.3
                     else:
-                        scores['movement'] = 0.8
+                        scores['movement'] = 0.0
                 else:
-                    # Check centroid movement direction
-                    scores['movement'] = self._check_horizontal_movement(initial_shapes, final_shapes)
+                    scores['movement'] = 0.0
             except Exception:
-                scores['movement'] = self._check_horizontal_movement(initial_shapes, final_shapes)
+                scores['movement'] = 0.0
         
         # 4. Fidelity: Check shape preservation
         if initial_shapes and final_shapes:
@@ -171,9 +177,10 @@ class SeparateObjectsNoSpinEvaluator(BaseEvaluator):
             final_total_area = sum(s['area'] for s in final_shapes)
             area_ratio = min(initial_total_area, final_total_area) / max(initial_total_area, final_total_area, 1)
             
-            scores['fidelity'] = 0.5 * count_match + 0.5 * area_ratio
+            # Strict: both count and area must match well
+            scores['fidelity'] = min(count_match, area_ratio)
         else:
-            scores['fidelity'] = 0.2  # Detection failed
+            scores['fidelity'] = 0.0
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
@@ -268,9 +275,89 @@ class MultipleKeysForOneDoorEvaluator(BaseEvaluator):
         
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate multi-key maze for interleaved image generation.
+
+        Interleave outputs 3 frames: start→key1, key1→key2, key2→door.
+        Video version:
+          - key_collection (30%): key count drops, agent at door — first/last frame
+          - order_optimization (25%): keys collected before door — iterates all frames
+          - path_efficiency (25%): path length — iterates all frames
+          - movement_legality (20%): no teleporting — iterates all frames
+        Interleave version:
+          - key_collection (30%): reuse — first/last frame
+          - diff_ssim (70%): replace other three — Hungarian matching diff SSIM
+        """
+        INTERLEAVE_WEIGHTS = {
+            'key_collection': 0.30,
+            'diff_ssim': 0.70,
+        }
+
+        if not pred_images or gt_final_frame is None or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+
+        # Normalize sizes
+        if last_frame.shape != gt_final_frame.shape:
+            gt_last = cv2.resize(gt_final_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            gt_last = gt_final_frame
+
+        if input_frame.shape != last_frame.shape:
+            input_resized = cv2.resize(input_frame, (last_frame.shape[1], last_frame.shape[0]))
+        else:
+            input_resized = input_frame
+
+        # key_collection (30%): reuse
+        scores['key_collection'] = self._evaluate_key_collection(input_resized, last_frame)
+
+        # diff_ssim (70%): Hungarian matching on diff images
+        from scipy.optimize import linear_sum_assignment
+
+        target_shape = (pred_images[0].shape[1], pred_images[0].shape[0])
+
+        pred_diffs = []
+        for p in pred_images:
+            if p.shape[:2] != input_resized.shape[:2]:
+                p = cv2.resize(p, target_shape)
+            pred_diffs.append(cv2.absdiff(p, input_resized))
+
+        gt_imgs = gt_images if gt_images else [gt_last]
+        gt_diffs = []
+        for g in gt_imgs:
+            if g.shape[:2] != input_resized.shape[:2]:
+                g = cv2.resize(g, target_shape)
+            gt_diffs.append(cv2.absdiff(g, input_resized))
+
+        n_pred = len(pred_diffs)
+        n_gt = len(gt_diffs)
+        cost_matrix = np.zeros((n_pred, n_gt))
+        for i, pd in enumerate(pred_diffs):
+            for j, gd in enumerate(gt_diffs):
+                cost_matrix[i, j] = 1.0 - compute_ssim(pd, gd)
+
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        matched_ssim = [1.0 - cost_matrix[r, c] for r, c in zip(row_ind, col_ind)]
+        n_matched = len(matched_ssim)
+        n_total = max(n_pred, n_gt)
+
+        scores['diff_ssim'] = np.mean(matched_ssim) * (n_matched / n_total) if matched_ssim else 0.0
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
     def _evaluate_key_collection(
-        self, 
+        self,
         first_frame: np.ndarray,
         final_frame: np.ndarray
     ) -> float:
@@ -584,16 +671,18 @@ class ConnectingColorEvaluator(BaseEvaluator):
         
         # 2. Correct connections score (50%)
         if expected_connections > 0:
-            scores['correct_connections'] = min(1.0, correct_count / expected_connections)
+            # Strict: require all connections to be present
+            ratio = correct_count / expected_connections
+            scores['correct_connections'] = ratio if ratio >= 0.8 else ratio * 0.2
         else:
             scores['correct_connections'] = 0.0
-        
+
         # 3. No wrong connections score (30%)
         if wrong_count == 0:
             scores['no_wrong_connections'] = 1.0
         else:
-            # Each wrong connection heavily penalizes
-            scores['no_wrong_connections'] = max(0.0, 1.0 - wrong_count * 0.4)
+            # Strict: any wrong connection is a major penalty
+            scores['no_wrong_connections'] = max(0.0, 1.0 - wrong_count * 0.8)
         
         scores['connection_details'] = connection_details
         
@@ -859,10 +948,52 @@ class SelectNextFigureAlternatingEvaluator(BaseEvaluator):
         # 4. Animation quality (10%)
         # Rule: Circle should expand smoothly
         scores['animation_quality'] = self._evaluate_animation(video_frames)
-        
+
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate alternating figure selection for interleaved image generation.
+
+        Interleave outputs a single frame with the selected figure marked.
+        Video version:
+          - pattern_recognition (40%): alternating size pattern — first/last frame
+          - selection_correctness (35%): correct candidate marked — first/last frame
+          - marking_accuracy (15%): exactly one red circle — last frame
+          - animation_quality (10%): circle expands smoothly — needs multiple frames
+        Interleave version:
+          - pattern_recognition (50%): reuse, absorb animation_quality weight
+          - selection_correctness (35%): reuse
+          - marking_accuracy (15%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'pattern_recognition': 0.50,
+            'selection_correctness': 0.35,
+            'marking_accuracy': 0.15,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+        first_frame = input_frame
+
+        scores['pattern_recognition'] = self._evaluate_pattern_recognition(first_frame, last_frame)
+        scores['selection_correctness'] = self._evaluate_selection(first_frame, last_frame)
+        scores['marking_accuracy'] = self._evaluate_marking(last_frame, first_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+
     def _evaluate_pattern_recognition(
         self, 
         first_frame: np.ndarray,
@@ -1866,10 +1997,52 @@ class CircleLargestNumericalValueEvaluator(BaseEvaluator):
         
         # 4. Animation quality (10%)
         scores['animation_quality'] = self._evaluate_animation_quality(video_frames)
-        
+
         self._last_task_details = scores
         return sum(scores[k] * self.TASK_WEIGHTS[k] for k in self.TASK_WEIGHTS)
-    
+
+    def _evaluate_task_specific_interleave(
+        self,
+        pred_images: List[np.ndarray],
+        gt_images: List[np.ndarray],
+        input_frame: Optional[np.ndarray],
+        gt_final_frame: Optional[np.ndarray],
+        eval_info: Dict
+    ) -> float:
+        """Evaluate circle largest value for interleaved image generation.
+
+        Interleave outputs a single frame with the largest number circled.
+        Video version:
+          - numerical_identification (40%): circle near largest number — first/last frame
+          - circle_position (30%): circle not at edges — last frame
+          - circle_style (20%): red circle quality — last frame
+          - animation_quality (10%): circle expands smoothly — needs multiple frames
+        Interleave version:
+          - numerical_identification (50%): reuse, absorb animation_quality weight
+          - circle_position (30%): reuse
+          - circle_style (20%): reuse
+        """
+        INTERLEAVE_WEIGHTS = {
+            'numerical_identification': 0.50,
+            'circle_position': 0.30,
+            'circle_style': 0.20,
+        }
+
+        if not pred_images or input_frame is None:
+            return 0.0
+
+        scores = {}
+        last_frame = pred_images[-1]
+        first_frame = input_frame
+
+        scores['numerical_identification'] = self._evaluate_number_selection(first_frame, last_frame)
+        scores['circle_position'] = self._evaluate_circle_position(last_frame)
+        scores['circle_style'] = self._evaluate_circle_style(last_frame)
+
+        self._last_task_details = scores
+        return sum(scores[k] * INTERLEAVE_WEIGHTS[k] for k in INTERLEAVE_WEIGHTS)
+
+
     def _evaluate_number_selection(
         self, 
         first_frame: np.ndarray,
